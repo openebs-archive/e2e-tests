@@ -60,7 +60,7 @@
             - name: Include the blockdevice template in the CSPC spec
               blockinfile:
                 dest: ./cspc.yml
-                marker: "## {{ item }} Ansible Config ##"
+                marker_end: "## {{ item }} Ansible Config ##"
                 insertafter: pools
                 state: present
                 block: |
@@ -68,22 +68,16 @@
               with_items:
                 - "{{ nodes.stdout_lines }}"
 
-            - name: Replacing the pool name in CSPC spec
+            - name: Replacing the pool group id in CSPC spec
               replace:
                 path: ./cspc.yml
                 regexp: "pool-name"
                 replace: "{{ pool_name }}"
 
-            - name: Replacing the pool group id in CSPC spec
-              replace:
-                path: ./cspc.yml
-                regexp: "pool-group"
-                replace: "{{ pool_group }}"
-
             - name: Replacing the storage class name in CSPC spec
               replace:
                 path: ./cspc.yml
-                regexp: "sc_name"
+                regexp: "sc-name"
                 replace: "{{ sc_name }}"
 
             - name: Replacing the namespace in CSPC spec

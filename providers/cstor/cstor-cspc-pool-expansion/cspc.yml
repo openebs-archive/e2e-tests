@@ -1,0 +1,7 @@
+apiVersion: openebs.io/v1alpha1
+kind: CStorPoolCluster
+metadata:
+  name: pool-name
+  namespace: operator_ns
+spec:
+  pools:

@@ -1,6 +1,6 @@
 ---
-    - name: Getting the Unclaimed block-device from each node 
-      shell: kubectl get blockdevice -n {{ operator_ns }} -l kubernetes.io/hostname={{ outer_item }} -o jsonpath='{.items[?(@.status.claimState=="Unclaimed")].metadata.name}' | tr " " "\n" | grep -v sparse | head -n "{{ disk_count }}"
+    - name: Getting the claimed block-device from each node 
+      shell: kubectl get cspi -n {{ operator_ns }} -l openebs.io/cstor-pool-cluster={{ pool_name }},kubernetes.io/hostname={{ outer_item }} -o custom-columns=:.spec.raidGroup[*].blockDevices[*].blockDeviceName --no-headers
       register: blockDevice
 
     - name: Add the block devices
