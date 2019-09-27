@@ -1,0 +1,34 @@
+       - name: Getting the Unclaimed block-device from each node 
+         shell: kubectl get blockdevice -n {{ operator_ns }} -l kubernetes.io/hostname={{ outer_item }} -o jsonpath='{.items[?(@.status.claimState=="Unclaimed")].metadata.name}' | tr " " "\n" | grep -v sparse | head -n "{{ disk_count }}"
+         register: blockDevice
+
+       - block:
+           - name: Add the block devices to expand the pool
+             lineinfile:
+               path: ./cspc.yml
+               insertbefore: '# ## {{ outer_item }} Ansible Config ## ANSIBLE MANAGED BLOCK'
+               line: '        - blockDeviceName: {{ item }}'
+             with_items:
+                 - "{{ blockDevice.stdout_lines }}"
+
+         when: pool_type == "stripe"
+
+       - block:  
+           - name: Add the block devices to expand the pool
+             lineinfile:
+               path: ./expand-block-devices-{{ outer_item }}.yml
+               insertafter: '- blockDevices:'
+               line: '        - blockDeviceName: {{ item }}'
+             with_items:
+                 - "{{ blockDevice.stdout_lines }}" 
+
+           - name: Include the blockdevice template in the CSPC spec to expand the pool
+             blockinfile:
+               dest: ./cspc.yml
+               marker: "{{ outer_item }}" 
+               insertbefore: '# ## {{ outer_item }} Ansible Config ## ANSIBLE MANAGED BLOCK'
+               state: present
+               block: |
+                 {{ lookup('file', './expand-block-devices-{{ outer_item }}.yml') }}
+
+         when: pool_type != "stripe"
