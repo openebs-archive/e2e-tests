@@ -16,7 +16,7 @@
            status: 'SOT'
 
        - name: Get the number of nodes in the cluster
-         shell: kubectl get nodes --no-headers | grep -v master | awk {'print $1'} | wc -l
+         shell: kubectl get nodes --no-headers | wc -l
          args:
            executable: /bin/bash
          register: node_out
@@ -42,7 +42,7 @@
          register: replica_node_name
 
        - name: Getting the node name where replica is not scheduled
-         shell: kubectl get nodes --no-headers | grep -v master | awk {'print $1'}
+         shell: kubectl get nodes -o jsonpath='{.items[?(@.metadata.name!="{{ replica_node_name.stdout }}")].metadata.name}' | tr " " "\n"
          register: node_name
 
        - name: Adding the replica node-name in patch file
