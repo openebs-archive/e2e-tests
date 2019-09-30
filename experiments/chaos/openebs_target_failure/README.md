@@ -64,10 +64,10 @@ It is recommended to pass test-name for configmap and mount the corresponding co
 For percona-mysql, the following parameters are to be injected into configmap.
 
 ```
-parameters.yml: |
-  dbuser: root
-  dbpassword: k8sDem0
-  dbname: tdb
+    parameters.yml: |
+      dbuser: root
+      dbpassword: k8sDem0
+      dbname: tdb
 ```
 
 The configmap data will be utilised by litmus experiments as its variables while executing the scenario.
