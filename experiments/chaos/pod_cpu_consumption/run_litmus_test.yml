@@ -1,0 +1,45 @@
+---
+apiVersion: batch/v1
+kind: Job
+metadata:
+  generateName: pod-cpu-consumption-
+  namespace: litmus 
+spec:
+  template:
+    metadata:
+      name: litmus
+      labels:
+        cpu: pod-cons
+
+    spec:
+      serviceAccountName: litmus
+      restartPolicy: Never
+      containers:
+      - name: ansibletest
+        image: openebs/ansible-runner:ci
+        imagePullPolicy: Always
+        env: 
+          - name: ANSIBLE_STDOUT_CALLBACK
+            value: default
+
+          - name: APP_NAMESPACE
+            value: app-my-ns
+
+#           Enter the cpu limit value for the pod - Ex. "400"
+          - name: CPU_INPUT
+            value: '400'
+
+          - name: APP_LABEL
+            value: 'name=mylabel'
+
+          - name: LIVENESS_APP_LABEL
+            value: ""
+
+          - name: LIVENESS_APP_NAMESPACE
+            value: ""
+
+          - name: DATA_PERSISTENCY
+            value: ""
+
+        command: ["/bin/bash"]
+        args: ["-c", "ansible-playbook ./experiments/chaos/pod_cpu_consumption/test.yml -i /etc/ansible/hosts -vv; exit 0"]        

@@ -1,0 +1,7 @@
+test_name: pod-cpu-consumptions
+application_name: pod-cpu-check
+namespace: "{{ lookup('env','APP_NAMESPACE') }}"
+label: "{{ lookup('env','APP_LABEL') }}"
+cpu_input: "{{ lookup('env','CPU_INPUT') }}"
+liveness_label: "{{ lookup('env','LIVENESS_APP_LABEL') }}"
+data_persistence: "{{ lookup('env','DATA_PERSISTENCE') }}"
