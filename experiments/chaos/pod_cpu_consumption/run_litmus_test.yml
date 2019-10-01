@@ -20,17 +20,19 @@ spec:
         imagePullPolicy: Always
         env: 
           - name: ANSIBLE_STDOUT_CALLBACK
-            value: default
+            value: "default"
 
+          ## ENTER THE NAMESPACE WHERE APP IS RUNNING
           - name: APP_NAMESPACE
-            value: app-my-ns
+            value: "app-my-ns" 
 
 #           Enter the cpu limit value for the pod - Ex. "400"
           - name: CPU_INPUT
-            value: '400'
+            value: "400"
 
+          ## ENTER THE LABEL OF APP
           - name: APP_LABEL
-            value: 'name=mylabel'
+            value: "name=mylabel"
 
           - name: LIVENESS_APP_LABEL
             value: ""
