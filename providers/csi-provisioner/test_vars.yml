@@ -4,7 +4,7 @@
 
 test_name: "csi-provision"
 
-spc: "{{ lookup('env','SPC') }}"
+cspc: "{{ lookup('env','CSPC') }}"
 
 storage_class: "{{ lookup('env','PROVIDER_STORAGE_CLASS') }}"
 
