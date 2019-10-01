@@ -1,0 +1,299 @@
+---
+- hosts: localhost
+  connection: local
+
+  vars_files:
+    - test_vars.yml
+
+  tasks:
+    - block:
+
+         ## Generating the testname for deployment
+        - include_tasks: /utils/fcm/create_testname.yml
+
+         ## RECORD START-OF-TEST IN LITMUS RESULT CR
+        - include_tasks: "/utils/fcm/update_litmus_result_resource.yml"
+          vars:
+            status: 'SOT'
+
+        - name: Obtain the service account name
+          shell: kubectl get deploy -n {{ operator_ns }} -l name=maya-apiserver -o jsonpath="{.items[*].spec.template.spec.serviceAccount}"
+          register: service_account
+
+        - block:
+
+            - name: Check the OpenEBS control plane is running with expected version
+              shell: kubectl get pods -n {{ operator_ns }} -l openebs.io/version={{ old_version }}
+              register: maya_old
+              failed_when: "'No resources found.' in maya_old.stderr"
+
+            - name: Obtain the Node Disk Manger image
+              shell: kubectl get ds -n {{ operator_ns }} -l name=openebs-ndm -o custom-columns=:.spec.template.spec.containers[].image --no-headers
+              register: ndm_tag
+
+            - name: Obtain the Node Disk Manager daemonset current count
+              shell: >
+                kubectl get ds -n {{ operator_ns }} -o jsonpath='{.items[?(@.metadata.labels.name=="openebs-ndm")].status.currentNumberScheduled}'
+              register: ndm_current_count
+
+            - name: Obtain the Node Disk Manager daemonset desired count
+              shell: >
+                kubectl get ds -n {{ operator_ns }} -o jsonpath='{.items[?(@.metadata.labels.name=="openebs-ndm")].status.desiredNumberScheduled}'
+              register: ndm_desired_count
+              failed_when: "{{ ndm_desired_count.stdout }} != {{ ndm_current_count.stdout }}"
+
+            - name: Downloading openebs-operator.yaml
+              get_url:
+                url: "{{ openebs_operator_link }}"
+                dest: "{{ playbook_dir }}/{{ openebs_operator }}"
+                force: yes
+              register: result
+              until:  "'OK' in result.msg"
+              delay: 5
+              retries: 3
+
+            - name: Applying openebs operator
+              shell: kubectl apply -f "{{ openebs_operator }}"
+              args:
+                executable: /bin/bash
+              ignore_errors: true
+
+          when: upgrade_control_plane == "true"
+
+        - name: Verify that rolling update of maya-apiserver is completed
+          shell: >
+            kubectl get pods --no-headers -n {{ operator_ns }}
+            -l name=maya-apiserver | wc -l
+          args:
+            executable: /bin/bash
+          register: maya_count
+          until: "maya_count.stdout == '1'"
+          delay: 5
+          retries: 120
+
+        - name: Checking Maya-API-Server container status
+          shell: >
+            kubectl get pods --no-headers -n {{ operator_ns }} -l name=maya-apiserver
+            -o jsonpath='{.items[?(@.status.containerStatuses[*].name=="maya-apiserver")].status.containerStatuses[*].ready}'
+          register: maya_api
+          until: "maya_api.stdout == 'true'"
+          delay: 5
+          retries: 120
+
+        - name: Checking OpenEBS-provisioner is running
+          shell: kubectl get pods -n {{ operator_ns }} -o jsonpath='{.items[?(@.metadata.labels.name=="openebs-provisioner")].status.phase}'
+          register: openebs_prob
+          until: "'Running' in openebs_prob.stdout"
+          delay: 5
+          retries: 120
+
+        - name: Checking OpenEBS-admission-server is running
+          shell: kubectl get pods -n {{ operator_ns }} -o jsonpath='{.items[?(@.metadata.labels.app=="admission-webhook")].status.phase}'
+          register: admission_web
+          until: "'Running' in admission_web.stdout"
+          delay: 5
+          retries: 120
+
+        - name: Checking OpenEBS-Snapshot-Operator is running
+          shell: kubectl get pods -n {{ operator_ns }} -o jsonpath='{.items[?(@.metadata.labels.name=="openebs-snapshot-operator")].status.phase}'
+          register: oso
+          until: "'Running' in oso.stdout"
+          delay: 5
+          retries: 120
+
+        - name: Check if the maya api server is upgraded to newer version
+          shell: >
+            kubectl get pods -n {{ operator_ns }}
+            -o jsonpath='{.items[?(@.metadata.labels.name=="maya-apiserver")].spec.containers[*].image}' | cut -d ':' -f2
+          register: new_maya
+          failed_when: "new_maya.stdout != new_version"
+
+        - block:
+            - name: Obtain the SPC name
+              shell: kubectl get spc -o custom-columns=:.metadata.name --no-headers
+              register: spc_name
+              failed_when: "'No resources found.' in spc_name.stderr"
+
+            - name: create job yaml spec for spc upgrade
+              template:
+                src: ./cstor-spc-upgrade-job.j2
+                dest: ./cstor-spc-upgrade-job-{{ item }}.yml
+              with_items:
+                - "{{ spc_name.stdout }}"
+
+            - name: Replacing the spc name in upgrade SPC job spec
+              replace:
+                path: ./cstor-spc-upgrade-job-{{ item }}.yml
+                regexp: "pool_name"
+                replace: "{{ item }}"
+              with_items:
+                - "{{ spc_name.stdout }}"
+
+            - name: Replacing the service Account name in upgrade SPC job spec
+              replace:
+                path: ./cstor-spc-upgrade-job-{{ item }}.yml
+                regexp: "service_account"
+                replace: "{{ service_account.stdout }}"
+              with_items:
+                - "{{ spc_name.stdout }}"
+
+            - name: Create the job to upgrade the SPC pool
+              shell: kubectl apply -f cstor-spc-upgrade-job-{{ item }}.yml
+              args:
+                executable: /bin/bash
+              with_items:
+                - "{{ spc_name.stdout }}"
+
+            - name: Check if the upgrade jobs been completed
+              shell: kubectl get pods -n {{ operator_ns }}  -l job-name={{ item }} -o custom-columns=:.status.phase --no-headers
+              register: job_status
+              until: "'Succeeded' in job_status.stdout"
+              delay: 5
+              retries: 45
+              with_items:
+                - "{{ spc_name.stdout_lines }}"
+
+            - name: Check if the SPC pool pods status
+              shell: >
+                kubectl get pods -n {{ operator_ns }} -l openebs.io/storage-pool-claim={{ item }} -o custom-columns=:.status.phase --no-headers
+              register: pool_status
+              until: "((pool_status.stdout_lines|unique)|length) == 1 and 'Running' in pool_status.stdout"
+              retries: 30
+              delay: 10
+              with_items:
+                 - "{{ spc_name.stdout_lines }}"
+
+            - name: Check if the CSPs are in Health state
+              shell: kubectl get csp -l openebs.io/storage-pool-claim={{ item }} -o custom-columns=:.status.phase --no-headers --no-headers
+              register: csp_status
+              until: "((csp_status.stdout_lines|unique)|length) == 1 and 'Healthy' in csp_status.stdout"
+              retries: 30
+              delay: 10
+              with_items:
+                  - "{{ spc_name.stdout_lines }}"
+
+            - name: Obtain the PV name
+              shell: kubectl get pv -l openebs.io/cas-type=cstor -o custom-columns=:.metadata.name --no-headers
+              register: pv_name
+              failed_when: "'No resources found.' in pv_name.stderr"
+
+            - name: create job yaml spec for upgrade PV
+              template:
+                src: ./cstor-volume-upgrade-job.j2
+                dest: ./cstor-volume-upgrade-job-{{ item }}.yml
+              with_items:
+                - "{{ pv_name.stdout_lines }}"
+
+            - name: Replacing the pv name in upgrade pv job spec
+              replace:
+                path: ./cstor-volume-upgrade-job-{{ item }}.yml
+                regexp: "cstor_volume_name"
+                replace: "{{ item }}"
+              with_items:
+                - "{{ pv_name.stdout_lines }}"
+
+            - name: Replacing the service Account name in upgrade cstor volume job spec
+              replace:
+                path: ./cstor-volume-upgrade-job-{{ item }}.yml
+                regexp: "service_account"
+                replace: "{{ service_account.stdout }}"
+              with_items:
+                - "{{ pv_name.stdout_lines }}"
+
+            - name: Create the job to upgrade the PV
+              shell: kubectl apply -f cstor-volume-upgrade-job-{{ item }}.yml
+              args:
+                executable: /bin/bash
+              with_items:
+                - "{{ pv_name.stdout_lines }}"
+
+            - name: Check if the upgrade jobs been completed
+              shell: kubectl get pods -n {{ operator_ns }} -l job-name={{ item }} -o custom-columns=:.status.phase --no-headers
+              register: job_status
+              until: "'Succeeded' in job_status.stdout"
+              delay: 5
+              retries: 45
+              with_items:
+                - "{{ pv_name.stdout_lines }}"
+
+            - name: Check the target is in Running state
+              shell: >
+                kubectl get pods -n {{ operator_ns }} -l openebs.io/persistent-volume={{ item }} -o custom-columns=:.status.phase --no-headers
+              register: target_status
+              until: "((target_status.stdout_lines|unique)|length) == 1 and 'Running' in target_status.stdout"
+              retries: 30
+              delay: 10
+              with_items:
+                - "{{ pv_name.stdout_lines }}"
+
+          when: upgrade_cstor == "true"
+
+        - block:
+            - name: Obtain the PV name
+              shell: kubectl get pv -l openebs.io/cas-type=jiva -o custom-columns=:.metadata.name --no-headers
+              register: jiva_pv_name
+              failed_when: "'No resources found.' in jiva_pv_name.stderr"
+
+            - name: create job yaml spec for upgrade
+              template:
+                src: ./jiva-volume-upgrade-job.j2
+                dest: ./jiva-volume-upgrade-job-{{ item }}.yml
+              with_items:
+                - "{{ jiva_pv_name.stdout_lines }}"
+
+            - name: Replacing the spc name in upgrade pv job spec
+              replace:
+                path: ./jiva-volume-upgrade-job-{{ item }}.yml
+                regexp: "jiva_volume_name"
+                replace: "{{ item }}"
+              with_items:
+                - "{{ jiva_pv_name.stdout_lines }}"
+
+            - name: Replacing the service Account name in upgrade jiva volume job spec
+              replace:
+                path: ./jiva-volume-upgrade-job-{{ item }}.yml
+                regexp: "service_account"
+                replace: "{{ service_account.stdout }}"
+              with_items:
+                - "{{ jiva_pv_name.stdout_lines }}"
+
+            - name: Create the job to upgrade the PV
+              shell: kubectl apply -f jiva-volume-upgrade-job-{{ item }}.yml
+              args:
+                executable: /bin/bash
+              with_items:
+                - "{{ jiva_pv_name.stdout_lines }}"
+
+            - name: Check if the upgrade jobs been completed
+              shell: kubectl get pods -n {{ operator_ns }} -l job-name={{ item }} -o custom-columns=:.status.phase --no-headers
+              register: job_status
+              until: "'Succeeded' in job_status.stdout"
+              delay: 5
+              retries: 45
+              with_items:
+                - "{{ jiva_pv_name.stdout_lines }}"
+
+            - name: Check the controler and replica is in Running state
+              shell: >
+                kubectl get pods --all-namespaces -l openebs.io/persistent-volume={{ item }} -o custom-columns=:.status.phase --no-headers
+              register: ctrl_status
+              until: "((ctrl_status.stdout_lines|unique)|length) == 1 and 'Running' in ctrl_status.stdout"
+              retries: 30
+              delay: 10
+              with_items:
+                - "{{ jiva_pv_name.stdout_lines }}"
+
+          when: upgrade_jiva == "true"
+
+        - set_fact:
+            flag: "Pass"
+
+      rescue:
+          - set_fact:
+              flag: "Fail"
+
+      always:
+            ## RECORD END-OF-TEST IN LITMUS RESULT CR
+          - include_tasks: /utils/fcm/update_litmus_result_resource.yml
+            vars:
+              status: 'EOT'
