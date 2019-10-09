@@ -1,0 +1,21 @@
+---
+test_name: cstor-volume-resize
+
+operator_ns: "{{ lookup('env','OPERATOR_NS') }}"
+
+application_deployment: busybox_deployment.yml
+
+app_ns: "{{ lookup('env','APP_NAMESPACE') }}"
+
+app_label: "{{ lookup('env','APP_LABEL') }}"
+
+application_name: "busybox"
+
+app_pvc: "{{ lookup('env','APP_PVC') }}"
+
+storage_class: "{{ lookup('env','PROVIDER_STORAGE_CLASS') }}"
+
+vol_size: "{{ lookup('env','PV_CAPACITY') }}"
+
+desired_vol_size: "{{ lookup('env','NEW_CAPACITY') }}"
+
