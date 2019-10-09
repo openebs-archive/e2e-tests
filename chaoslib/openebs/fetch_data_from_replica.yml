@@ -1,5 +1,5 @@
 - name: Get replica id
-  shell: kubectl get pods {{ rpod }} -n openebs -o jsonpath='{.spec.containers[*].env[0].value}'
+  shell: kubectl get pods {{ rpod }} -n openebs -o custom-columns=:.spec.containers[*].env[0].value --no-headers | cut -d "," -f1
   register: cstor_id
 
 - name: Check for dataset name
