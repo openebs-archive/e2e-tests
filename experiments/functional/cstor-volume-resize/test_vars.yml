@@ -7,7 +7,7 @@ app_ns: "{{ lookup('env','APP_NAMESPACE') }}"
 
 app_label: "{{ lookup('env','APP_LABEL') }}"
 
-application_name: "busybox"
+application_name: "mysql"
 
 app_pvc: "{{ lookup('env','APP_PVC') }}"
 
