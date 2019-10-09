@@ -25,20 +25,20 @@ spec:
 
             # Application namespace
           - name: APP_NAMESPACE
-            value: percona
+            value: app-percona-ns
 
             # Application pvc
           - name: APP_PVC
             value: percona-mysql-claim 
 
           - name: APP_LABEL
-            value: 'app=busybox-jiva'
+            value: 'name=percona'
 
           - name: PV_CAPACITY
-            value: 10G
+            value: 5G
           
           - name: NEW_CAPACITY
-            value: 20G
+            value: 10G
 
             #Target namespace
           - name: OPERATOR_NS
