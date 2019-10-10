@@ -146,6 +146,19 @@
 
       always:
 
+        - name: Get the pending pod
+          shell: >
+            kubectl get po -n {{ namespace }} -l app=node-failure-cstor --no-headers | grep -v {{ app_pod_name.stdout }} | awk '{print $1}'
+          args:
+            executable: /bin/bash
+          register: test
+   
+        - name: describe the pending pod
+          shell: >
+            kubectl describe po {{ test.stdout }} -n {{ namespace }}
+          args:
+            executable: /bin/bash
+
         # Turn on the k8s node
         - include_tasks: "{{ chaos_util_path }}"
           vars:
