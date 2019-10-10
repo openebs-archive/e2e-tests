@@ -15,6 +15,9 @@
        msg: "{{ item.spec.replicas }}"
      with_items: "{{ rep_count.resources }}"
 
+   - pause:
+       seconds: 30
+
    - name: Obtain the number of currentreplicas.
      k8s_facts:
        kind: StatefulSet
