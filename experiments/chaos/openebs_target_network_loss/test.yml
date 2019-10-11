@@ -99,13 +99,35 @@
         - include_tasks: /utils/k8s/application_liveness_check.yml
           when: liveness_label != ''
 
-        - name: Verify application data persistence
-          include: "{{ data_consistency_util_path }}"
-          vars:
-            status: 'VERIFY'
-            ns: "{{ namespace }}"
-            pod_name: "{{ app_pod_name.stdout }}"
-          when: data_persistence != ''
+        - name: Kill the application pod
+          shell: >
+            kubectl delete pod {{ app_pod_name.stdout }} -n {{ namespace }}
+          args:
+            executable: /bin/bash
+
+        - name: Verify if the application pod is deleted
+          shell: >
+            kubectl get pods -n {{ namespace }}
+          args:
+            executable: /bin/bash
+          register: podstatus
+          until: '"{{ app_pod_name.stdout }}" not in podstatus.stdout'
+          retries: 2
+          delay: 150
+
+        - name: Obtain the newly created pod name for application
+          shell: >
+            kubectl get pods -n {{ namespace }} -l {{ label }} -o jsonpath='{.items[].metadata.name}'
+          args:
+            executable: /bin/bash
+          register: newpod_name
+
+        - name: Checking application pod is in running state
+          shell: kubectl get pods -n {{ namespace }} -o jsonpath='{.items[?(@.metadata.name=="{{ newpod_name.stdout }}")].status.phase}'
+          register: result
+          until: "((result.stdout.split()|unique)|length) == 1 and 'Running' not in result.stdout"
+          delay: 2
+          retries: 150
 
         - set_fact:
             flag: "Pass"
