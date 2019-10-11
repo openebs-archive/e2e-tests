@@ -9,15 +9,13 @@
 #
 - block:
 
-    - name: Check if the application to be deleted is running.
+    - name: Check if the application to be deleted is available.
       shell: kubectl get pods -n {{ app_ns }} -l {{ app_label }} --no-headers -o custom-columns=:status.phase
       args:
         executable: /bin/bash
       register: result
-      until: "'Running' in result.stdout"
-      delay: 5
-      retries: 60
-    
+      failed_when: 'result.stdout == ""'
+
     - name: Obtaining the PVC name using application label.
       shell: kubectl get pods -n {{ app_ns }} -l {{ app_label }} -o custom-columns=:..claimName --no-headers
       args:
