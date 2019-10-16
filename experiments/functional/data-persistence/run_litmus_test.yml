@@ -37,12 +37,6 @@ spec:
           - name: APP_PVC
             value: ""
 
-          - name: LIVENESS_APP_LABEL
-            value: ""
-
-          - name: LIVENESS_APP_NAMESPACE
-            value: ""
-
           - name: DATA_PERSISTENCE
             value: ""
           
