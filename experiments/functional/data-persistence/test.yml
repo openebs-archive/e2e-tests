@@ -52,7 +52,7 @@
 
         - name: Get application pod name
           shell: >
-            kubectl get po -n {{ namespace }} -l {{ label }} --no-headers
+            kubectl get pods -n {{ namespace }} -l {{ label }} --no-headers
             -o custom-columns=:.metadata.name
           args:
             executable: /bin/bash
