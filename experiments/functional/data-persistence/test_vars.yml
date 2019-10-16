@@ -1,0 +1,7 @@
+test_name: data-persistence-check
+namespace: "{{ lookup('env','APP_NAMESPACE') }}"
+label: "{{ lookup('env','APP_LABEL') }}"
+dc_status: "{{ lookup('env','STATUS') }}"
+liveness_label: "{{ lookup('env','LIVENESS_APP_LABEL') }}"
+liveness_namespace: "{{ lookup('env','LIVENESS_APP_NAMESPACE') }}"
+data_persistence: "{{ lookup('env','DATA_PERSISTENCE') }}"
