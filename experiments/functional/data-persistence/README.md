@@ -1,13 +1,11 @@
 ## Entry-Criteria
 
 - Application services are accessible & pods are healthy
-- Application writes are successful 
 
 ## Exit-Criteria
 
 - Application services are accessible & pods are healthy
 - Data written should be successfully verified by the md5sum check
-- Database consistency is maintained as per db integrity check utils
 - Storage target pods are healthy
 
 ## Associated Utils 
