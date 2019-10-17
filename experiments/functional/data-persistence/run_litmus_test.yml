@@ -34,9 +34,6 @@ spec:
           - name: APP_LABEL
             value: ""
 
-          - name: APP_PVC
-            value: ""
-
           - name: DATA_PERSISTENCE
             value: ""
           
