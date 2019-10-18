@@ -33,10 +33,13 @@ spec:
 
           - name: APP_LABEL
             value: ""
-
+          
+          ##To check data persistence against busybox set value: "busybox" and for percona, set value: "mysql"
           - name: DATA_PERSISTENCE
             value: ""
           
+          ##For creating some data in application set STATUS value: "LOAD" and to
+          ##verify data set value: "VERIFY" and for deleting set value: "DELETE"
           - name: STATUS
             value: ""
 
