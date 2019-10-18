@@ -53,12 +53,23 @@
            pvc_label: demo-vol1-claim
            execute: 1
 
+       - name: Confirm pvc status is bound
+         shell: >
+           kubectl get pvc --no-headers -n {{ app_ns }} -l name={{ pvc_label }} -o custom-columns=:.status.phase
+         args:
+           executable: /bin/bash
+         register: pvc_status
+         until: "'Bound' in pvc_status.stdout"
+         delay: 5
+         retries: 60 
+
        - name: Get pv name
          shell: >
            kubectl get pvc --no-headers -n {{ app_ns }} -l name={{ pvc_label }} -o jsonpath='{range .items[*]}{.spec.volumeName}'
          args:
            executable: /bin/bash
          register: result
+         failed_when: 'result.stdout == ""'
 
        - set_fact:
            pv_name: "{{ result.stdout }}"
