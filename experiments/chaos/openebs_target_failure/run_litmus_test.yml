@@ -50,7 +50,10 @@ spec:
             value: ""
 
           - name: DATA_PERSISTENCE
-            value: "" 
+            value: ""
+
+          - name: CONTAINER_RUNTIME
+            value: docker 
 
             # CHOS_TYPE values :  target-zrepl-kill , target-kill , target-delete 
           - name: CHAOS_TYPE

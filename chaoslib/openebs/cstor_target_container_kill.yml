@@ -30,6 +30,15 @@
     namespace: "{{ target_ns }}"
     app_pod: "{{ cstor_target_pod.stdout }}"
     app_container: "{{ target_container }}"
+  when: cri == 'docker'
+
+- include_tasks: /chaoslib/containerd_chaos/crictl-chaos.yml
+  vars:
+    action: "killapp"
+    namespace: "{{ target_ns }}"
+    app_pod: "{{ cstor_target_pod.stdout }}"
+    app_container: "{{ target_container }}"
+  when: cri == 'containerd'
 
 - name: Check for target pod in running state
   shell: >
