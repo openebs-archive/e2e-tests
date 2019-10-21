@@ -41,13 +41,20 @@
 
             - name: Geting the PV name
               shell: kubectl get pvc {{ app_pvc }} -n {{ app_ns }} -o jsonpath='{.spec.volumeName}'
-              register: volume_name
-              until: "volume_name is defined"
+              register: pv
+              until: "pv is defined"
               delay: 5
               retries: 10
- 
+
+            - name: Checking the cstorvolume status
+              shell: kubectl get cstorvolume -n {{ operator_ns }} {{ pv.stdout }} -o jsonpath='{.status.phase}'
+              register: cstor_volume_status
+              until: "'Healthy' in cstor_volume_status.stdout"
+              delay: 5
+              retries: 30
+
             - name: Verify cvr health status
-              shell: kubectl get cvr -n openebs -l openebs.io/persistent-volume={{ volume_name.stdout }} -o jsonpath='{.items[*].status.phase}'
+              shell: kubectl get cvr -n {{ operator_ns }} -l openebs.io/persistent-volume={{ pv.stdout }} -o jsonpath='{.items[*].status.phase}'
               register: initial_status
               until: "((initial_status.stdout.split()|unique)|length) == 1 and 'Healthy' in initial_status.stdout"
               delay: 3
@@ -78,7 +85,7 @@
                 - "{{ csp_all }}"
 
             - name: Getting the list of csp on which cvr is created
-              shell:  kubectl get cvr -n {{ operator_ns }} -l cstorvolume.openebs.io/name={{ volume_name.stdout }} -o jsonpath='{.items[*].metadata.labels.cstorpool\.openebs\.io/name}'
+              shell:  kubectl get cvr -n {{ operator_ns }} -l cstorvolume.openebs.io/name={{ pv.stdout }} -o jsonpath='{.items[*].metadata.labels.cstorpool\.openebs\.io/name}'
               register: csp_cvr
 
             - name: Create a file to store CSP name
@@ -101,10 +108,10 @@
               register: csp_name
 
             - name: Getting the target IP from cvr
-              shell: kubectl get cvr -n {{ operator_ns }} -l cstorvolume.openebs.io/name={{ volume_name.stdout }} -o jsonpath='{.items[0].spec.targetIP}'
+              shell: kubectl get cvr -n {{ operator_ns }} -l cstorvolume.openebs.io/name={{ pv.stdout }} -o jsonpath='{.items[0].spec.targetIP}'
               register: target_ip
 
-            - name: Getting the Node IP of CSP
+            - name: Getting the Node name from CSP where CVR need to create
               shell: kubectl get csp {{ csp_name.stdout_lines[0] }} -o jsonpath='{.metadata.labels.kubernetes\.io/hostname}'
               register: node_name
 
@@ -140,7 +147,7 @@
               replace:
                 path: "./cvr.yml"
                 regexp: "<cstor-volume-name>"
-                replace: "{{ volume_name.stdout }}"
+                replace: "{{ pv.stdout }}"
 
             - name: Replacing the volume capacity in cvr yml
               replace:
@@ -161,7 +168,7 @@
                 replace: "3"
 
             - name: Patching the cstorvolume's desired rep count
-              shell: kubectl patch cstorvolume {{ volume_name.stdout }} -n {{ operator_ns }} --type merge --patch "$(cat patch_cstorvolume.yml)"
+              shell: kubectl patch cstorvolume {{ pv.stdout }} -n {{ operator_ns }} --type merge --patch "$(cat patch_cstorvolume.yml)"
               register: patch_cstorvolume_result
               failed_when: "'patched' not in patch_cstorvolume_result.stdout"
             
@@ -169,7 +176,7 @@
               shell: kubectl apply -f cvr.yml
 
             - name: Getting the uid of newly created cvr
-              shell: kubectl get cvr -n {{ operator_ns }} -l cstorpool.openebs.io/name={{ csp_name.stdout_lines[0] }},cstorvolume.openebs.io/name={{ volume_name.stdout }} -o jsonpath='{.items[0].metadata.uid}'
+              shell: kubectl get cvr -n {{ operator_ns }} -l cstorpool.openebs.io/name={{ csp_name.stdout_lines[0] }},cstorvolume.openebs.io/name={{ pv.stdout }} -o jsonpath='{.items[0].metadata.uid}'
               register: new_uid
 
             - name: Creating MD5SUM of new-uid
@@ -183,30 +190,124 @@
                 replace: "{{ md5sum.stdout }}"
 
             - name: Patching the cvr's replica id with md5sum
-              shell: kubectl patch cvr {{ volume_name.stdout }}-{{ csp_name.stdout_lines[0] }} -n {{ operator_ns }} --type merge --patch "$(cat patch_cvr.yml)"
+              shell: kubectl patch cvr {{ pv.stdout }}-{{ csp_name.stdout_lines[0] }} -n {{ operator_ns }} --type merge --patch "$(cat patch_cvr.yml)"
               register: patch_cvr_result
               failed_when: "'patched' not in patch_cvr_result.stdout"
-            
+       
             - name: Getting the cstor pool pod name
               shell: kubectl get pod -n {{ operator_ns }} -l app=cstor-pool,openebs.io/cstor-pool={{ csp_name.stdout_lines[0] }} -o jsonpath='{.items[0].metadata.name}'
               register: pool_pod_name
 
-            - name: Restarting the pool pod
-              shell: kubectl delete pod {{ pool_pod_name.stdout }} -n {{ operator_ns }}
+            - name: Restarting the cstor-pool-mgmt container
+              shell: kubectl exec -it {{ pool_pod_name.stdout }} -n {{ operator_ns }} -c cstor-pool-mgmt -- pkill -f /usr/local/bin/
+              ignore_errors: true
 
             - name: Checking for the pool pod to be in running state
               shell: kubectl get pod -n {{ operator_ns }} -l app=cstor-pool,openebs.io/cstor-pool={{ csp_name.stdout_lines[0] }} -o jsonpath='{.items[0].status.phase}'
               register: pod_status
               until: "'Running' in pod_status.stdout"
-              delay: 5
-              retries: 10
+              delay: 10
+              retries: 50
+
+            - name: Verify newly Created replicaID exists in cstorVolume or not
+              shell: kubectl get cstorvolume {{ pv.stdout }} -n {{ operator_ns }} -o jsonpath='{.status.replicaDetails.knownReplicas.{{ md5sum.stdout }}}'
+              register: replica_status
+              until: "replica_status.stdout != ''"
+              delay: 10
+              retries: 100
+
+            - name: Checking for the desired replication factor in cstorvolume
+              shell: kubectl get cstorvolume {{ pv.stdout }} -n {{ operator_ns }} -o jsonpath='{.spec.replicationFactor}'
+              register: replication_factor
+              failed_when: "'3' not in replication_factor.stdout"
+
+            - name: Checking for the consistancy factor in cstorvolume
+              shell: kubectl get cstorvolume {{ pv.stdout }} -n {{ operator_ns }} -o jsonpath='{.spec.consistencyFactor}'
+              register: consistancy_factor
+              failed_when: "'2' not in consistancy_factor.stdout"
 
             - name: Verify cvr health status
-              shell: kubectl get cvr -n openebs -l openebs.io/persistent-volume={{ volume_name.stdout }} -o jsonpath='{.items[*].status.phase}'
+              shell: kubectl get cvr -n openebs -l openebs.io/persistent-volume={{ pv.stdout }} -o jsonpath='{.items[*].status.phase}'
               register: final_status
               until: "((final_status.stdout.split()|unique)|length) == 1 and 'Healthy' in final_status.stdout"
               delay: 10
               retries: 100
+
+            - name: Get istgt target pod details
+              shell: >
+                kubectl get pods  -l openebs.io/persistent-volume={{ pv.stdout }} 
+                -n {{ operator_ns }} -o custom-columns=:metadata.name --no-headers
+              register: istgt_replica
+              failed_when: 'istgt_replica.stdout == ""'
+
+            - name: Create an empty list of replica pods.
+              set_fact:
+                cstor_replicas_pod : []         
+
+            - name: Obtaining the pool deployments from cvr
+              shell: >
+                 kubectl get cvr -n {{ operator_ns }}
+                 -l openebs.io/persistent-volume={{ pv.stdout }} --no-headers
+                 -o=jsonpath='{range .items[*]}{.metadata.labels.cstorpool\.openebs\.io\/name}{"\n"}{end}'
+              args:
+                 executable: /bin/bash
+              register: pool_deployment
+              failed_when: 'pool_deployment.stdout == ""'
+     
+            - name: Obtaining the pool pods
+              shell: >
+                kubectl get pod -l app=cstor-pool,openebs.io/cstor-pool={{ item }} 
+                -n {{ operator_ns }} --no-headers -o custom-columns=:.metadata.name
+              register: pool_pods
+              failed_when: 'pool_pods.stdout == ""'
+              with_items:
+                - "{{ pool_deployment.stdout_lines }}"
+     
+            - name: Build a list of replica pods
+              set_fact:
+                cstor_replicas_pod : "{{ cstor_replicas_pod }} + [ '{{ item.stdout }}' ]"
+              with_items: "{{ pool_pods.results }}"
+     
+            - name: Generate snapshot name
+              shell: cat /dev/urandom | tr -dc 'a-zA-Z0-9' | fold -w 32 | head -n 1
+              register: snapname
+     
+            - set_fact:
+                snap_name: "{{ snapname.stdout }}"
+     
+            - name: Take snapshot for data verification
+              shell: >
+                 kubectl exec -it {{ istgt_replica.stdout }} -n {{ operator_ns }} --container  cstor-istgt -- istgtcontrol snapcreate {{ pv.stdout }} {{ snap_name }} 30 30
+              register: snap_status
+     
+            - name: Install netcat on current host
+              shell: apt-get update && apt-get -y install netcat iproute2
+              register: dataset
+     
+            - include: /chaoslib/openebs/fetch_data_from_replica.yml
+              loop: "{{ cstor_replicas_pod }}"
+              loop_control:
+                loop_var: rpod       
+     
+            - set_fact:
+                 base_replica: "{{ cstor_replicas_pod | list | first }}"
+     
+            - name: compare data object
+              shell: diff {{ rpod }}.1.dump {{ base_replica }}.1.dump
+              loop: "{{ cstor_replicas_pod }}"
+              loop_control:
+                loop_var: rpod
+     
+            - name: compare meta data object
+              shell: diff {{ rpod }}.3.dump {{ base_replica }}.3.dump
+              loop: "{{ cstor_replicas_pod }}"
+              loop_control:
+                 loop_var: rpod
+     
+            - name: Destroy snapshot created for data verification
+              shell: >
+                kubectl exec -it {{ istgt_replica.stdout }} -n {{ operator_ns }} --container  cstor-istgt -- istgtcontrol snapdestroy {{ pv.stdout }} {{ snap_name }} 30 30
+              register: snap_status                            
 
             - name: Verify data persistence
               include_tasks: "/utils/scm/applications/busybox/busybox_data_persistence.yml"
@@ -231,13 +332,14 @@
               vars:
                 status: 'EOT'
 
-            - name: Deprovisioning test related resources
-              shell: |
-                kubectl delete deploy,svc --all {{ app_ns }}
-                kubectl delete pvc {{ app_pvc }} -n {{ app_ns }}
+            # - name: Deprovisioning test related resources
+            #   shell: |
+            #     kubectl delete deploy,svc --all -n {{ app_ns }}
+            #     kubectl delete pvc {{ app_pvc }} -n {{ app_ns }}
+            #     kubectl delete namespace {{ app_ns }}
             
-            - name: Deleting storage class
-              shell: kubectl delete sc openebs-cstor-cvr-scale
+            # - name: Deleting storage class
+            #   shell: kubectl delete sc openebs-cstor-cvr-scale
 
 
                 
