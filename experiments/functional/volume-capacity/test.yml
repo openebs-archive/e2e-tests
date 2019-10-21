@@ -66,8 +66,8 @@
             executable: /bin/bash
           register: space
           until: "'No space left on device' in space.stdout"
-          retries: 15
-          delay: 2
+          retries: 10
+          delay: 5
 
         # - name: Check the application pod status
         #   shell: >

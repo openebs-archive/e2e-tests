@@ -1,0 +1,57 @@
+---
+apiVersion: v1
+kind: ConfigMap
+metadata: 
+  name: data-persistence
+  namespace: litmus
+data:
+  parameters.yml: |
+
+---
+apiVersion: batch/v1
+kind: Job
+metadata: 
+  generateName: data-persistence-litmus-
+  namespace: litmus
+spec:
+  template:
+    metadata:
+      labels:
+        name: data-persistence-litmus
+    spec:
+      serviceAccountName: litmus
+      restartPolicy: Never
+      containers: 
+      - name: ansibletest
+        image: openebs/ansible-runner:ci
+        env:
+          - name: ANSIBLE_STDOUT_CALLBACK
+            value: default
+
+          - name: APP_NAMESPACE
+            value: ""
+
+          - name: APP_LABEL
+            value: ""
+          
+          ##To check data persistence against busybox set value: "busybox" and for percona, set value: "mysql"
+          - name: DATA_PERSISTENCE
+            value: ""
+          
+          ##For creating some data in application set STATUS value: "LOAD" and to
+          ##verify data set value: "VERIFY" and for deleting set value: "DELETE"
+          - name: STATUS
+            value: ""
+
+        command: ["/bin/bash"]
+        args: ["-c", "ansible-playbook ./experiments/functional/data-persistence/test.yml -i /etc/ansible/host -vv; exit 0"]
+
+        volumeMounts:
+        - name: parameters
+          mountPath: /mnt/
+
+      volumes:
+        - name: parameters
+          configMap: 
+            name: data-persistence    
+        
