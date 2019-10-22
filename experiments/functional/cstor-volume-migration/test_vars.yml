@@ -1,0 +1,4 @@
+test_name: cstor-volume-replica-migration
+app_pvc: "{{ lookup('env','PVC_NAME') }}"
+operator_ns: "{{ lookup('env','OPERATOR_NS') }}"
+app_ns: "{{ lookup('env','APP_NAMESPACE') }}"

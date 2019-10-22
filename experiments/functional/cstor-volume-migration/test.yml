@@ -1,0 +1,434 @@
+---
+
+- hosts: localhost
+  connection: local
+
+  vars_files:
+    - test_vars.yml
+
+  tasks:
+
+   - block:
+
+      ## RECORD START-OF-TEST IN LITMUS RESULT CR
+       - include_tasks: /utils/fcm/update_litmus_result_resource.yml
+         vars:
+           status: 'SOT'
+        
+       - name: Obtain the Persistent Volume name
+         shell: kubectl get pvc {{ app_pvc }} -n {{ app_ns }} --no-headers -o custom-columns=:.spec.volumeName
+         args:
+           executable: /bin/bash
+         register: pv
+         failed_when: 'pv.stdout == ""'
+
+       - name: Obtain the StorageClass name from PVC
+         shell: kubectl get pvc {{ app_pvc }} -n {{ app_ns }} --no-headers -o custom-columns=:.spec.storageClassName
+         args:
+           executable: /bin/bash
+         register: sc_name
+         failed_when: 'sc_name.stdout == ""'
+       
+       - name: Get the cStorVolume name
+         shell: >
+           kubectl get cstorvolume -n {{ operator_ns }} -l openebs.io/persistent-volume={{ pv.stdout }} 
+           -o custom-columns=:.metadata.name --no-headers
+         args: 
+           executable: /bin/bash
+         register: cv_name
+         failed_when: 'cv_name.stdout == ""'
+         
+       - name: Check if the CVRs in health state
+         shell: >
+           kubectl get cvr -n {{ operator_ns }} -l openebs.io/persistent-volume={{ pv.stdout }}
+           -o custom-columns=:.status.phase --no-headers
+         args:
+           executable: /bin/bash
+         register: cvr_status
+         until: "((cvr_status.stdout_lines|unique)|length) == 1 and 'Healthy' in cvr_status.stdout"
+         retries: 30
+         delay: 10         
+
+       - name: Obtain the total number of cvr 
+         shell: kubectl get cvr -n {{ operator_ns }} --no-headers -l openebs.io/persistent-volume={{ pv.stdout }} | wc -l
+         args:
+           executable: /bin/bash
+         register: cvr_count
+         failed_when: 'cvr_count.stdout == ""'
+
+       - name: Obtain the ReplicationFactor from cstorvolume and check if it is equal to the cvr count
+         shell: >
+           kubectl get cstorvolume {{ cv_name.stdout }} -n {{ operator_ns }} -o jsonpath='{.spec.replicationFactor}{"\n"}'
+         args:
+           executable: /bin/bash
+         register: rf
+         failed_when: "cvr_count.stdout != rf.stdout"
+
+       - name: Obtain the consistencyFactor from cstorvolume
+         shell: >
+           kubectl get cstorvolume {{ cv_name.stdout }} -n {{ operator_ns }} -o jsonpath='{.spec.consistencyFactor}{"\n"}'
+         args:
+           executable: /bin/bash
+         register: cf
+         failed_when: 'cf.stdout == ""'
+
+       - name: Obtain the desiredReplicationFactor from cstorvolume
+         shell: >
+           kubectl get cstorvolume {{ cv_name.stdout }} -n {{ operator_ns }} -o jsonpath='{.spec.desiredReplicationFactor}{"\n"}'
+         args:
+           executable: /bin/bash
+         register: drf
+         failed_when: 'drf.stdout == ""'
+
+       - name: Get the node name for the cvr
+         shell: >
+           kubectl get cvr -n {{ operator_ns }} -l openebs.io/persistent-volume={{ pv.stdout }} 
+           -o=jsonpath='{range .items[*]}{.metadata.annotations.cstorpool\.openebs\.io\/hostname}{"\n"}'
+         args:
+           executable: /bin/bash
+         register: cvr_node
+         failed_when: 'cvr_node.stdout == ""'
+
+       - name: Obtain the List of CVR's
+         shell: >
+           kubectl get cvr -n {{ operator_ns }} -l openebs.io/persistent-volume={{ pv.stdout }}
+           -o custom-columns=:.metadata.name --no-headers
+         args:
+           executable: /bin/bash
+         register: cvr_list
+         failed_when: 'cvr_list.stdout == ""'
+
+       - name: Select random cvr from the list of cvr as target cvr to migrate
+         set_fact:
+           target_cvr: "{{ item }}"
+         with_random_choice: "{{ cvr_list.stdout_lines }}"
+
+       - name: Obtain the replica id from the selected replica
+         shell: kubectl get cvr -n {{ operator_ns }} {{ target_cvr }} --no-headers -o custom-columns=:.spec.replicaid
+         args:
+           executable: /bin/bash
+         register: replica_id
+         failed_when: 'replica_id.stdout == ""'
+
+       - name: Obtain the knownreplica id value from the cstor volume
+         shell: >
+           kubectl get cstorvolume {{ cv_name.stdout }} -n {{ operator_ns }} 
+           -o custom-columns=:.status.replicaDetails.knownReplicas.{{ replica_id.stdout }} --no-headers
+         args:
+           executable: /bin/bash
+         register: rid_value
+         until: 'rid_value.stdout != ""'
+         delay: 10
+         retries: 30
+
+       - name: Obtain the csp name from targeted cvr
+         shell: >
+           kubectl get cvr -n {{ operator_ns }} {{ target_cvr }} -o jsonpath='{.metadata.labels.cstorpool\.openebs\.io\/name}{"\n"}'
+         args:
+           executable: /bin/bash
+         register: csp_name
+         failed_when: 'csp_name.stdout == ""'
+
+       - name: Obtain the SPC name from csp
+         shell: >
+           kubectl get csp {{ csp_name.stdout }} -o jsonpath='{.metadata.labels.openebs\.io\/storage-pool-claim}{"\n"}'
+         args:
+           executable: /bin/bash
+         register: spc_name
+         failed_when: 'spc_name.stdout == ""'
+
+       - name: Getting the list of csp node name correspond to provided spc
+         shell: >
+           kubectl get csp -l openebs.io/storage-pool-claim={{ spc_name.stdout }}
+           -o=jsonpath='{range .items[*]}{.metadata.labels.kubernetes\.io\/hostname}{"\n"}{end}'               
+         register: csp_all
+         failed_when: 'csp_all.stdout == ""'
+
+       - name: Create a file to store CSP name
+         lineinfile:
+           create: yes
+           state: present
+           path: "./csp_all.tmp"
+           line: "{{ item.stdout }}"
+           mode: 0755
+         with_items:
+           - "{{ csp_all }}"
+
+       - name: Getting the list of nodes cvr is created
+         shell: >
+           kubectl get cvr -n {{ operator_ns }} -l openebs.io/persistent-volume={{ pv.stdout }}
+           -o=jsonpath='{range .items[*]}{.metadata.annotations.cstorpool\.openebs\.io\/hostname}{"\n"}{end}'
+         register: csp_cvr
+         failed_when: 'csp_cvr.stdout == ""'
+
+       - name: Create a file to store CSP name
+         lineinfile:
+           create: yes
+           state: present
+           path: "./csp_cvr.tmp"
+           line: "{{ item.stdout }}"
+           mode: 0755
+         with_items:
+           - "{{ csp_cvr }}"
+
+       - name: Getting the node name of the csp where no cvr is created
+         shell: |
+           cat csp_all.tmp | tr " " "\n" > csp_all
+           cat csp_cvr.tmp | tr " " "\n" > csp_cvr
+           comm -3 <(sort csp_all) <(sort csp_cvr)
+         args: 
+            executable: /bin/bash
+         register: free_csp_node
+
+       - name: Select random node from the list of nodes as target node
+         set_fact:
+           target_node: "{{ item }}"
+         with_random_choice: "{{ free_csp_node.stdout_lines }}"  
+         when: free_csp_node.stdout_lines != ""
+
+       - name: Obtain the CSP from the targeted node
+         shell: >
+           kubectl get csp -l kubernetes.io/hostname={{ target_node }},openebs.io/storage-pool-claim={{ spc_name.stdout }} 
+           -o custom-columns=:.metadata.name --no-headers
+         args:
+           executable: /bin/bash
+         register: csp_name
+         failed_when: 'csp_name.stdout == ""'
+
+       - name: Get the csp id
+         shell: kubectl get csp {{ csp_name.stdout }} --no-headers -o custom-columns=:.metadata.uid
+         args:
+           executable: /bin/bash
+         register: csp_uid
+         failed_when: 'csp_uid.stdout == ""'
+
+       - name: Obtain the Initial capacity of the target
+         shell: kubectl get cvr -n {{ operator_ns }} {{ target_cvr }} -o jsonpath='{.spec.capacity}{"\n"}'
+         args:
+           executable: /bin/bash
+         register: initial_capacity
+         failed_when: 'initial_capacity.stdout == ""'
+
+       - name: Get the target ip
+         shell: >
+           kubectl get cvr -n {{ operator_ns }} {{ target_cvr }} -o jsonpath='{.spec.targetIP}{"\n"}'
+         args: 
+           executable: /bin/bash
+         register: target_ip
+         failed_when: 'target_ip.stdout == ""'
+
+       - name: Replace the node-name annotation in cvr yaml
+         replace:
+           path: cvr.yaml
+           regexp: "node_name"
+           replace: "{{ target_node }}"
+
+       - name: Replace the target ip annotations in cvr yaml
+         replace:
+           path: cvr.yaml
+           regexp: "target_ip"
+           replace: "{{ target_ip.stdout }}"
+
+       - name: Replace the replica id in CVR spec configuration
+         replace:
+           path: cvr.yaml
+           regexp: "replica_id"
+           replace: "{{ replica_id.stdout }}"           
+
+       - name: Replace the initial capacity annotaion in cvr yaml
+         replace:
+           path: cvr.yaml
+           regexp: "initial_capacity"
+           replace: "{{ initial_capacity.stdout }}"
+
+       - name: Replace the cvr name in cvr spec configuration
+         replace:
+           path: cvr.yaml
+           regexp: "cstor_volume_name-csp_name"
+           replace: "{{ cv_name.stdout }}-{{ csp_name.stdout }}"
+          
+       - name: Replace the csp name in cvr yaml
+         replace:
+           path: cvr.yaml
+           regexp: "csp_name"
+           replace: "{{ csp_name.stdout }}"
+
+       - name: Replace the csp uid in cvr yaml
+         replace:
+           path: cvr.yaml
+           regexp: "csp_uid"
+           replace: "{{ csp_uid.stdout }}"       
+
+       - name: Replace the cstor volume name in cvr yaml
+         replace:
+           path: cvr.yaml
+           regexp: "cstor_volume_name"
+           replace: "{{ cv_name.stdout }}"
+
+       - name: Replace the persistent volume name in cvr yaml
+         replace:
+           path: cvr.yaml
+           regexp: "pv_name"
+           replace: "{{ pv.stdout }}"
+
+       - name: Replace the storage class name in cvr yaml
+         replace:
+           path: cvr.yaml
+           regexp: "storage_class_name"
+           replace: "{{ sc_name.stdout }}"
+
+       - name: Apply the cvr yaml to migrate the cvr to new pool
+         shell: kubectl apply -f cvr.yaml
+         args:
+           executable: /bin/bash
+
+       - name: Remove the old cvr to migrate
+         shell: kubectl delete cvr -n {{ operator_ns }} {{ target_cvr }}
+         args:
+           executable: /bin/bash
+         
+       - name: Check if the cvr got removed
+         shell: >
+           kubectl get cvr -n {{ operator_ns }} -l openebs.io/persistent-volume={{ pv.stdout }}
+           -o custom-columns=:.metadata.name --no-headers
+         args:
+           executable: /bin/bash
+         register: new_cvr_list
+         until: "target_cvr not in new_cvr_list.stdout"
+         delay: 5
+         retries: 30
+
+       - name: Check if the CVRs in healthy state
+         shell: >
+           kubectl get cvr -n {{ operator_ns }} -l openebs.io/persistent-volume={{ pv.stdout }}
+           -o custom-columns=:.status.phase --no-headers
+         args: 
+           executable: /bin/bash
+         register: new_cvr_status
+         until: "((new_cvr_status.stdout_lines|unique)|length) == 1 and 'Healthy' in new_cvr_status.stdout"
+         retries: 30
+         delay: 10
+
+       - name: Obtain the new replica id value from cstorvolume
+         shell: >
+           kubectl get cstorvolume {{ cv_name.stdout }} -n {{ operator_ns }}
+           -o custom-columns=:.status.replicaDetails.knownReplicas.{{ replica_id.stdout }} --no-headers
+         args:
+           executable: /bin/bash
+         register: new_rid_value
+         until: "new_rid_value.stdout != rid_value.stdout"
+         retries: 30
+         delay: 10
+
+       - name: Obtain the ReplicationFactor after cvr migration and compare with replication factor obtained before migrate cvr
+         shell: >
+           kubectl get cstorvolume {{ cv_name.stdout }} -n {{ operator_ns }} -o jsonpath='{.spec.replicationFactor}{"\n"}'
+         args:
+           executable: /bin/bash
+         register: after_rf
+         failed_when: "after_rf.stdout != rf.stdout"
+
+       - name: Obtain the consistencyFactor after cvr migration and compare with consistency factor obtained before migrate cvr
+         shell: >
+           kubectl get cstorvolume {{ cv_name.stdout }} -n {{ operator_ns }} -o jsonpath='{.spec.consistencyFactor}{"\n"}'
+         args:
+           executable: /bin/bash
+         register: after_cf
+         failed_when: "after_cf.stdout != cf.stdout"
+
+       - name: Obtain the desiredReplicationFactor after cvr migration and compare with desiredReplication factor obtained before migrate cvr
+         shell: >
+           kubectl get cstorvolume {{ cv_name.stdout }} -n {{ operator_ns }} -o jsonpath='{.spec.desiredReplicationFactor}{"\n"}'
+         args:
+           executable: /bin/bash
+         register: after_drf
+         failed_when: "after_drf.stdout != drf.stdout"
+     
+       - name: Get istgt target pod details
+         shell: >
+           kubectl get pods  -l openebs.io/persistent-volume={{ pv.stdout }} 
+           -n {{ operator_ns }} -o custom-columns=:metadata.name --no-headers
+         register: istgt_replica
+         failed_when: 'istgt_replica.stdout == ""'
+
+       - name: Create an empty list of replica pods.
+         set_fact:
+           cstor_replicas_pod : []         
+
+       - name: Obtaining the pool deployments from cvr
+         shell: >
+            kubectl get cvr -n {{ operator_ns }}
+            -l openebs.io/persistent-volume={{ pv.stdout }} --no-headers
+            -o=jsonpath='{range .items[*]}{.metadata.labels.cstorpool\.openebs\.io\/name}{"\n"}{end}'
+         args:
+            executable: /bin/bash
+         register: pool_deployment
+         failed_when: 'pool_deployment.stdout == ""'
+
+       - name: Obtaining the pool pods
+         shell: >
+           kubectl get pod -l app=cstor-pool,openebs.io/cstor-pool={{ item }} 
+           -n {{ operator_ns }} --no-headers -o custom-columns=:.metadata.name
+         register: pool_pods
+         failed_when: 'pool_pods.stdout == ""'
+         with_items:
+           - "{{ pool_deployment.stdout_lines }}"
+
+       - name: Build a list of replica pods
+         set_fact:
+           cstor_replicas_pod : "{{ cstor_replicas_pod }} + [ '{{ item.stdout }}' ]"
+         with_items: "{{ pool_pods.results }}"
+
+       - name: Generate snapshot name
+         shell: cat /dev/urandom | tr -dc 'a-zA-Z0-9' | fold -w 32 | head -n 1
+         register: snapname
+
+       - set_fact:
+           snap_name: "{{ snapname.stdout }}"
+
+       - name: Take snapshot for data verification
+         shell: >
+            kubectl exec -it {{ istgt_replica.stdout }} -n {{ operator_ns }} --container  cstor-istgt -- istgtcontrol snapcreate {{ pv.stdout }} {{ snap_name }} 30 30
+         register: snap_status
+
+       - name: Install netcat on current host
+         shell: apt-get update && apt-get -y install netcat iproute2
+         register: dataset
+
+       - include: /chaoslib/openebs/fetch_data_from_replica.yml
+         loop: "{{ cstor_replicas_pod }}"
+         loop_control:
+           loop_var: rpod       
+
+       - set_fact:
+            base_replica: "{{ cstor_replicas_pod | list | first }}"
+
+       - name: compare data object
+         shell: diff {{ rpod }}.1.dump {{ base_replica }}.1.dump
+         loop: "{{ cstor_replicas_pod }}"
+         loop_control:
+           loop_var: rpod
+
+       - name: compare meta data object
+         shell: diff {{ rpod }}.3.dump {{ base_replica }}.3.dump
+         loop: "{{ cstor_replicas_pod }}"
+         loop_control:
+            loop_var: rpod
+
+       - name: Destroy snapshot created for data verification
+         shell: >
+           kubectl exec -it {{ istgt_replica.stdout }} -n {{ operator_ns }} --container  cstor-istgt -- istgtcontrol snapdestroy {{ pv.stdout }} {{ snap_name }} 30 30
+         register: snap_status    
+
+       - set_fact: 
+           flag: "Pass" 
+          
+     rescue:
+       - set_fact:
+           flag: "Fail"
+
+     always:
+           ## RECORD END-OF-TEST IN LITMUS RESULT CR
+        - include_tasks: /utils/fcm/update_litmus_result_resource.yml
+          vars:
+            status: 'EOT'
