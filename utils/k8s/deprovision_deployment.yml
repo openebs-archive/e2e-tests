@@ -8,39 +8,17 @@
 #
 - block:
 
-    - name: Check if the application to be deleted is running.
+    - name: Check if the application to be deleted is available.
       k8s_facts:
         kind: Pod
         label_selectors:
           - "{{ app_label }}"
         namespace: "{{ app_ns }}"
       register: po_name
-      until: "{{ po_name | json_query('resources[*].status.phase') | unique | length==1}} and {{po_name | json_query('resources[0].status.phase') == 'Running' }}"
+      until: "{{ po_name | json_query('resources[*].status.phase') | unique | length==1}}"
       delay: 5
       retries: 60
-    
-    - name: Obtaining the PVC name using application label.
-      k8s_facts:
-        kind: Pod
-        namespace: "{{ app_ns }}"
-        label_selectors:
-          - "{{ app_label }}"
-      register: pvc_name
-
-    - debug:
-        msg: "{{ item.spec.volumes.0.persistentVolumeClaim.claimName }}"
-      with_items: "{{ pvc_name.resources }}"
-    
-    - name: Obtaining the PV name from PVC name.
-      k8s_facts:
-        kind: PersistentVolumeClaim
-        name: "{{ pvc_name | json_query('resources[0].spec.volumes[0].persistentVolumeClaim.claimName }}"
-        namespace: "{{ app_ns }}"
-      register: pv_name
-
-    - debug:
-        msg: "{{ item.spec.volumeName  }}"
-      with_items: "{{ pv_name.resources }}"
+      failed_when: po_name.resources | length < 1
 
     - set_fact:
         pvname: "{{ po_name | json_query('resources[0].spec.volumeName') }}"
@@ -51,14 +29,9 @@
         name: "{{ pvname }}"
       register: openebs_stg_engine
 
-    - debug: 
-        msg: "{{ item.metadata.annotations['openebs.io/cas-type'] }}"
-      with_items: "{{ openebs_stg_engine.resources }}"
-
-  
     - name: Record the storage engine name
       set_fact:
-        stg_engine: "{{  openebs_stg_engine | json_query('resources[0].metadata.annotations['openebs.io/cas-type']') }}"
+        stg_engine: "{{ openebs_stg_engine.resources.0.metadata.annotations['openebs.io/cas-type'] }}"
     
     
     ## Replacing the item names in the respective deployer spec file.
@@ -68,7 +41,7 @@
         regexp: "testclaim"
         replace: "{{ lookup('env','APP_PVC') }}"
       when: app_pvc is defined
-    
+ 
     - name: Replace the storageclass placeholder with provider
       replace:
         path: "{{ app_deployer }}"
@@ -180,4 +153,3 @@
       - "{{ app_label }}"
   register: pv_result
   failed_when: "pv_result.resources | length > 1"
-  

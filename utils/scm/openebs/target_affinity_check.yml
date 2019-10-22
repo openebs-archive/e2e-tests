@@ -5,10 +5,10 @@
       - "{{ app_label }}"
     namespace: "{{ app_ns }}"
   register: app_node
+  failed_when: app_node.resources | length < 1
 
 - debug:
-    msg: "{{ item.spec.nodeName }}"
-  with_items: "{{ app_node.resources }}"
+    msg: "{{ app_node | json_query('resources[*].spec.nodeName')}}"
 
 
 - name: Derive PV from application PVC
@@ -17,21 +17,21 @@
     name: "{{ app_pvc }}"
     namespace: "{{ app_ns }}"
   register: pv
+  failed_when: pv.resources | length < 1
 
 - debug:
-    msg: "{{ item.spec.volumeName }}"
-  with_items: "{{ pv.resources }}"
+    msg: "{{ pv | json_query('resources[*].spec.volumeName')}}"
 
 - name: Derive storage engine from PV
   k8s_facts:
     kind: PersistentVolume
-    name: "{{ pv.resources.0.spec.volumeName }}"
+    name: "{{ pv | json_query('resources[0].spec.volumeName')}}"
   register: stg_engine
 
 - debug:
-    msg: "{{ item.metadata.annotations['openebs.io/cas-type']}}"
+    msg: "{{ item.metadata.annotations['openebs.io/cas-type'] }}"
   with_items: "{{ stg_engine.resources }}"
-
+  
 - set_fact: 
     target_ns: "{{ app_ns }}"
     target_label: "openebs.io/controller=jiva-controller"

@@ -1,41 +1,40 @@
 ---
 - block:
-   - name: Obtain the number of replicas.
-     k8s_facts:
-       kind: StatefulSet
-       namespace: "{{ app_ns }}"
-       label_selectors:
-         - "{{ app_label }}"
-     register: rep_count
-     until: "rep_count is succeeded "
-     delay: 60
-     retries: 15
+    - name: Obtain the number of replicas.
+      k8s_facts:
+        kind: StatefulSet
+        namespace: "{{ app_ns }}"
+        label_selectors:
+          - "{{ app_label }}"
+      register: rep_count
+      until: "rep_count is succeeded "
+      delay: 60
+      retries: 15
 
-   - debug:
-       msg: "{{ item.spec.replicas }}"
-     with_items: "{{ rep_count.resources }}"
+    - debug:
+        msg: "{{ rep_count | json_query('resources[*].spec.replicas')}}"
 
-   - pause:
-       seconds: 30
-
-   - name: Obtain the number of currentreplicas.
-     k8s_facts:
-       kind: StatefulSet
-       namespace: "{{ app_ns }}"
-       label_selectors:
-         - "{{ app_label }}"
-     register: rep_count
-     until: "rep_count.resources.0.status.replicas | int == rep_count.resources.0.spec.replicas |int"
-     delay: 60
-     retries: 15
+    - wait_for:
+        timeout: 30
+    
+    - name: Obtain the number of currentreplicas.
+      k8s_facts:
+        kind: StatefulSet
+        namespace: "{{ app_ns }}"
+        label_selectors:
+          - "{{ app_label }}"
+      register: rep_count
+      until: "rep_count.resources.0.status.replicas | int == rep_count.resources.0.spec.replicas |int"
+      delay: 60
+      retries: 15
    
-   - name: Obtain the ready replica count and compare with the replica count.
-     k8s_facts: 
-       kind: StatefulSet 
-       namespace: "{{ app_ns }}"
-       label_selectors:
-         - "{{ app_label }}"
-     register: ready_rep
-     until: "ready_rep is succeeded and ready_rep.resources.0.status.readyReplicas |int == rep_count.resources.0.spec.replicas |int"
-     delay: 60
-     retries: 30
+    - name: Obtain the ready replica count and compare with the replica count.
+      k8s_facts: 
+        kind: StatefulSet 
+        namespace: "{{ app_ns }}"
+        label_selectors:
+          - "{{ app_label }}"
+      register: ready_rep
+      until: "ready_rep is succeeded and ready_rep.resources.0.status.readyReplicas |int == rep_count.resources.0.spec.replicas |int"
+      delay: 60
+      retries: 30

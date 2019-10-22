@@ -7,6 +7,7 @@
     label_selectors:
       - "{{ app_label }}"
   register: pod_name
+
 - debug:
-    msg: "{{ item.metadata.name }}"
-  with_items: "{{ pod_name.resources }}"
+    msg: "{{ pod_name | json_query('resources[*].metadata.name') }}"
+

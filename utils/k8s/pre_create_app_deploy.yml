@@ -5,6 +5,7 @@
         kind: StorageClass
         name: "{{ lookup('env','PROVIDER_STORAGE_CLASS') }}"
       register: result
+      failed_when: result.resources | length < 1
 
     - name: Replace the pvc placeholder with provider
       replace:
