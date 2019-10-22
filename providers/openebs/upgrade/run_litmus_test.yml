@@ -25,31 +25,35 @@ spec:
 
             # OpenEBS Version already installed
           - name: FROM_VERSION
-            value: 
+            value: ""
 
             # OpenEBS version to be Upgraded
           - name: TO_VERSION
-            value: 
+            value: ""
             
             # Namespace where OpenEBS is deployed
           - name: OPERATOR_NS
-            value: openebs
+            value: ""
 
             # Image tag for Upgrade Job
           - name: UPGRADE_IMAGE_TAG
-            value: 
+            value: ""
 
             # set to "true" if you want to upgrade cStor pool and Volumes
           - name: UPGRADE_CSTOR
-            value:
+            value: ""
 
             # set to "true" if you want to upgrade JIVA volumes        
           - name: UPGRADE_JIVA
-            value:
+            value: ""
 
             # set to "true" to upgrade OpenEBS control plane
           - name: UPGRADE_CONTROL_PLANE
-            value:
+            value: ""
+
+            #  Image tag for NDM
+          - name: NEW_NDM_TAG
+            value: "" 
 
         command: ["/bin/bash"]
         args: ["-c", "ansible-playbook ./providers/openebs/upgrade/test.yml -i /etc/ansible/hosts -v; exit 0"]
