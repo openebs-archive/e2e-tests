@@ -18,7 +18,6 @@
       until: "{{ po_name | json_query('resources[*].status.phase') | unique | length==1}}"
       delay: 5
       retries: 60
-      failed_when: po_name.resources | length < 1
 
     - set_fact:
         pvname: "{{ po_name | json_query('resources[0].spec.volumeName') }}"
