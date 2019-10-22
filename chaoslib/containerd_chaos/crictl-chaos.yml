@@ -110,7 +110,7 @@
       args:
         executable: /bin/bash
       register: result
-      until: "'Running' not in result.stdout"
+      until: "result.stdout == ''"
       delay: 3
       retries: 50
 
