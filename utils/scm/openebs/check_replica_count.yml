@@ -1,40 +1,19 @@
 ---
 - block:
-    - name: Obtain the number of replicas.
-      k8s_facts:
-        kind: StatefulSet
-        namespace: "{{ app_ns }}"
-        label_selectors:
-          - "{{ app_label }}"
-      register: rep_count
-      until: "rep_count is succeeded "
-      delay: 60
-      retries: 15
+   - name: Obtain the number of replicas.
+     shell: kubectl get statefulset -n {{ app_ns }} --no-headers -l "{{app_label}}" -o custom-columns=:spec.replicas
+     args:
+       executable: /bin/bash
+     register: rep_count
+     until: "rep_count.rc == 0"
+     delay: 60
+     retries: 15
 
-    - debug:
-        msg: "{{ rep_count | json_query('resources[*].spec.replicas')}}"
-
-    - wait_for:
-        timeout: 30
-    
-    - name: Obtain the number of currentreplicas.
-      k8s_facts:
-        kind: StatefulSet
-        namespace: "{{ app_ns }}"
-        label_selectors:
-          - "{{ app_label }}"
-      register: rep_count
-      until: "rep_count.resources.0.status.replicas | int == rep_count.resources.0.spec.replicas |int"
-      delay: 60
-      retries: 15
-   
-    - name: Obtain the ready replica count and compare with the replica count.
-      k8s_facts: 
-        kind: StatefulSet 
-        namespace: "{{ app_ns }}"
-        label_selectors:
-          - "{{ app_label }}"
-      register: ready_rep
-      until: "ready_rep is succeeded and ready_rep.resources.0.status.readyReplicas |int == rep_count.resources.0.spec.replicas |int"
-      delay: 60
-      retries: 30
+   - name: Obtain the ready replica count and compare with the replica count.
+     shell: kubectl get statefulset -n {{ app_ns }} -l "{{app_label}}" --no-headers -o custom-columns=:..readyReplicas
+     args:
+       executable: /bin/bash
+     register: ready_rep
+     until: "ready_rep.rc == 0 and ready_rep.stdout|int == rep_count.stdout|int"
+     delay: 60
+     retries: 30
