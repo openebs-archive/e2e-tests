@@ -12,6 +12,10 @@ RUN rm -rf /var/lib/apt/lists/* && \
 #Installing ansible
 RUN pip install ansible==2.7.3
 
+#Installing openshift
+RUN pip install openshift
+
+
 RUN touch /mnt/parameters.yml
 
 #Installing Kubectl
