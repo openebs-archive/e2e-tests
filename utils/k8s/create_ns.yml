@@ -15,4 +15,3 @@
   when: app_ns != 'litmus' and app_ns not in ns_list.stdout_lines
 
 - include_tasks: /utils/k8s/status_testns.yml
-

@@ -1,0 +1,28 @@
+---
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: pool_name
+  namespace: {{ operator_ns }}
+spec:
+  backoffLimit: 4
+  template:
+    spec:
+      serviceAccountName: service_account
+      containers:
+      - name:  upgrade
+        args:
+        - "cstor-spc"
+        - "--from-version={{ old_version }}"
+        - "--to-version={{ new_version }}"
+        - "--spc-name=pool_name"
+        - "--v=4"
+        env:
+        - name: OPENEBS_NAMESPACE
+          valueFrom:
+            fieldRef:
+              fieldPath: metadata.namespace
+        tty: true
+        image: quay.io/openebs/m-upgrade:{{ image_tag }}
+      restartPolicy: OnFailure
+---

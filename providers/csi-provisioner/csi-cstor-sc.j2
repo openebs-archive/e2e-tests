@@ -6,5 +6,6 @@ metadata:
 provisioner: openebs-csi.openebs.io
 allowVolumeExpansion: true
 parameters:
-  storagePoolClaim: {{ spc }}
+  cas-type: cstor
+  cstorPoolCluster: {{ cspc }}
   replicaCount: "{{ replica_count }}"

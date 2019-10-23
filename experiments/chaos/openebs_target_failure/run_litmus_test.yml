@@ -50,9 +50,13 @@ spec:
             value: ""
 
           - name: DATA_PERSISTENCE
-            value: "" 
+            value: ""
+       
+          # Specify the container runtime used , to pick the relevant chaos util
+          - name: CONTAINER_RUNTIME
+            value: docker 
 
-            # CHOS_TYPE values :  target-zrepl-kill , target-kill , target-delete 
+            # CHOS_TYPE values :  target-zrepl-kill , target-kill , target-delete
           - name: CHAOS_TYPE
             value: "target-zrepl-kill"
             
