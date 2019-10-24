@@ -174,4 +174,3 @@ metadata:
 provisioner: openebs.io/nfs
 parameters:
   mountOptions: "nfsvers"
----
