@@ -56,7 +56,7 @@ spec:
           - name: CONTAINER_RUNTIME
             value: docker 
 
-            # CHOS_TYPE values :  target-zrepl-kill , target-kill , target-delete
+            # CHOS_TYPE values :  target-zrepl-kill , target-kill , target-delete , ctrl-kill
           - name: CHAOS_TYPE
             value: "target-zrepl-kill"
             
