@@ -14,7 +14,7 @@
   shell: >
     kubectl get pods --no-headers -l openebs.io/controller=jiva-controller -n {{ app_ns }}
     -o jsonpath="{.items[?(@.metadata.labels.openebs\\.io/persistent-volume==\"{{pv.stdout}}\")].metadata.name}"
-    
+
   args:
     executable: /bin/bash
   register: jiva_controller_pod
@@ -30,7 +30,6 @@
 - include_tasks: /chaoslib/pumba/pod_failure_by_sigkill.yaml
   vars:
     action: "killapp"
-    #namespace: "{{ app_ns }}"
     app_pod: "{{ jiva_controller_pod.stdout }}"
     app_container: "{{ ctrl_container }}"
   when: cri == 'docker'
@@ -38,7 +37,6 @@
 - include_tasks: /chaoslib/containerd_chaos/crictl-chaos.yml
   vars:
     action: "killapp"
-    #namespace: "{{ app_ns }}"
     app_pod: "{{ jiva_controller_pod.stdout }}"
     app_container: "{{ ctrl_container }}"
   when: cri == 'containerd'
