@@ -15,6 +15,8 @@ RUN pip install ansible==2.7.3
 #Installing openshift
 RUN pip install openshift
 
+#Installing jmespath
+RUN pip install jmespath
 
 RUN touch /mnt/parameters.yml
 
