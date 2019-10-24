@@ -44,6 +44,21 @@
       register: chaos_pod
       failed_when: chaos_pod is failed
 
+    - block:
+
+      - name: Record the application container
+        shell: >
+          kubectl get pods -l {{ label }} -n {{ namespace }} -o jsonpath='{.items[0].spec.containers[0].name}'
+        args:
+          executable: /bin/bash
+        register: container
+
+      - name: Record the app_container
+        set_fact:
+          app_container: "{{ container.stdout }}"
+
+      when: app_container is undefined
+
     - name: Obtain the pod ID through Pod name
       shell: >
         kubectl exec {{ chaos_pod.stdout}} -n {{ namespace }} -- 
