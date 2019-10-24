@@ -14,7 +14,6 @@
   shell: >
     kubectl get pods --no-headers -l openebs.io/controller=jiva-controller -n {{ app_ns }}
     -o jsonpath="{.items[?(@.metadata.labels.openebs\\.io/persistent-volume==\"{{pv.stdout}}\")].metadata.name}"
-
   args:
     executable: /bin/bash
   register: jiva_controller_pod
@@ -41,18 +40,18 @@
     app_container: "{{ ctrl_container }}"
   when: cri == 'containerd'
 
-- name: Check for controller pod in running state
+- name: Check for controller container status
   shell: >
-    kubectl get pod {{ jiva_controller_pod.stdout }} -n {{ app_ns }} | 
-    grep -w "Running" | wc -l
+    kubectl get pod {{ jiva_controller_pod.stdout }} -n {{ app_ns }} --no-headers
+    -o custom-columns=:.status.phase    
   args:
     executable: /bin/bash
-  register: jiva_controller_pod_cnt
-  until: "jiva_controller_pod_cnt.stdout == \"1\""
-  delay: 30
-  retries: 10
+  register: result
+  until: "result.stdout == 'Running'"
+  delays: 5
+  retries: 45
 
-- name: Get the running status of controller pod
+- name: Check if the controller pod is running
   shell: >
     kubectl get pod {{ jiva_controller_pod.stdout }} -n {{ app_ns }}
     -o=jsonpath='{range .status.containerStatuses[*]}{.state}{"\n"}{end}' |
@@ -78,4 +77,4 @@
       - "Verified containers restartcounts after fault injection"
       - "Before: {{ restartCount_before.stdout }}"
       - "After: {{ restartCount_after.stdout }}"
-  failed_when: "restartCount_before.stdout|int >= restartCount_after.stdout|int"
+  failed_when: "{{ restartCount_after.stdout|int }} != {{ restartCount_before.stdout|int + 1 }}"
