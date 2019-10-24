@@ -42,6 +42,7 @@
     - name: Record the storage engine name
       set_fact:
         stg_engine: "{{ openebs_stg_engine.resources.0.metadata.annotations['openebs.io/cas-type'] }}"
+      ignore_errors: yes
     
     ## Replacing the item names in the respective deployer spec file.
     - name: Replace the PVC name in application deployer spec.

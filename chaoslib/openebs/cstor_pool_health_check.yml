@@ -70,14 +70,3 @@
   register: result
   with_items: "{{ pool_pod_named_list }}"
   failed_when: result.rc == 0
-
-- name: Verify there are no restarts of cstor pool containers
-  shell: >
-    kubectl get pods {{ item }} -n {{ operator_ns }}
-    -o jsonpath='{.status.containerStatuses[*].restartCount}'
-    | tr ' ' '\n' | sort | uniq
-  args:
-    executable: /bin/bash
-  register: result
-  with_items: "{{ pool_pod_named_list }}"
-  failed_when: result.stdout != "0"
