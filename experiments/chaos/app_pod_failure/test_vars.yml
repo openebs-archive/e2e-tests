@@ -10,3 +10,4 @@ liveness_namespace: "{{ lookup('env','LIVENESS_APP_NAMESPACE') }}"
 
 cri: "{{ lookup('env','CONTAINER_RUNTIME') }}"
 
+data_persistence: "{{ lookup('env','DATA_PERSISTENCE') }}"

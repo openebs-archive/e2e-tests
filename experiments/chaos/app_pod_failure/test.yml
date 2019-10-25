@@ -4,6 +4,7 @@
 
   vars_files:
     - test_vars.yml
+    - /mnt/parameters.yml
 
   tasks:
     - block:
@@ -31,6 +32,19 @@
             chaostype: "app-failure"
             app: ""
 
+        - name: Identify the data consistency util to be invoked
+          template:
+            src: data_persistence.j2
+            dest: data_persistence.yml
+
+        - include_vars:
+            file: data_persistence.yml
+
+        - name: Record the data consistency util path
+          set_fact:
+            data_consistency_util_path: "{{ consistencyutil }}"
+          when: data_persistence != ''
+
         ## DISPLAY APP INFORMATION
 
         - name: Display the app information passed via the test job
@@ -45,6 +59,7 @@
           include_tasks: /utils/k8s/check_deployment_status.yml
 
         - block:
+
             - name: Get application pod name
               shell: >
                 kubectl get pods -n {{ app_ns }} -l {{ app_label }} --no-headers
@@ -52,6 +67,14 @@
               args:
                 executable: /bin/bash
               register: app_pod_name
+
+            - name: Create some test data
+              include: "{{ data_consistency_util_path }}"
+              vars:
+                status: 'LOAD'
+                ns: "{{ app_ns }}"
+                pod_name: "{{ app_pod_name.stdout }}"
+              when: data_persistence != ''
 
              ## APPLICATION FAULT INJECTION
 
@@ -70,6 +93,15 @@
                 namespace: "{{ app_ns }}"
                 label: "{{ app_label }}"
               when: cri == 'containerd'
+
+            - name: Verify application data persistence
+              include: "{{ data_consistency_util_path }}"
+              vars:
+                status: 'VERIFY'
+                ns: "{{ app_ns }}"
+                label: "{{ app_label }}"
+                pod_name: "{{ app_pod_name.stdout }}"                 
+              when: data_persistence != ''
 
           when: lookup('env','DEPLOY_TYPE') == 'deployment'
 

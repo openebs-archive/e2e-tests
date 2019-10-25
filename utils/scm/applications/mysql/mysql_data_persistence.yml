@@ -24,7 +24,7 @@
      args:
        executable: /bin/bash
 
-   - name: Verify if the applicaion pod is deleted
+   - name: Verify if the application pod is deleted
      shell: >
        kubectl get pods -n {{ ns }}
      args:

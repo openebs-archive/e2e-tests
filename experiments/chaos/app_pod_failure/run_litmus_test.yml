@@ -1,4 +1,12 @@
 ---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: app-failure
+  namespace: litmus
+data:
+  parameters.yml: |
+---
 apiVersion: batch/v1
 kind: Job
 metadata:
@@ -40,6 +48,16 @@ spec:
           - name: CONTAINER_RUNTIME
             value: docker
 
+            #Specify app pod name to check if the data is consistent. Currently supported values are 'mysql' and 'busybox'
+          - name: DATA_PERSISTENCE
+            value: ""
+
         command: ["/bin/bash"]
         args: ["-c", "ansible-playbook ./experiments/chaos/app_pod_failure/test.yml -i /etc/ansible/hosts -vv; exit 0"]
-
+        volumeMounts:
+        - name: parameters
+          mountPath: /mnt/
+      volumes:
+        - name: parameters
+          configMap:
+            name: app-failure
