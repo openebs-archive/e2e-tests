@@ -155,6 +155,12 @@
                 regexp: "<initial_capacity>"
                 replace: "{{ lookup('env','PV_CAPACITY') }}"
 
+            - name: Replacing OpenEBS version in cvr yml
+              replace:
+                path: "./cvr.yml"
+                regexp: "<openebs-version>"
+                replace: "{{ lookup('env','OPENEBS_VERSION') }}"
+
             - name: Replacing the target IP in cvr yml
               replace:
                 path: "./cvr.yml"

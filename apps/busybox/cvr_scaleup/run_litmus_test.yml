@@ -25,6 +25,9 @@ spec:
           - name: SPC_NAME
             value: cstor-sparse-pool
 
+          - name: OPENEBS_VERSION
+            value: "1.3.0"
+
           - name: VOLUME_REPLICAS
             value: "2"
 

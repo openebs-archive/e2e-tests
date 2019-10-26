@@ -13,9 +13,9 @@ metadata:
     cstorpool.openebs.io/name: <csp-name>
     cstorpool.openebs.io/uid: "<csp-uid>"
     cstorvolume.openebs.io/name: <cstor-volume-name>
-    openebs.io/cas-template-name: cstor-volume-create-default-1.3.0
+    openebs.io/cas-template-name: cstor-volume-create-default-<openebs-version>
     openebs.io/persistent-volume: <cstor-volume-name>
-    openebs.io/version: 1.3.0
+    openebs.io/version: <openebs-version>
   name: <cstor-volume-name>-<csp-name>
   namespace: openebs
 spec:
