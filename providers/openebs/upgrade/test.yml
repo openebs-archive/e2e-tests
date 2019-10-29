@@ -19,22 +19,53 @@
         - name: Obtain the service account name
           shell: kubectl get deploy -n {{ operator_ns }} -l name=maya-apiserver -o jsonpath="{.items[*].spec.template.spec.serviceAccount}"
           register: service_account
+          failed_when: 'service_account.stdout == ""'
 
         - block:
 
-            - name: Check the OpenEBS control plane is running with expected version
-              shell: kubectl get pods -n {{ operator_ns }} -l openebs.io/version={{ old_version }}
-              register: maya_old
-              failed_when: "'No resources found.' in maya_old.stderr"
+            - name: Check if the maya api server is running with expected version
+              shell: >
+                kubectl get pods -n {{ operator_ns }} -o jsonpath='{.items[?(@.metadata.labels.name=="maya-apiserver")].metadata.labels.openebs\.io\/version}'
+              register: new_maya
+              failed_when: "new_maya.stdout != old_version"
 
-            - name: Obtain the Node Disk Manger image
-              shell: kubectl get ds -n {{ operator_ns }} -l name=openebs-ndm -o custom-columns=:.spec.template.spec.containers[].image --no-headers
+            - name: Check if the  OpenEBS-provisioner running with expected version
+              shell: kubectl get pods -n {{ operator_ns }} -o jsonpath='{.items[?(@.metadata.labels.name=="openebs-provisioner")].metadata.labels.openebs\.io\/version}'
+              register: openebs_prov_version
+              failed_when: "openebs_prov_version.stdout != old_version"
+
+            - name: Check if the  OpenEBS-admission-server running with expected version
+              shell: kubectl get pods -n {{ operator_ns }} -o jsonpath='{.items[?(@.metadata.labels.app=="admission-webhook")].metadata.labels.openebs\.io\/version}'
+              register: admission_web_version
+              failed_when: "admission_web_version.stdout != old_version"
+
+            - name: Check if the  OpenEBS-Snapshot-Operator running with expected version
+              shell: kubectl get pods -n {{ operator_ns }} -o jsonpath='{.items[?(@.metadata.labels.name=="openebs-snapshot-operator")].metadata.labels.openebs\.io\/version}'
+              register: oso_version
+              failed_when: "oso_version.stdout != old_version"
+
+            - name: Check if the  OpenEBS-ndm-Operator running with expected version
+              shell: kubectl get pods -n {{ operator_ns }} -o jsonpath='{.items[?(@.metadata.labels.name=="openebs-ndm-operator")].metadata.labels.openebs\.io\/version}'
+              register: ndm_operator_version
+              failed_when: "ndm_operator_version.stdout != old_version"
+
+            - name: Check if the  OpenEBS-localpv-provisioner running with expected version
+              shell: >
+                kubectl get pods -n {{ operator_ns }} -o jsonpath='{.items[?(@.metadata.labels.name=="openebs-localpv-provisioner")].metadata.labels.openebs\.io\/version}'
+              register: local_pv_version
+              failed_when: "local_pv_version.stdout != old_version"
+
+            - name: Obtain the Node Disk Manager image
+              shell: >
+                 kubectl get ds -n {{ operator_ns }} -l name=openebs-ndm -o custom-columns=:.spec.template.spec.containers[].image --no-headers
               register: ndm_tag
+              failed_when: 'ndm_tag.stdout == ""'
 
             - name: Obtain the Node Disk Manager daemonset current count
               shell: >
                 kubectl get ds -n {{ operator_ns }} -o jsonpath='{.items[?(@.metadata.labels.name=="openebs-ndm")].status.currentNumberScheduled}'
               register: ndm_current_count
+              failed_when: 'ndm_current_count.stdout == ""'
 
             - name: Obtain the Node Disk Manager daemonset desired count
               shell: >
@@ -42,17 +73,58 @@
               register: ndm_desired_count
               failed_when: "{{ ndm_desired_count.stdout }} != {{ ndm_current_count.stdout }}"
 
+              ## Obtaining the OpenEBS operator from charts.
+              ## If the chart is not created, openebs operator will be downloaded from master branch.
             - name: Downloading openebs-operator.yaml
               get_url:
-                url: "{{ openebs_operator_link }}"
+                url: "{{ new_operator }}"
                 dest: "{{ playbook_dir }}/{{ openebs_operator }}"
                 force: yes
-              register: result
-              until:  "'OK' in result.msg"
+              register: new_operator_file
+              ignore_errors: true
+              until:  "'OK' in new_operator_file.msg"
               delay: 5
               retries: 3
 
-            - name: Applying openebs operator
+            - block:
+
+                - name: Downloading openebs-operator.yaml
+                  get_url:
+                    url: "{{ openebs_operator_link }}"
+                    dest: "{{ playbook_dir }}/{{ openebs_operator }}"
+                    force: yes
+                  register: result
+                  until:  "'OK' in result.msg"
+                  delay: 5
+                  retries: 3
+
+                - name: Change the Node Disk manager Image
+                  replace:
+                    path: "{{ openebs_operator }}"
+                    regexp: quay.io/openebs/node-disk-manager-amd64:ci
+                    replace: quay.io/openebs/node-disk-manager-amd64:{{ new_ndm_tag }}
+
+                - name: Change the Node Disk operator Image
+                  replace:
+                    path: "{{ openebs_operator }}"
+                    regexp: quay.io/openebs/node-disk-operator-amd64:ci
+                    replace: quay.io/openebs/node-disk-operator-amd64:{{ new_ndm_tag }}
+
+                - name: Change the OpenEBS component labels to desired version in Operator yaml
+                  replace:
+                    path: "{{ openebs_operator }}"
+                    regexp: 'openebs.io/version: dev'
+                    replace: "openebs.io/version: {{ new_version }}"
+
+                - name: Change the Image tag to newer version in operator yaml
+                  replace:
+                    path: "{{ openebs_operator }}"
+                    regexp: ':ci'
+                    replace: ":{{ new_version }}"
+
+              when: "'OK' not in new_operator_file.msg"
+
+            - name: Upgrade openebs control plane components
               shell: kubectl apply -f "{{ openebs_operator }}"
               args:
                 executable: /bin/bash
@@ -71,7 +143,7 @@
           delay: 5
           retries: 120
 
-        - name: Checking Maya-API-Server container status
+        - name: Check if the  Maya-API-Server container status
           shell: >
             kubectl get pods --no-headers -n {{ operator_ns }} -l name=maya-apiserver
             -o jsonpath='{.items[?(@.status.containerStatuses[*].name=="maya-apiserver")].status.containerStatuses[*].ready}'
@@ -80,46 +152,94 @@
           delay: 5
           retries: 120
 
-        - name: Checking OpenEBS-provisioner is running
+        - name: Check if the  OpenEBS-provisioner is running
           shell: kubectl get pods -n {{ operator_ns }} -o jsonpath='{.items[?(@.metadata.labels.name=="openebs-provisioner")].status.phase}'
           register: openebs_prob
           until: "'Running' in openebs_prob.stdout"
           delay: 5
           retries: 120
 
-        - name: Checking OpenEBS-admission-server is running
+        - name: Check if the  OpenEBS-admission-server is running
           shell: kubectl get pods -n {{ operator_ns }} -o jsonpath='{.items[?(@.metadata.labels.app=="admission-webhook")].status.phase}'
           register: admission_web
           until: "'Running' in admission_web.stdout"
           delay: 5
           retries: 120
 
-        - name: Checking OpenEBS-Snapshot-Operator is running
+        - name: Check if the  OpenEBS-Snapshot-Operator is running
           shell: kubectl get pods -n {{ operator_ns }} -o jsonpath='{.items[?(@.metadata.labels.name=="openebs-snapshot-operator")].status.phase}'
           register: oso
           until: "'Running' in oso.stdout"
           delay: 5
           retries: 120
 
+        - name: Check if the  OpenEBS-ndm-Operator is running
+          shell: kubectl get pods -n {{ operator_ns }} -o jsonpath='{.items[?(@.metadata.labels.name=="openebs-ndm-operator")].status.phase}'
+          register: ndm_operator
+          until: "'Running' in ndm_operator.stdout"
+          delay: 5
+          retries: 120
+
+        - name: Check if the  OpenEBS-localpv-provisioner is running
+          shell: >
+             kubectl get pods -n {{ operator_ns }} -o jsonpath='{.items[?(@.metadata.labels.name=="openebs-localpv-provisioner")].status.phase}'
+          register: local_pv
+          until: "'Running' in local_pv.stdout"
+          delay: 5
+          retries: 120
+
+        - name: Check if the  OpenEBS NDM daemonset pods are running
+          shell: >
+             kubectl get pods -n {{ operator_ns }} -l name=openebs-ndm -o custom-columns=:.status.phase --no-headers
+          register: ndm_dm
+          until: "((ndm_dm.stdout_lines|unique)|length) == 1 and 'Running' in ndm_dm.stdout"
+          delay: 5
+          retries: 120
+
         - name: Check if the maya api server is upgraded to newer version
           shell: >
-            kubectl get pods -n {{ operator_ns }}
-            -o jsonpath='{.items[?(@.metadata.labels.name=="maya-apiserver")].spec.containers[*].image}' | cut -d ':' -f2
+            kubectl get pods -n {{ operator_ns }} -o jsonpath='{.items[?(@.metadata.labels.name=="maya-apiserver")].metadata.labels.openebs\.io\/version}'
           register: new_maya
           failed_when: "new_maya.stdout != new_version"
+
+        - name: Check if the  OpenEBS-provisioner upgraded to newer version
+          shell: kubectl get pods -n {{ operator_ns }} -o jsonpath='{.items[?(@.metadata.labels.name=="openebs-provisioner")].metadata.labels.openebs\.io\/version}'
+          register: openebs_prov_version
+          failed_when: "openebs_prov_version.stdout != new_version"
+
+        - name: Check if the  OpenEBS-admission-server upgraded to newer version
+          shell: kubectl get pods -n {{ operator_ns }} -o jsonpath='{.items[?(@.metadata.labels.app=="admission-webhook")].metadata.labels.openebs\.io\/version}'
+          register: admission_web_version
+          failed_when: "admission_web_version.stdout != new_version"
+
+        - name: Check if the  OpenEBS-Snapshot-Operator upgraded to newer version
+          shell: kubectl get pods -n {{ operator_ns }} -o jsonpath='{.items[?(@.metadata.labels.name=="openebs-snapshot-operator")].metadata.labels.openebs\.io\/version}'
+          register: oso_version
+          failed_when: "oso_version.stdout != new_version"
+
+        - name: Check if the  OpenEBS-ndm-Operator upgraded to newer version
+          shell: kubectl get pods -n {{ operator_ns }} -o jsonpath='{.items[?(@.metadata.labels.name=="openebs-ndm-operator")].metadata.labels.openebs\.io\/version}'
+          register: ndm_operator_version
+          failed_when: "ndm_operator_version.stdout != new_version"
+
+        - name: Check if the  OpenEBS-localpv-provisioner upgraded to newer version
+          shell: >
+             kubectl get pods -n {{ operator_ns }} -o jsonpath='{.items[?(@.metadata.labels.name=="openebs-localpv-provisioner")].metadata.labels.openebs\.io\/version}'
+          register: local_pv_version
+          failed_when: "local_pv_version.stdout != new_version"
 
         - block:
             - name: Obtain the SPC name
               shell: kubectl get spc -o custom-columns=:.metadata.name --no-headers
               register: spc_name
-              failed_when: "'No resources found.' in spc_name.stderr"
+              failed_when: 'spc_name.stdout == ""'
 
             - name: create job yaml spec for spc upgrade
               template:
                 src: ./cstor-spc-upgrade-job.j2
                 dest: ./cstor-spc-upgrade-job-{{ item }}.yml
               with_items:
-                - "{{ spc_name.stdout }}"
+                - "{{ spc_name.stdout_lines }}"
 
             - name: Replacing the spc name in upgrade SPC job spec
               replace:
@@ -127,7 +247,7 @@
                 regexp: "pool_name"
                 replace: "{{ item }}"
               with_items:
-                - "{{ spc_name.stdout }}"
+                - "{{ spc_name.stdout_lines }}"
 
             - name: Replacing the service Account name in upgrade SPC job spec
               replace:
@@ -135,21 +255,21 @@
                 regexp: "service_account"
                 replace: "{{ service_account.stdout }}"
               with_items:
-                - "{{ spc_name.stdout }}"
+                - "{{ spc_name.stdout_lines }}"
 
             - name: Create the job to upgrade the SPC pool
               shell: kubectl apply -f cstor-spc-upgrade-job-{{ item }}.yml
               args:
                 executable: /bin/bash
               with_items:
-                - "{{ spc_name.stdout }}"
+                - "{{ spc_name.stdout_lines }}"
 
             - name: Check if the upgrade jobs been completed
               shell: kubectl get pods -n {{ operator_ns }}  -l job-name={{ item }} -o custom-columns=:.status.phase --no-headers
               register: job_status
               until: "'Succeeded' in job_status.stdout"
-              delay: 5
-              retries: 45
+              delay: 10
+              retries: 60
               with_items:
                 - "{{ spc_name.stdout_lines }}"
 
@@ -163,7 +283,7 @@
               with_items:
                  - "{{ spc_name.stdout_lines }}"
 
-            - name: Check if the CSPs are in Health state
+            - name: Check if the CSPs are in Healthy state
               shell: kubectl get csp -l openebs.io/storage-pool-claim={{ item }} -o custom-columns=:.status.phase --no-headers --no-headers
               register: csp_status
               until: "((csp_status.stdout_lines|unique)|length) == 1 and 'Healthy' in csp_status.stdout"
@@ -172,19 +292,43 @@
               with_items:
                   - "{{ spc_name.stdout_lines }}"
 
-            - name: Obtain the PV name
+            - name: Obtain the CSP name to check the version
+              shell: kubectl get csp -l openebs.io/storage-pool-claim={{ item }} -o=jsonpath='{range .items[*]}{.metadata.name}{"\n"}{end}'
+              register: csp_name
+              failed_when: 'csp_name.stdout == ""'
+              with_items:
+                  - "{{ spc_name.stdout_lines }}"
+
+            - name: Initialize an empty list to store csp names
+              set_fact:
+                csp_list: []
+
+            - name: Store name of all csp in the list
+              set_fact:
+                csp_list: "{{ csp_list + item.stdout_lines }}"
+              with_items:
+                - "{{ csp_name.results }}"
+
+            - name: Check if the CSP resources are upgraded to newer version
+              shell: kubectl get csp {{ item }} -o custom-columns=:.versionDetails.status.current --no-headers
+              register: csp_version
+              failed_when: "csp_version.stdout != new_version"
+              with_items:
+                  - "{{ csp_list }}"
+
+            - name: Obtain the cStor PV name
               shell: kubectl get pv -l openebs.io/cas-type=cstor -o custom-columns=:.metadata.name --no-headers
               register: pv_name
-              failed_when: "'No resources found.' in pv_name.stderr"
+              failed_when: 'pv_name.stdout == ""'
 
-            - name: create job yaml spec for upgrade PV
+            - name: create job yaml spec for upgrade cstor volume
               template:
                 src: ./cstor-volume-upgrade-job.j2
                 dest: ./cstor-volume-upgrade-job-{{ item }}.yml
               with_items:
                 - "{{ pv_name.stdout_lines }}"
 
-            - name: Replacing the pv name in upgrade pv job spec
+            - name: Replacing the pv name in upgrade cstor volume job spec
               replace:
                 path: ./cstor-volume-upgrade-job-{{ item }}.yml
                 regexp: "cstor_volume_name"
@@ -200,7 +344,7 @@
               with_items:
                 - "{{ pv_name.stdout_lines }}"
 
-            - name: Create the job to upgrade the PV
+            - name: Create the job to upgrade the cstor volume
               shell: kubectl apply -f cstor-volume-upgrade-job-{{ item }}.yml
               args:
                 executable: /bin/bash
@@ -211,8 +355,8 @@
               shell: kubectl get pods -n {{ operator_ns }} -l job-name={{ item }} -o custom-columns=:.status.phase --no-headers
               register: job_status
               until: "'Succeeded' in job_status.stdout"
-              delay: 5
-              retries: 45
+              delay: 10
+              retries: 60
               with_items:
                 - "{{ pv_name.stdout_lines }}"
 
@@ -226,22 +370,69 @@
               with_items:
                 - "{{ pv_name.stdout_lines }}"
 
+            - name: Check if the target has been upgraded to latest version
+              shell: >
+                kubectl get pods -n {{ operator_ns }} -l openebs.io/persistent-volume={{ item }}
+                -o=jsonpath='{range .items[*]}{.metadata.labels.openebs\.io\/version}{"\n"}{end}'
+              register: target_version
+              failed_when: "target_version.stdout != new_version"
+              with_items:
+                - "{{ pv_name.stdout_lines }}"
+
+            - name: Check the CVRs are in Healthy state
+              shell: >
+                kubectl get cvr -n {{ operator_ns }} -l openebs.io/persistent-volume={{ item }}
+                -o custom-columns=:.status.phase --no-headers
+              register: cvr_status
+              until: "((cvr_status.stdout_lines|unique)|length) == 1 and 'Healthy' in cvr_status.stdout"
+              retries: 45
+              delay: 5
+              with_items:
+                - "{{ pv_name.stdout_lines }}"
+
+            - name: Obtain the CVR name to verify the current version
+              shell: >
+                kubectl get cvr -n {{ operator_ns }} -l openebs.io/persistent-volume={{ item }}
+                -o=jsonpath='{range .items[*]}{.metadata.name}{"\n"}{end}'
+              register: cvr_name
+              failed_when: 'cvr_name.stdout == ""'
+              with_items:
+                - "{{ pv_name.stdout_lines }}"
+
+            - name: Initialize an empty list to store cvr names
+              set_fact:
+                cvr_list: []
+
+            - name: Store name of all cvr in the list
+              set_fact:
+                cvr_list: "{{ cvr_list + item.stdout_lines }}"
+              with_items:
+                - "{{ cvr_name.results }}"
+
+            - name: Check if the CVRs are upgraded to newer version
+              shell: >
+                 kubectl get cvr -n {{ operator_ns }} {{ item }} -o custom-columns=:.versionDetails.status.current --no-headers
+              register: cvr_version
+              failed_when: "cvr_version.stdout != new_version"
+              with_items:
+                  - "{{ cvr_list }}"
+
           when: upgrade_cstor == "true"
 
         - block:
-            - name: Obtain the PV name
+            - name: Obtain the JIVA PV name
               shell: kubectl get pv -l openebs.io/cas-type=jiva -o custom-columns=:.metadata.name --no-headers
               register: jiva_pv_name
-              failed_when: "'No resources found.' in jiva_pv_name.stderr"
+              failed_when: 'jiva_pv_name.stdout == ""'
 
-            - name: create job yaml spec for upgrade
+            - name: create job yaml spec for upgrade jiva volume
               template:
                 src: ./jiva-volume-upgrade-job.j2
                 dest: ./jiva-volume-upgrade-job-{{ item }}.yml
               with_items:
                 - "{{ jiva_pv_name.stdout_lines }}"
 
-            - name: Replacing the spc name in upgrade pv job spec
+            - name: Replacing the PV name in upgrade jiva volume job spec
               replace:
                 path: ./jiva-volume-upgrade-job-{{ item }}.yml
                 regexp: "jiva_volume_name"
@@ -257,7 +448,7 @@
               with_items:
                 - "{{ jiva_pv_name.stdout_lines }}"
 
-            - name: Create the job to upgrade the PV
+            - name: Create the job to upgrade the jiva volume
               shell: kubectl apply -f jiva-volume-upgrade-job-{{ item }}.yml
               args:
                 executable: /bin/bash
@@ -268,8 +459,8 @@
               shell: kubectl get pods -n {{ operator_ns }} -l job-name={{ item }} -o custom-columns=:.status.phase --no-headers
               register: job_status
               until: "'Succeeded' in job_status.stdout"
-              delay: 5
-              retries: 45
+              delay: 10
+              retries: 60
               with_items:
                 - "{{ jiva_pv_name.stdout_lines }}"
 
@@ -280,6 +471,24 @@
               until: "((ctrl_status.stdout_lines|unique)|length) == 1 and 'Running' in ctrl_status.stdout"
               retries: 30
               delay: 10
+              with_items:
+                - "{{ jiva_pv_name.stdout_lines }}"
+
+            - name: Check if the controller has been upgraded to latest version
+              shell: >
+                kubectl get deploy --all-namespaces -l openebs.io/persistent-volume={{ item }},openebs.io/controller=jiva-controller
+                -o=jsonpath='{range .items[*]}{.metadata.labels.openebs\.io\/version}{"\n"}{end}'
+              register: ctrl_version
+              failed_when: "ctrl_version.stdout != new_version"
+              with_items:
+                - "{{ jiva_pv_name.stdout_lines }}"
+
+            - name: Check if the replica has been upgraded to latest version
+              shell: >
+                kubectl get deploy --all-namespaces -l openebs.io/persistent-volume={{ item }},openebs.io/replica=jiva-replica
+                -o=jsonpath='{range .items[*]}{.metadata.labels.openebs\.io\/version}{"\n"}{end}'
+              register: rep_version
+              failed_when: "rep_version.stdout != new_version"
               with_items:
                 - "{{ jiva_pv_name.stdout_lines }}"
 
