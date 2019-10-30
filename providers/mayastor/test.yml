@@ -1,0 +1,82 @@
+- hosts: localhost
+  connection: local
+
+  vars_files:
+    - test_vars.yml
+
+  tasks:
+
+    - block:
+    
+         # GENERATING THE TEST NAME
+        - include_tasks: /utils/fcm/create_testname.yml
+
+         ##  RECORD START-OF-TEST IN LITMUS RESULT CR
+        - include_tasks: "/utils/fcm/update_litmus_result_resource.yml"
+          vars:
+            status: 'SOT'
+
+        - name: Getting the number of compute nodes
+          shell: kubectl get nodes --no-headers | grep none | wc -l
+          register: compute_nodes
+
+        - name: Getting the node names
+          shell: kubectl get nodes --no-headers | grep none | awk '{print $1}'
+          register: node_names
+
+        - name: Bootsrapping compute nodes using nsenter daemonset
+          shell: kubectl apply -f bootstrap_nodes.yml
+
+        - name: Checking for demon pods in running state
+          shell: kubectl get pod -n nsenter -l job=bootstrap -o jsonpath='{.items[*].status.phase}' | grep Running | wc -w
+          register: demon_count
+          until: (compute_nodes.stdout)|int == (demon_count.stdout)|int
+          delay: 5
+          retries: 50
+
+        - name: Labeling the nodes
+          shell: kubectl label node {{item}} openebs.io/engine=mayastor
+          with_items: "{{ node_names.stdout_lines }}"
+
+        - name: Creating namespace holding MayaStor resources
+          shell: kubectl apply -f {{ maya_namespace_link }}
+          register: namespace_status
+          failed_when: "'created' not in namespace_status.stdout"
+
+        - name: Creating moac deployment
+          shell: kubectl apply -f {{ maya_moac_deployment_link }}
+
+        - name: Checking moac pod status
+          shell: kubectl get pod -n mayastor -l app=moac -o jsonpath='{.items[0].status.phase}'
+          register: moac_status
+          until: "'Running' in moac_status.stdout"
+          delay: 5
+          retries: 120
+
+        - name: Creating MayaStor daemonset
+          shell: kubectl apply -f {{ maya_demonset_link }}      
+          
+        - name: Checking the status of MataStor Daemonset
+          shell: kubectl get pod -n mayastor -l app=mayastor -o jsonpath='{.items[*].status.phase}' | grep Running | wc -w
+          register: mayastor_demon_count
+          until: (compute_nodes.stdout)|int == (mayastor_demon_count.stdout)|int
+          delay: 5
+          retries: 50
+
+        - set_fact:
+            flag: "Pass"
+
+      rescue:
+        - set_fact:
+            flag: "Fail"
+          
+      always:
+        ## RECORD END-OF-TEST IN LITMUS RESULT CR
+        - include_tasks: /utils/fcm/update_litmus_result_resource.yml
+          vars:
+            status: 'EOT'
+
+        - name: Deprovisioning nsenter
+          shell: |
+            kubectl delete daemonset --all -n nsenter
+            kubectl delete namespace nsenter

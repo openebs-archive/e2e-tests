@@ -1,0 +1,4 @@
+test_name: "mayastor-provision"
+maya_namespace_link: "https://raw.githubusercontent.com/openebs/MayaStor/master/deploy/namespace.yaml"
+maya_moac_deployment_link: "https://raw.githubusercontent.com/openebs/MayaStor/master/deploy/moac-deployment.yaml"
+maya_demonset_link: "https://raw.githubusercontent.com/openebs/MayaStor/master/deploy/mayastor-daemonset.yaml"
