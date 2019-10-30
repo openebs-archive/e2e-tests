@@ -38,7 +38,7 @@
          register: cv_name
          failed_when: 'cv_name.stdout == ""'
          
-       - name: Check if the CVRs in health state
+       - name: Check if the CVRs in healthy state
          shell: >
            kubectl get cvr -n {{ operator_ns }} -l openebs.io/persistent-volume={{ pv.stdout }}
            -o custom-columns=:.status.phase --no-headers
