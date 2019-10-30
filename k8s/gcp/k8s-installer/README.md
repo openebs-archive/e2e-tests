@@ -9,13 +9,13 @@ These playbook act as a wrapper class for all the `kops`, `gsutil` & `gcloud` co
 
 ### Setting up
 
-- Run `glcloud init`, and authenticate into your google account linked with the Google Cloud
+- Run `gcloud init`, and authenticate into your google account linked with the Google Cloud
 
 ---
 
 ### Running
 
-- Run `create-vpc.yml` using anisble-playbook, that will create a Virtual Private Cloud
+- Run `create-vpc.yml` using ansible-playbook, that will create a Virtual Private Cloud
 ```bash
 ansible-playbook create-vpc.yml --extra-vars "project=<project-name> vpc_name=<vpc-name>"
 ```
@@ -44,7 +44,7 @@ ansible-playbook delete-k8s-cluster.yml
 > cluster_name=my-Cluster
 
 It will delete the cluster specified else it will delete the last created cluster.
-If you have created **multiple** cluster, you have to specify the, existing cluster name to be deleted in extra-vars.
+If you have created **multiple** clusters, you have to specify the, existing cluster name to be deleted in extra-vars.
 
 - Run `delete-vpc` to delete the existing VPC (if required)
 ```bash
