@@ -5,6 +5,7 @@
   args:
     executable: /bin/bash
   register: pv
+  failed_when: 'pv.stdout == ""'
 
 - name: Record jiva controller container name
   set_fact:
