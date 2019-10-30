@@ -41,7 +41,7 @@
     app_container: "{{ ctrl_container }}"
   when: cri == 'containerd'
 
-- name: Check for controller container status
+- name: Check if the controller pod is running
   shell: >
     kubectl get pod {{ jiva_controller_pod.stdout }} -n {{ app_ns }} --no-headers
     -o custom-columns=:.status.phase    
@@ -52,7 +52,7 @@
   delays: 5
   retries: 45
 
-- name: Check if the controller pod is running
+- name: Check for controller container status
   shell: >
     kubectl get pod {{ jiva_controller_pod.stdout }} -n {{ app_ns }}
     -o=jsonpath='{range .status.containerStatuses[*]}{.state}{"\n"}{end}' |
