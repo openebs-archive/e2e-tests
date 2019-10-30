@@ -17,7 +17,7 @@ spec:
   template:
     metadata:
       labels:
-        name: data-persistence-litmus
+        name: litmus-data-persistence
     spec:
       serviceAccountName: litmus
       restartPolicy: Never

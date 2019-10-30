@@ -56,11 +56,18 @@ spec:
           - name: CONTAINER_RUNTIME
             value: docker 
 
-            # CHOS_TYPE values :  target-zrepl-kill , target-kill , target-delete
+            # CHAOS_TYPE values :  target-zrepl-kill , target-kill , target-delete , jiva-ctrl-kill
+            # For cstor-volume-istgt container kill Use : target-kill
+            # For Volume-mgmt-kill container Use  : target-zrepl-kill
+            # For cstor-target-failure Use    : target-delete
+            # For Jiva-Controller-container-kill Use : jiva-ctrl-kill
+
           - name: CHAOS_TYPE
             value: "target-zrepl-kill"
             
             # TARGET_CONTAINER values: cstor-volume-mgmt , cstor-istgt
+            # For cstor-volume-istgt container kill use : cstor-istgt
+            # For volume-mgmt-kill container use : cstor-volume-mgmt
           - name: TARGET_CONTAINER
             value: "cstor-volume-mgmt"
 
