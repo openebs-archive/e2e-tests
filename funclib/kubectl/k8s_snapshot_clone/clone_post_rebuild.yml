@@ -6,6 +6,7 @@
             status: "remove"
             target_pod: "{{ tgt_rep_pod }}"
             operator_namespace: "{{ target_ns }}"
+            containername: "{{ container_name }}"
 
         - name: Check if the snapshot is being rebuilt.
           shell: kubectl exec -it {{ tgt_rep_pod }} -n {{ target_ns }} --container cstor-pool -- zfs list -t snapshot
