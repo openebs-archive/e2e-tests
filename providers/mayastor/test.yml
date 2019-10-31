@@ -17,11 +17,11 @@
             status: 'SOT'
 
         - name: Getting the number of compute nodes
-          shell: kubectl get nodes --no-headers | grep none | wc -l
+          shell: kubectl get nodes --no-headers | grep node | wc -l
           register: compute_nodes
 
         - name: Getting the node names
-          shell: kubectl get nodes --no-headers | grep none | awk '{print $1}'
+          shell: kubectl get nodes --no-headers | grep node | awk '{print $1}'
           register: node_names
 
         - name: Bootsrapping compute nodes using nsenter daemonset
@@ -38,13 +38,33 @@
           shell: kubectl label node {{item}} openebs.io/engine=mayastor
           with_items: "{{ node_names.stdout_lines }}"
 
+        - name: Downloading openebs-operator.yaml
+          get_url:
+            url: "{{ maya_namespace_link }}"
+            dest: "./"
+            force: yes
+          register: result
+          until:  "'OK' in result.msg"
+          delay: 5
+          retries: 3
+
         - name: Creating namespace holding MayaStor resources
-          shell: kubectl apply -f {{ maya_namespace_link }}
+          shell: kubectl apply -f namespace.yaml
           register: namespace_status
           failed_when: "'created' not in namespace_status.stdout"
 
+        - name: Downloading openebs-operator.yaml
+          get_url:
+            url: "{{ maya_moac_deployment_link }}"
+            dest: "./"
+            force: yes
+          register: result
+          until:  "'OK' in result.msg"
+          delay: 5
+          retries: 3
+
         - name: Creating moac deployment
-          shell: kubectl apply -f {{ maya_moac_deployment_link }}
+          shell: kubectl apply -f moac-deployment.yaml
 
         - name: Checking moac pod status
           shell: kubectl get pod -n mayastor -l app=moac -o jsonpath='{.items[0].status.phase}'
@@ -53,8 +73,18 @@
           delay: 5
           retries: 120
 
+        - name: Downloading openebs-operator.yaml
+          get_url:
+            url: "{{ maya_demonset_link }}"
+            dest: "./"
+            force: yes
+          register: result
+          until:  "'OK' in result.msg"
+          delay: 5
+          retries: 3
+
         - name: Creating MayaStor daemonset
-          shell: kubectl apply -f {{ maya_demonset_link }}      
+          shell: kubectl apply -f mayastor-daemonset.yaml      
           
         - name: Checking the status of MataStor Daemonset
           shell: kubectl get pod -n mayastor -l app=mayastor -o jsonpath='{.items[*].status.phase}' | grep Running | wc -w
