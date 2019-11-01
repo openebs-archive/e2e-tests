@@ -45,7 +45,10 @@ spec:
 
           - name: CLONE_APP_NAME
             value: busybox-clone
-
+          
+          - name: CONTAINER_NAME
+            value: cstor-pool
+            
             # clone action 
           - name: CLONE_ACTION
             # Supported values: post-rebuild,pre-rebuild,during-rebuild

@@ -51,6 +51,7 @@
             status: "induce"
             target_pod: "{{ item }}"
             operator_namespace: "{{ operator_ns }}"
+            containername: "{{ container_name }}"
           with_items:
             - "{{ replica_pod1 }}"
             - "{{ replica_pod2 }}"
@@ -99,6 +100,7 @@
             status: "remove"
             target_pod: "{{ item }}"
             operator_namespace: "{{ operator_ns }}"
+            containername: "{{ container_name }}"
           with_items:
             - "{{ replica_pod1 }}"
             - "{{ replica_pod2 }}"

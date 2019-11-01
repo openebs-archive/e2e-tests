@@ -12,3 +12,4 @@
             status: "remove"
             target_pod: "{{ tgt_rep_pod }}"
             operator_namespace: "{{ target_ns }}"
+            containername: "{{ container_name }}"

@@ -10,3 +10,5 @@ application_label: "{{ lookup('env','APP_LABEL') }}"
 operator_ns: openebs
 
 snapshot_name: "{{ lookup('env','snapshot') }}"
+
+container_name: "{{ lookup('env','CONTAINER_NAME') }}"

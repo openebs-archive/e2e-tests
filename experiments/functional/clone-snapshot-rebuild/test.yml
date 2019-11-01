@@ -128,6 +128,7 @@
             status: "induce"
             target_pod: "{{ replica_pod }}"
             operator_namespace: "{{ operator_ns }}"
+            containername: "{{ container_name }}"
 
            ## If there are no IOs happening on the volume, replica won't get disconnected
         - name: Check if the targeted replica is disconnected.
