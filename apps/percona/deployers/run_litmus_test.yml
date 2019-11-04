@@ -43,6 +43,9 @@ spec:
           - name: ACTION
             value: provision
 
+          - name: CAPACITY
+            value: 5G
+            
             # Enable storage i/o based liveness probe
           - name: IO_PROBE
             value: enabled

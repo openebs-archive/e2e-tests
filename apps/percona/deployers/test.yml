@@ -16,6 +16,12 @@
           vars:
             status: 'SOT'
    
+        - name: Replace the storage capacity placeholder
+          replace:
+              path: "{{ application_deployment }}"
+              regexp: "volume-capacity"
+              replace: "{{ lookup('env','CAPACITY') }}" 
+
         - block:
 
             ## Actual test

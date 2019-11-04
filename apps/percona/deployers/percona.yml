@@ -1,5 +1,5 @@
 ---
-apiVersion: apps/v1beta1
+apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: percona
@@ -61,7 +61,7 @@ spec:
     - ReadWriteOnce
   resources:
     requests:
-      storage: 5G
+      storage: volume-capacity
 ---
 apiVersion: v1
 kind: Service
