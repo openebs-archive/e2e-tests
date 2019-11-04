@@ -1,4 +1,4 @@
-#!bin/bash
+#!/bin/bash
 oc adm policy add-cluster-role-to-user cluster-admin admin --as=system:admin
 oc adm policy add-scc-to-user anyuid -z default --as=system:admin
 oc adm policy add-scc-to-user hostaccess admin -- as:system:admin
