@@ -43,6 +43,15 @@
     namespace: "{{ operator_ns }}"
     app_pod: "{{ cstor_pool_pod.stdout }}"
     app_container: "cstor-pool"
+  when: cri == 'docker'
+
+- include_tasks: /chaoslib/containerd_chaos/crictl-chaos.yml
+  vars:
+    action: "killapp"
+    namespace: "{{ operator_ns }}"
+    app_pod: "{{ cstor_pool_pod.stdout }}"
+    app_container: "cstor-pool"
+  when: cri == 'containerd'
 
 - name: Check for pool pod in running state
   shell: >

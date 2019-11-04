@@ -59,6 +59,9 @@ spec:
           - name: DATA_PERSISTENCE
             value: ""  
 
+          - name: CONTAINER_RUNTIME
+            value: docker
+            
           - name: CHAOS_TYPE
             value: "pool-kill"
 
