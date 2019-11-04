@@ -82,7 +82,14 @@
         - name: Createing storage pool for volume provisioning
           shell: kubectl apply -f storage-pool.yml
 
-        - name: Createing mayastor storage class
+        - name: Checking for status of storage-pool
+          shell: kubectl get msp disk-pool -o jsonpath='{.status.state}'
+          register: pool_status
+          until: "'ONLINE' in pool_status.stdout"
+          delay: 10
+          retries: 60
+
+        - name: Creating mayastor storage class
           shell: kubectl apply -f storage-class.yml
 
         - set_fact:

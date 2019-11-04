@@ -1,7 +1,7 @@
 apiVersion: "openebs.io/v1alpha1"
 kind: MayastorPool
 metadata:
-  name: pool
+  name: disk-pool
 spec:
   node: node-name
   disks: ["storage-device"]
