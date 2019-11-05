@@ -9,5 +9,6 @@ operator_ns: openebs
 chaos_type: "{{ lookup('env','CHAOS_TYPE') }}" 
 chaos_iterations: "{{ lookup('env','CHAOS_ITERATIONS') }}"
 pool_debug_msg: 'uncorrectable I/O failure|suspended|ERROR ZFS event'
-chaos_duration: 600
+chaos_duration: 240
 cri: "{{ lookup('env','CONTAINER_RUNTIME') }}"
+container_name: "{{ lookup('env','CONTAINER_NAME') }}"

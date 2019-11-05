@@ -42,15 +42,15 @@
     action: "killapp"
     namespace: "{{ operator_ns }}"
     app_pod: "{{ cstor_pool_pod.stdout }}"
-    app_container: "cstor-pool"
+    app_container: "{{ container_name }}"
   when: cri == 'docker'
 
-- include_tasks: /chaoslib/containerd_chaos/crictl-chaos.yml
+- include_tasks: /chaoslib/containerd_chaos/openebs-pool-failure.yml
   vars:
     action: "killapp"
     namespace: "{{ operator_ns }}"
     app_pod: "{{ cstor_pool_pod.stdout }}"
-    app_container: "cstor-pool"
+    app_container: "{{ container_name }}"
   when: cri == 'containerd'
 
 - name: Check for pool pod in running state

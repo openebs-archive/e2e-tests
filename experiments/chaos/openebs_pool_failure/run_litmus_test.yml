@@ -65,6 +65,9 @@ spec:
           - name: CHAOS_TYPE
             value: "pool-kill"
 
+          - name: CONTAINER_NAME
+            value: "cstor-pool"
+            
           - name: CHAOS_ITERATIONS
             value: "2" 
 
