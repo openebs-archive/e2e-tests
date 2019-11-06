@@ -1,0 +1,8 @@
+test_name: "velero-backup-restore"
+app_ns: "{{ lookup('env','APP_NAMESPACE') }}"
+app_label: "{{ lookup('env','APP_LABEL') }}"
+app_pvc: "{{ lookup('env','APP_PVC') }}"
+backup_name: "{{ lookup('env','BACKUP_NAME') }}"
+velero_plugin_name: "{{ lookup('env','VELERO_PLUGIN_NAME') }}"
+velero_version: "{{ lookup('env','VELERO_VERSION') }}"
+velero_binary_url: "https://github.com/vmware-tanzu/velero/releases/download/{{ lookup('env','VELERO_VERSION') }}/velero-{{ lookup('env','VELERO_VERSION') }}-linux-amd64.tar.gz"
