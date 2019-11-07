@@ -78,6 +78,7 @@
       shell: kubectl delete -f {{ app_deployer }} -n {{ app_ns }}
       args:
         executable: /bin/bash
+      ignore_errors: true
     
     - name: Check if the PVC is deleted.
       k8s_facts:
