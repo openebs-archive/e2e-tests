@@ -1,0 +1,234 @@
+---
+- hosts: localhost
+  connection: local
+
+  vars_files:
+    - test_vars.yml
+
+  tasks:
+    - block:
+
+         ## Generating the testname for deployment
+        - include_tasks: /utils/fcm/create_testname.yml
+
+         ## RECORD START-OF-TEST IN LITMUS RESULT CR
+        - include_tasks: "/utils/fcm/update_litmus_result_resource.yml"
+          vars:
+            status: 'SOT'
+
+        - name: Creating pod security policy, cluster role and clusterrolebinding
+          shell: kubectl apply -f "{{ psp_spec }}"
+          args:
+            executable: /bin/bash
+          register: psp_status
+          failed_when: "psp_status.rc != 0"
+
+        ## Obtaining the OpenEBS operator from charts.
+        ## If the chart is not created, openebs operator will be downloaded from master branch.
+        - name: Downloading openebs-operator.yaml
+          get_url:
+            url: "{{ openebs_link }}"
+            dest: "{{ playbook_dir }}/{{ openebs_operator }}"
+            force: yes
+          register: operator_file
+          ignore_errors: true
+          until:  "'OK' in operator_file.msg"
+          delay: 5
+          retries: 3
+
+        - name: Downloading openebs cspc-operator.yaml
+          get_url:
+            url: "{{ cspc_operator_link }}"
+            dest: "{{ playbook_dir }}/{{ cspc_operator }}"
+            force: yes
+          register: result
+          until:  "'OK' in result.msg"
+          delay: 5
+          retries: 3
+
+        - name: Change CSPC operator image
+          replace:
+            path: "{{ cspc_operator }}"
+            regexp: quay.io/openebs/cspc-operator:ci
+            replace: quay.io/openebs/cspc-operator:{{ release_version }}
+
+        - name: Change OPENEBS_IO_CSPI_MGMT image
+          replace:
+            path: "{{ cspc_operator }}"
+            regexp: quay.io/openebs/cspi-mgmt:ci
+            replace: quay.io/openebs/cspi-mgmt:{{ release_version }}
+
+        - name: Change OPENEBS_IO_CSTOR_POOL image
+          replace:
+            path: "{{ cspc_operator }}"
+            regexp: quay.io/openebs/cstor-pool:ci
+            replace: quay.io/openebs/cstor-pool:{{ release_version }}
+
+        - block:
+            - name: Downloading openebs-operator.yaml
+              get_url:
+                url: "{{ openebs_operator_link }}"
+                dest: "{{ playbook_dir }}/{{ openebs_operator }}"
+                force: yes
+              register: result
+              until:  "'OK' in result.msg"
+              delay: 5
+              retries: 3
+
+            - name: Change the Node Disk manager Image
+              replace:
+                path: "{{ openebs_operator }}"
+                regexp: quay.io/openebs/node-disk-manager-amd64:ci
+                replace: quay.io/openebs/node-disk-manager-amd64:{{ ndm_tag }}
+
+            - name: Change the Node Disk operator Image
+              replace:
+                path: "{{ openebs_operator }}"
+                regexp: quay.io/openebs/node-disk-operator-amd64:ci
+                replace: quay.io/openebs/node-disk-operator-amd64:{{ ndm_tag }}
+
+            - name: Change the OpenEBS component labels to desired version in Operator yaml
+              replace:
+                path: "{{ openebs_operator }}"
+                regexp: 'openebs.io/version: dev'
+                replace: "openebs.io/version: {{ release_version }}"
+
+            - name: Change the Image tag to newer version in operator yaml
+              replace:
+                path: "{{ openebs_operator }}"
+                regexp: ':ci'
+                replace: ":{{ release_version }}"
+
+          when: "'OK' not in operator_file.msg"
+
+        - block: 
+            - name: Applying openebs operator
+              shell: kubectl apply -f "{{ openebs_operator }}"
+              args:
+                executable: /bin/bash
+              ignore_errors: true
+
+            - name: Applying CSPC operator
+              shell: kubectl apply -f "{{ cspc_operator }}"
+              args:
+                executable: /bin/bash
+              ignore_errors: true
+
+            - name: Check if the Maya-API-Server container status
+              shell: >
+                kubectl get pods --no-headers -n {{ operator_ns }} -l name=maya-apiserver
+                -o jsonpath='{.items[?(@.status.containerStatuses[*].name=="maya-apiserver")].status.containerStatuses[*].ready}'
+              register: maya_api
+              until: "maya_api.stdout == 'true'"
+              delay: 5
+              retries: 120
+
+            - name: Checking OpenEBS-CSPC-Operator is running
+              shell: kubectl get pods -n {{ operator_ns }} -o jsonpath='{.items[?(@.metadata.labels.name=="cspc-operator")].status.phase}'
+              register: cspc_status
+              until: "'Running' in cspc_status.stdout"
+              delay: 5
+              retries: 120
+
+            - name: Check if the OpenEBS-provisioner is running
+              shell: kubectl get pods -n {{ operator_ns }} -o jsonpath='{.items[?(@.metadata.labels.name=="openebs-provisioner")].status.phase}'
+              register: openebs_prob
+              until: "'Running' in openebs_prob.stdout"
+              delay: 5
+              retries: 120
+
+            - name: Check if the OpenEBS-admission-server is running
+              shell: kubectl get pods -n {{ operator_ns }} -o jsonpath='{.items[?(@.metadata.labels.app=="admission-webhook")].status.phase}'
+              register: admission_web
+              until: "'Running' in admission_web.stdout"
+              delay: 5
+              retries: 120
+
+            - name: Check if the OpenEBS-Snapshot-Operator is running
+              shell: >
+                kubectl get pods -n {{ operator_ns }} -o jsonpath='{.items[?(@.metadata.labels.name=="openebs-snapshot-operator")].status.phase}'
+              register: oso
+              until: "'Running' in oso.stdout"
+              delay: 5
+              retries: 120
+
+            - name: Check if the OpenEBS-ndm-Operator is running
+              shell: kubectl get pods -n {{ operator_ns }} -o jsonpath='{.items[?(@.metadata.labels.name=="openebs-ndm-operator")].status.phase}'
+              register: ndm_operator
+              until: "'Running' in ndm_operator.stdout"
+              delay: 5
+              retries: 120
+
+            - name: Check if the OpenEBS-localpv-provisioner is running
+              shell: >
+                kubectl get pods -n {{ operator_ns }} 
+                -o jsonpath='{.items[?(@.metadata.labels.name=="openebs-localpv-provisioner")].status.phase}'
+              register: local_pv
+              until: "'Running' in local_pv.stdout"
+              delay: 5
+              retries: 120
+
+            - name: Check if the OpenEBS NDM daemonset pods are running
+              shell: >
+                kubectl get pods -n {{ operator_ns }} -l name=openebs-ndm -o custom-columns=:.status.phase --no-headers
+              register: ndm_dm
+              until: "((ndm_dm.stdout_lines|unique)|length) == 1 and 'Running' in ndm_dm.stdout"
+              delay: 5
+              retries: 120
+
+          when: lookup('env','ACTION') == "provision"    
+
+        - block:
+            - name: Cleaning cspc operator
+              shell: "kubectl delete -f {{ cspc_operator }}"
+              args:
+                executable: /bin/bash
+              ignore_errors: True
+
+            - name: Cleaning openebs operator
+              shell: "kubectl delete -f {{ openebs_operator }}"
+              args:
+                executable: /bin/bash
+              ignore_errors: True
+
+            - name: Confirm pods has been deleted
+              shell: kubectl get pods -n {{ operator_ns }}
+              args:
+                executable: /bin/bash
+              register: result
+              until: 'item not in result.stdout'
+              with_items:
+                - "maya-apiserver"
+                - "openebs-provisioner"
+                - "openebs-snapshot-operator"
+                - "openebs-ndm-operator"
+                - "openebs-admission-server"
+                - "openebs-localpv-provisioner"
+                - "openebs-ndm"
+                - "cspc-operator"
+              delay: 30
+              retries: 100
+
+            - name: Confirm that namespace has been deleted
+              shell: 'kubectl get namespaces'
+              args:
+                executable: /bin/bash
+              register: result
+              until: 'operator_ns not in result.stdout'
+              delay: 30
+              retries: 100
+
+          when: lookup('env','ACTION') == "deprovision"
+
+        - set_fact:
+            flag: "Pass"
+
+      rescue:
+          - set_fact:
+              flag: "Fail"
+
+      always:
+            ## RECORD END-OF-TEST IN LITMUS RESULT CR
+          - include_tasks: /utils/fcm/update_litmus_result_resource.yml
+            vars:
+              status: 'EOT'
