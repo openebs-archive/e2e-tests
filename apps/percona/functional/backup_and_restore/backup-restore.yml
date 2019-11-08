@@ -1,0 +1,43 @@
+---
+- block:
+
+   - name: Creating Backup
+     shell: >
+       velero backup create {{ backup_name }} --include-namespaces={{ app_ns }} --snapshot-volumes --volume-snapshot-locations=minio
+     args:
+       executable: /bin/bash
+
+   - name: Getting the state of Backup
+     shell: kubectl get backup {{ backup_name }} -n velero -o jsonpath='{.status.phase}'
+     register: backup_state
+     until: "'Completed' in backup_state.stdout"
+     delay: 5
+     retries: 30
+
+  when: action == "BACKUP"
+
+- block:
+
+   - name: Creating application namespace
+     shell: kubectl create ns {{ app_ns }}
+     register: volume_snapshot_location
+     failed_when: "'created' not in volume_snapshot_location.stdout"
+
+   - name: Restoring application 
+     shell: >
+       velero restore create --from-backup {{ backup-name }} --restore-volumes=true
+     args:
+       executable: /bin/bash
+
+   - name: Getting restore name
+     shell: velero get restore | grep {{ backup_name }} | awk '{print $1}'
+     register: restore_name
+
+   - name: Checking the restore status
+     shell: kubectl get restore {{ restore_name.stdout }} -n velero -o jsonpath='{.status.phase}'
+     register: restore_state
+     until: "'Completed' in restore_state.stdout"
+     delay: 5
+     retries: 45
+
+  when: action == "RESTORE"
