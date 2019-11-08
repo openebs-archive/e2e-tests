@@ -3,6 +3,8 @@ kind: StorageClass
 apiVersion: storage.k8s.io/v1
 metadata:
   name: {{ storage_class }}
+  annotations:
+    openebs.io/cas-type: cstor
 provisioner: openebs-csi.openebs.io
 allowVolumeExpansion: true
 parameters:
