@@ -49,7 +49,7 @@
     executable: /bin/bash
   register: result
   until: "result.stdout == 'Running'"
-  delays: 5
+  delay: 5
   retries: 45
 
 - name: Check for controller container status
