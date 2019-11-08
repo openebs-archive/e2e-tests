@@ -38,7 +38,7 @@
 
         - name: check if csi-controller pod is running
           shell: >
-            kubectl get pods -n kube-system -l app=openebs-csi-controller 
+            kubectl get pods -n kube-system -l app=openebs-cstor-csi-controller 
             --no-headers -o custom-columns=:status.phase
           args:
             executable: /bin/bash
