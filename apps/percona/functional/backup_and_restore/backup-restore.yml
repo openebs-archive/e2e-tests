@@ -25,7 +25,7 @@
 
    - name: Restoring application 
      shell: >
-       velero restore create --from-backup {{ backup-name }} --restore-volumes=true
+       velero restore create --from-backup {{ backup_name }} --restore-volumes=true
      args:
        executable: /bin/bash
 

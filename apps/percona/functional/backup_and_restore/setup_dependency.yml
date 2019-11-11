@@ -15,8 +15,8 @@
 
 - name: Checking the velero version
   shell: velero version
-  register: velero_version
-  failed_when: "velero_version not in velero_version.stdout"
+  register: velero
+  failed_when: "velero_version not in velero.stdout"
 
 - name: Installing minio s3-bucket
   shell: kubectl apply -f velero-v1.1.0-linux-amd64/examples/minio/00-minio-deployment.yaml
