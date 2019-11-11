@@ -67,8 +67,11 @@
           register: volume_name
 
         - name: Getting the target IP
-          shell: kubectl get pod -n openebs -o wide | grep {{ volume_name.stdout }} | awk '{print $6}'
+          shell: kubectl get pod -n openebs -l openebs.io/persistent-volume={{ volume_name.stdout }} -o jsonpath='{.items[0].status.podIP}'
           register: target_ip
+          until: 'target_ip.stdout != ""'
+          delay: 5
+          retries: 10
 
         - name: Getting storage class name
           shell: kubectl get pv {{ volume_name.stdout }} -o jsonpath='{.spec.storageClassName}'
