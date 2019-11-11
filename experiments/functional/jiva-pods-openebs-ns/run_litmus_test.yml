@@ -38,7 +38,7 @@ spec:
             value: 'app=busybox-jiva'
 
           - name: PV_CAPACITY
-            value: 5G
+            value: 5Gi
 
             # Use 'deprovision' for app-clean up
           - name: ACTION

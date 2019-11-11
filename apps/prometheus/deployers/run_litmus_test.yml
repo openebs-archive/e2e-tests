@@ -44,7 +44,7 @@ spec:
             value: provision 
           
           - name: VOLUME_CAPACITY
-            value: "25G"
+            value: "25Gi"
 
           - name: AFFINITY_LABEL
             value: openebs.io/target-affinity

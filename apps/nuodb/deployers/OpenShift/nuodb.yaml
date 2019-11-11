@@ -104,5 +104,5 @@ spec:
       storageClassName: testsc
       resources:
         requests:
-          storage: 5G
+          storage: 5Gi
 
