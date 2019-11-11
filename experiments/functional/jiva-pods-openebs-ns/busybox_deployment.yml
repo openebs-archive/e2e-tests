@@ -44,7 +44,6 @@ kind: PersistentVolumeClaim
 apiVersion: v1
 metadata:
   name: testclaim
-  labels:
 spec:
   storageClassName: testclass
   accessModes:
