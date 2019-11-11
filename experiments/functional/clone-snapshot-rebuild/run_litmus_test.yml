@@ -55,7 +55,7 @@ spec:
             value: "post-rebuild"
 
           - name: CAPACITY
-            value: 5G            
+            value: 5Gi            
 
         command: ["/bin/bash"]
         args: ["-c", "ansible-playbook ./experiments/functional/clone-snapshot-rebuild/test.yml -i /etc/ansible/hosts -vv; exit 0"]

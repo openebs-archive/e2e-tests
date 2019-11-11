@@ -35,7 +35,7 @@ spec:
             value: 'name=percona'
 
           - name: PV_CAPACITY
-            value: 5G
+            value: 5Gi
           
           - name: NEW_CAPACITY
             value: 10G

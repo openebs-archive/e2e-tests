@@ -42,7 +42,7 @@ spec:
             value: snapshot-busybox
 
           - name: CAPACITY
-            value: 5G
+            value: 5Gi
 
         command: ["/bin/bash"]
         args: ["-c", "ansible-playbook ./experiments/functional/clone-creation/test.yml -i /etc/ansible/hosts -vv; exit 0"]
