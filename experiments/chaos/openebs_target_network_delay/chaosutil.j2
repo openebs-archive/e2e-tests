@@ -6,7 +6,7 @@
   {% elif stg_engine is defined and stg_engine == 'jiva' and cri == 'docker' %}
     chaosutil: openebs/jiva_controller_network_delay.yaml
   {% else %}
-    chaosutil: openebs/inject_packet_loss_tc_jiva.yml
+    chaosutil: openebs/inject_network_delay_tc.yml
   {% endif %}
 {% endif %}
 
