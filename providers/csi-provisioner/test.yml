@@ -49,7 +49,7 @@
 
         - name: Obtain the desired number of openebs-csi-node pods
           shell: >
-            kubectl get ds -n kube-system openebs-csi-node --no-headers 
+            kubectl get ds -n kube-system openebs-cstor-csi-node --no-headers 
             -o custom-columns=:status.desiredNumberScheduled
           args:
             executable: /bin/bash
@@ -57,7 +57,7 @@
 
         - name: Check if the desired count matches the ready pods
           command: >
-            kubectl get ds -n kube-system openebs-csi-node --no-headers 
+            kubectl get ds -n kube-system openebs-cstor-csi-node --no-headers 
             -o custom-columns=:status.numberReady
           args:
             executable: /bin/bash
