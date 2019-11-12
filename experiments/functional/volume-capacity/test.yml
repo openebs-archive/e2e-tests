@@ -54,7 +54,7 @@
         - name: Generate the load to fill capacity of volume
           shell: >
               kubectl exec -it "{{ app_pod.stdout }}" -n "{{ app_ns }}" 
-              -- sh -c "cd {{ mount.stdout }} && dd if=/dev/urandom of=volume.txt bs={{ value_num }}k count=1024 >> test.txt && cat test.txt | grep test && rm test.txt"
+              -- sh -c "cd {{ mount.stdout }} && dd if=/dev/urandom of=volume.txt bs=1024k count={{ value_num }} >> test.txt && cat test.txt | grep test && rm test.txt"
           args:
               executable: /bin/bash
           register: load
