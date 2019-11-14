@@ -103,7 +103,7 @@
                 src: patch.j2
                 dest: patch.yml
 
-            - name: patching
+            - name: Patching jiva controller deployment to allow security privileged
               shell: >
                 kubectl patch deployment {{ pv.stdout }}-ctrl -n {{ namespace }}
                 --patch "$(cat patch.yml)"
