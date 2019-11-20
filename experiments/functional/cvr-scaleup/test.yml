@@ -71,8 +71,18 @@
             pod_name: "{{ app_pod_name.stdout }}"  
           when: data_persistence != ''
         
+        - name: Get the storage class name
+          shell: >
+            kubectl get pvc {{ app_pvc }} -n {{ app_ns }} --no-headers -o custom-columns=:.spec.storageClassName
+          register: sc_name
+
+        - name: Get the storage pool claim (spc) name
+          shell: >
+            kubectl get sc {{ sc_name.stdout }} --no-headers -o yaml | awk '/StoragePoolClaim/{getline; print}' | cut -d ':' -f2 | sed 's/"//g' | sed 's/ //g'
+          register: spc_name
+
         - name: Getting the list of csp name correspond to provided spc
-          shell: kubectl get csp -l openebs.io/storage-pool-claim={{ spc_name }} -o jsonpath='{.items[*].metadata.name}'
+          shell: kubectl get csp -l openebs.io/storage-pool-claim={{ spc_name.stdout }} -o jsonpath='{.items[*].metadata.name}'
           register: csp_all
 
         - name: Create a file to store CSP name
