@@ -34,6 +34,9 @@ spec:
           - name: OPENEBS_VERSION
             value: ""
 
+          - name: OPERATOR_NAMESPACE
+            value: ""
+            
             # Application pvc
           - name: APP_PVC
             value: ""
