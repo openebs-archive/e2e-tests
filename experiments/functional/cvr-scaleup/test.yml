@@ -4,7 +4,8 @@
 
   vars_files:
     - test_vars.yml
-
+    - /mnt/parameters.yml
+  
   tasks:
     - block:
 
@@ -15,28 +16,31 @@
         - include_tasks: /utils/fcm/update_litmus_result_resource.yml
           vars:
             status: 'SOT'
+        
+        - name: Identify the data consistency util to be invoked
+          template:
+            src: data_persistence.j2
+            dest: data_persistence.yml
+
+        - include_vars:
+            file: data_persistence.yml
+        
+        - name: Record the data consistency util path
+          set_fact:
+            data_consistency_util_path: "{{ consistencyutil }}"
+          when: data_persistence != '' 
 
         - block:
-           
-            - include_tasks: ./prerequisites.yml 
-
-              ## Deploying the application
-              # application_deployment: "{{ application_deployment }}"
-            - include_tasks: /utils/k8s/deploy_single_app.yml
-              vars:
-                check_app_pod: 'no'
-                delay: 10
-                retries: 20 
-
+      
             - name: Checking the status of application pod
-              shell: kubectl get pod -n {{ app_ns }} -l {{ app_label }} -o jsonpath='{.items[0].status.phase}'
+              shell: kubectl get pod -n {{ app_ns }} -l {{ label }} -o jsonpath='{.items[0].status.phase}'
               register: app_pod_status
               until: "'Running' in app_pod_status.stdout"
               delay: 5
               retries: 30
 
             - name: Getting the pod name of Application
-              shell: kubectl get pod -n {{ app_ns }} -l {{ app_label }} -o jsonpath='{.items[0].metadata.name}'
+              shell: kubectl get pod -n {{ app_ns }} -l {{ label }} -o jsonpath='{.items[0].metadata.name}'
               register: app_pod_name
 
             - name: Geting the PV name
@@ -59,17 +63,15 @@
               until: "((initial_status.stdout.split()|unique)|length) == 1 and 'Healthy' in initial_status.stdout"
               delay: 3
               retries: 30
-             
-            - name: Create some test data in the Busybox
-              include_tasks: "/utils/scm/applications/busybox/busybox_data_persistence.yml"
+            
+            - name: Create some test data
+              include: "{{ data_consistency_util_path }}"
               vars:
                 status: 'LOAD'
                 ns: "{{ app_ns }}"
-                pod_name: "{{ app_pod_name.stdout }}"
-                testfile: "busybox_data.txt"
-                blocksize: "4k"
-                blockcount: "400000"
-
+                pod_name: "{{ app_pod_name.stdout }}"  
+              when: data_persistence != ''
+            
             - name: Getting the list of csp name correspond to provided spc
               shell: kubectl get csp -l openebs.io/storage-pool-claim={{ spc_name }} -o jsonpath='{.items[*].metadata.name}'
               register: csp_all
@@ -315,14 +317,13 @@
                 kubectl exec -it {{ istgt_replica.stdout }} -n {{ operator_ns }} --container  cstor-istgt -- istgtcontrol snapdestroy {{ pv.stdout }} {{ snap_name }} 30 30
               register: snap_status                            
 
-            - name: Verify data persistence
-              include_tasks: "/utils/scm/applications/busybox/busybox_data_persistence.yml"
+            - name: Verify application data persistence  
+              include: "{{ data_consistency_util_path }}"
               vars:
                 status: 'VERIFY'
                 ns: "{{ app_ns }}"
                 pod_name: "{{ app_pod_name.stdout }}"
-                label: "{{ app_label }}"
-                testfile: "busybox_data.txt"
+              when: data_persistence != ''
 
             - set_fact:
                 flag: "Pass"

@@ -14,3 +14,4 @@ storage_policies:
   - local-pv-hostpath.yml
   - cstor-perf-parameters.yml
   - jiva-openebs-ns.yml
+  - cstor-cvr-scale.yml

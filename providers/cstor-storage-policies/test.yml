@@ -27,6 +27,7 @@
              - { src: cstor-disk-standalone.j2,dest: cstor-disk-standalone.yml }
              - { src: local-pv-hostpath.j2,dest: local-pv-hostpath.yml }
              - { src: cstor-perf-parameters.j2,dest: cstor-perf-parameters.yml }
+             - { src: cstor-cvr-scale.j2,dest: cstor-cvr-scale.yml }
 
         - block:
 
@@ -55,6 +56,7 @@
                 - local-pv-hostpath
                 - cstor-performance-config
                 - jiva-openebs-ns
+                - openebs-cstor-cvr-scale
 
           when: lookup('env','ACTION') == 'create'
 
@@ -85,6 +87,7 @@
                 - openebs-jiva-standalone
                 - cstor-performance-config                
                 - jiva-openebs-ns
+                - openebs-cstor-cvr-scale
 
           when: lookup('env','ACTION') == 'delete'
 

@@ -7,7 +7,7 @@ metadata:
     openebs.io/cas-type: cstor
     cas.openebs.io/config: |
       - name: StoragePoolClaim
-        value: "spc-name"
+        value: "{{ pool_name }}"
       - name: ReplicaCount
-        value: "replica-count"
+        value: "2"
 provisioner: openebs.io/provisioner-iscsi
