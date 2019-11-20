@@ -1,0 +1,11 @@
+[
+ {
+    "op": "replace",
+    "path": "/spec/desiredReplicationFactor",
+    "value": {{ drf_scaledown_count }}
+ },
+ {
+    "op": "remove",
+    "path": "/spec/replicaDetails/knownReplicas/{{ cvr_replica_id }}",
+ }
+]

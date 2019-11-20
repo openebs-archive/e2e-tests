@@ -1,0 +1,6 @@
+test_name: cstor-volume-replica-scaledown
+app_pvc: "{{ lookup('env','PVC_NAME') }}"
+label: "{{ lookup('env','APP_LABEL') }}"
+operator_ns: "{{ lookup('env','OPERATOR_NS') }}"
+app_ns: "{{ lookup('env','APP_NAMESPACE') }}"
+data_persistence: "{{ lookup('env','DATA_PERSISTENCE') }}"
