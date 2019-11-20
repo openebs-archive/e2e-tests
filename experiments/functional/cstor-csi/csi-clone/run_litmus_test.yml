@@ -1,0 +1,64 @@
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: csi-clone
+  namespace: litmus
+data:
+  parameters.yml: |
+
+---
+apiVersion: batch/v1
+kind: Job
+metadata:
+  generateName: cstor-csi-clone-
+  namespace: litmus
+spec:
+  template:
+    metadata:
+      labels:
+        name: cstor-csi-clone
+    spec:
+      serviceAccountName: litmus
+      restartPolicy: Never
+      containers:
+      - name: ansibletest
+        image: openebs/ansible-runner:ci
+        imagePullPolicy: Always
+        env:
+          - name: ANSIBLE_STDOUT_CALLBACK
+            #value: log_plays
+            #value: actionable
+            value: default
+
+          - name: APP_NAMESPACE
+            value: '' 
+
+          - name: STORAGE_CLASS_NAME
+            value: ''
+
+          - name: SNAPSHOT_CLASS
+            value: 'csi-cstor'
+
+          - name: SNAPSHOT_NAME
+            value: 'csi-snap'
+            
+          - name: APP_PVC
+            value: ''
+
+          - name: APP_LABEL
+            value: 'busybox-cloned'
+            
+          - name: DATA_PERSISTENCE
+            value: ""
+       
+        command: ["/bin/bash"]
+        args: ["-c", "ansible-playbook ./experiments/functional/cstor-csi/csi-clone/test.yml -i /etc/ansible/hosts -vv; exit 0"]
+
+        volumeMounts:
+        - name: parameters
+          mountPath: /mnt/
+      volumes:
+        - name: parameters
+          configMap:
+            name: csi-clone
