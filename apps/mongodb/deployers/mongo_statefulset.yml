@@ -22,7 +22,7 @@ metadata:
    openebs.io/sts-target-affinity: mongo  #to schedule application pod and target pod on same node, use the label sts-target-affinity
 spec:
  serviceName: "mongo"
- replicas: 2
+ rkey: rvalue
  template:
    metadata:
      labels:
