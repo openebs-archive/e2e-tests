@@ -1,4 +1,4 @@
-FROM ubuntu:16.04
+FROM ubuntu
 
 LABEL maintainer="OpenEBS"
 
