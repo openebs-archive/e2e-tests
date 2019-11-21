@@ -1,0 +1,12 @@
+app_ns: "{{ lookup('env','APP_NAMESPACE') }}"
+
+label: "{{ lookup('env','APP_LABEL') }}"
+
+test_name: "openebs-cvr-scaleup"
+
+app_pvc: "{{ lookup('env','APP_PVC') }}"
+
+operator_ns: "{{ lookup('env','OPERATOR_NAMESPACE') }}"
+
+data_persistence: "{{ lookup('env','DATA_PERSISTENCE') }}"
+
