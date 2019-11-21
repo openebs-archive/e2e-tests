@@ -1,0 +1,9 @@
+apiVersion: snapshot.storage.k8s.io/v1alpha1
+kind: VolumeSnapshot
+metadata:
+  name: "{{ snapshot_name }}"
+spec:
+  snapshotClassName: "{{ snapshot_class }}"
+  source:
+    name: "{{ pvc_name }}"
+    kind: PersistentVolumeClaim
