@@ -21,13 +21,13 @@
             src: clone.j2
             dest: clone.yml
 
+        - shell: cat clone.yml
+            
         - name: create the Clone
           shell: >
             kubectl create -f clone.yml -n {{ namespace }}
           args:
             executable: /bin/bash
-
-        - shell: cat clone.yml
 
         ## Deploy busybox app to check if the snapshot is cloned 
         - name: Check if the pvc is bound

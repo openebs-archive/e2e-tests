@@ -48,6 +48,9 @@ spec:
 
           - name: APP_LABEL
             value: 'busybox-cloned'
+
+          - name: STORAGE_CAPACITY
+            value: 5Gi  
             
           - name: DATA_PERSISTENCE
             value: ""
