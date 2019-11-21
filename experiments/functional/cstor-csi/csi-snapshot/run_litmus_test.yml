@@ -34,6 +34,7 @@ spec:
           - name: APP_NAMESPACE
             value: '' 
 
+          ##Name of CSI volumesnapshotclass
           - name: SNAPSHOT_CLASS
             value: 'csi-cstor'
 
@@ -43,6 +44,7 @@ spec:
           - name: APP_PVC
             value: ''
 
+          ##busybox for app busybox 
           - name: DATA_PERSISTENCE
             value: ""
        

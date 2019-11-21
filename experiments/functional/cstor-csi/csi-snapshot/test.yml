@@ -49,11 +49,16 @@
             kubectl create -f snapshot.yml -n "{{ namespace }}"
           args:
             executable: /bin/bash
+          register: status
+          failed_when: "status.rc != 0"
 
        #  Verify if the snapshot created successfully
         - name: Get the content of the snapshot taken
           shell: >
-            kubectl get volumesnapshots.snapshot {{ snapshot_name }} -n {{ namespace }} --no-headers -o custom-columns=:spec.snapshotContentName | sed 's/snapcontent-//g'
+            kubectl get volumesnapshots.snapshot {{ snapshot_name }} -n {{ namespace }} 
+            --no-headers -o custom-columns=:spec.snapshotContentName | sed 's/snapcontent-//g'
+          args:
+            executable: /bin/bash
           register: snapcontent
           
         - set_fact:
@@ -69,14 +74,16 @@
 
         - name: Obtaining the CVR from PV
           shell: >
-            kubectl get cvr -n {{ operator_ns }} -l cstorvolume.openebs.io/name={{ pv.stdout }} --no-headers  -o custom-columns=:metadata.name
+            kubectl get cvr -n {{ operator_ns }} -l cstorvolume.openebs.io/name={{ pv.stdout }} 
+            --no-headers  -o custom-columns=:metadata.name
           args:
             executable: /bin/bash
           register: cvr
         
-        - name: Obtaining the pools
+        - name: Obtaining the pools where CVRs are mounted
           shell: >
-            kubectl get cvr {{ item }} -n {{ operator_ns }} --no-headers -o jsonpath='{.metadata.labels.cstorpoolinstance\.openebs\.io/name}{"\n"}'
+            kubectl get cvr {{ item }} -n {{ operator_ns }} --no-headers 
+            -o jsonpath='{.metadata.labels.cstorpoolinstance\.openebs\.io/name}{"\n"}'
           args:
             executable: /bin/bash
           register: pools
@@ -85,7 +92,8 @@
          
         - name: Obtaining the pool pods
           shell: >
-            kubectl get po -n {{ operator_ns }} -l openebs.io/cstor-pool-instance={{ item.stdout }} --no-headers -o custom-columns=:.metadata.name
+            kubectl get po -n {{ operator_ns }} -l openebs.io/cstor-pool-instance={{ item.stdout }} 
+            --no-headers -o custom-columns=:.metadata.name
           args:
             executable: /bin/bash
           register: pool_pods

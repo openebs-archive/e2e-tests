@@ -20,19 +20,20 @@
           template:
             src: clone.j2
             dest: clone.yml
-
-        - shell: cat clone.yml
-            
+         
         - name: create the Clone
           shell: >
             kubectl create -f clone.yml -n {{ namespace }}
           args:
             executable: /bin/bash
+          register: status
+          failed_when: "status.rc != 0"
 
         ## Deploy busybox app to check if the snapshot is cloned 
         - name: Check if the pvc is bound
           shell: >
-            kubectl get pvc {{ pvc_name }} -n {{ namespace }} --no-headers -o custom-columns=:.status.phase
+            kubectl get pvc {{ pvc_name }} -n {{ namespace }} 
+            --no-headers -o custom-columns=:.status.phase
           args:
             executable: /bin/bash
           register: pvc_status
@@ -40,51 +41,56 @@
           delay: 30
           retries: 5
 
-        - name: Generaete the yaml file to deploy busybox
+        - name: Generate the yaml file to deploy busybox
           template:
             src: busybox.j2
             dest: busybox.yml
 
+          ## Cloned PV is mounted in this app
         - name: Deploying the busybox app
           shell: >
             kubectl create -f busybox.yml -n {{ namespace }}
           args:
             executable: /bin/bash
+        
+        - name: Get the app pod name
+          shell: >
+            kubectl get pods -n {{ namespace }} -l app={{ app_label }} 
+            --no-headers -o custom-columns=:.metadata.name
+          args: 
+            executable: /bin/bash
+          register: app_pod_name
 
         - name: Verify if the app is in Running state
           shell: >
-            kubectl get po -n {{ namespace }} -l app={{ app_label }} --no-headers -o custom-columns=:.status.phase
+            kubectl get po -n {{ namespace }} -l app={{ app_label }} 
+            --no-headers -o custom-columns=:.status.phase
           args:
             executable: /bin/bash
           register: app_status
           until: "'Running' in app_status.stdout"
           delay: 30
           retries: 15
+               
+        - block:
+          - name: Check the md5sum of stored data file
+            shell: >
+              kubectl exec {{ app_pod_name.stdout }} -n {{ namespace }}
+              -- sh -c "md5sum /busybox/{{ testfile }} > /busybox/{{ testfile }}-post-clone-md5"
+            args:
+              executable: /bin/bash
+            register: status 
+            failed_when: "status.rc != 0"
 
-        - name: Get the app pod name
-          shell: >
-            kubectl get pods -n {{ namespace }} -l app={{ app_label }} --no-headers -o custom-columns=:.metadata.name
-          args: 
-            executable: /bin/bash
-          register: app_pod_name
-
-        - name: Check the md5sum of stored data file
-          shell: >
-            kubectl exec {{ app_pod_name.stdout }} -n {{ namespace }}
-            -- sh -c "md5sum /busybox/{{ testfile }} > /busybox/{{ testfile }}-post-clone-md5"
-          args:
-            executable: /bin/bash
-          register: status 
-          failed_when: "status.rc != 0"
-
-        - name: Verify whether data is consistent
-          shell: >
-                kubectl exec {{ app_pod_name.stdout }} -n {{ namespace }}
-                -- sh -c "diff /busybox/{{ testfile }}-pre-chaos-md5 /busybox/{{ testfile }}-post-clone-md5"
-          args:
-            executable: /bin/bash
-          register: result 
-          failed_when: "result.rc != 0 or result.stdout != ''"
+          - name: Verify whether data is consistent
+            shell: >
+                  kubectl exec {{ app_pod_name.stdout }} -n {{ namespace }}
+                  -- sh -c "diff /busybox/{{ testfile }}-pre-chaos-md5 /busybox/{{ testfile }}-post-clone-md5"
+            args:
+              executable: /bin/bash
+            register: result 
+            failed_when: "result.rc != 0 or result.stdout != ''"
+          when: data_persistence != ''
 
         - set_fact:
             flag: "Pass"

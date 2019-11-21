@@ -37,6 +37,7 @@ spec:
           - name: STORAGE_CLASS_NAME
             value: ''
 
+            ## Name of CSI volumesnapshotclass
           - name: SNAPSHOT_CLASS
             value: 'csi-cstor'
 
@@ -52,6 +53,7 @@ spec:
           - name: STORAGE_CAPACITY
             value: 5Gi  
             
+            ## busybox for app busybox 
           - name: DATA_PERSISTENCE
             value: ""
        
