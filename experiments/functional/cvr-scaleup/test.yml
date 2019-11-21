@@ -29,7 +29,6 @@
           set_fact:
             data_consistency_util_path: "{{ consistencyutil }}"
           when: data_persistence != '' 
-
       
         - name: Checking the status of application pod
           shell: kubectl get pod -n {{ app_ns }} -l {{ label }} -o jsonpath='{.items[0].status.phase}'
