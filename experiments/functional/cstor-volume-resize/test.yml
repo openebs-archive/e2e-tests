@@ -65,6 +65,17 @@
               register: pvc_status
               failed_when: "'Bound' not in pvc_status.stdout"
 
+            - name: Check if the storage capacity is updated in PVC
+              shell: >
+                 kubectl get pvc {{ app_pvc }} -n {{ app_ns }} --no-headers 
+                 -o custom-columns=:status.capacity.storage
+              args:
+                executable: /bin/bash
+              register: capacity
+              until: "desired_vol_size not in capacity.stdout"
+              delay: 10
+              retries: 50
+
         - set_fact:
             flag: "Pass"
 

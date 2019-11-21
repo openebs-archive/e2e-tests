@@ -38,7 +38,7 @@ spec:
             value: 5Gi
           
           - name: NEW_CAPACITY
-            value: 10G
+            value: 10Gi
 
             #Target namespace
           - name: OPERATOR_NS
