@@ -92,7 +92,7 @@
                 regexp: "pool-type"
                 replace: "{{ pool_type }}"
 
-            - name: Display cspc.yml for verification 
+            - name: Display cspc.yml for verification
               debug: var=item
               with_file:
               - "cspc.yml"
@@ -111,10 +111,10 @@
               until: "pool_name in cspc_name.stdout"
               delay: 30
               retries: 10
-  
+
             - name: Obtain the CSPI name to verify the status
               shell: >
-                kubectl get cspi -n {{ operator_ns}} -l openebs.io/cstor-pool-cluster={{ pool_name }} 
+                kubectl get cspi -n {{ operator_ns}} -l openebs.io/cstor-pool-cluster={{ pool_name }}
                 -o custom-columns=:.metadata.name --no-headers
               args:
                 executable: /bin/bash
@@ -163,16 +163,22 @@
               until: "runningStatusCount.stdout == device_count"
               delay: 30
               retries: 10
-              
-          when: deploy_mode == "create"
 
+            - name: Check if the storage class is created
+              shell: kubectl get sc
+              args:
+                executable: /bin/bash
+              register: sc_list
+              failed_when: "sc_name not in sc_list.stout"
+
+          when: deploy_mode == "create"
 
         - block:
 
             - name: Remove the CStor Pool Cluster
               shell: >
                 kubectl delete cspc {{ pool_name }} -n {{ operator_ns }}
-              args: 
+              args:
                 executable: /bin/bash
 
             - name: Verify if the CStor Pool Cluster is deleted
@@ -207,11 +213,11 @@
 
         - set_fact:
             flag: "Pass"
-    
+
       rescue:
           - set_fact:
               flag: "Fail"
-  
+
       always:
             ## RECORD END-OF-TEST IN LITMUS RESULT CR
           - include_tasks: /utils/fcm/update_litmus_result_resource.yml
