@@ -11,3 +11,5 @@ storage_class: "{{ lookup('env','PROVIDER_STORAGE_CLASS') }}"
 replica_count: "{{ lookup('env','REPLICA_COUNT') }}"
 
 node_os: "{{ lookup('env','NODE_OS') }}"
+
+snapshot_class: "{{ lookup('env','SNAPSHOT_CLASS') }}"

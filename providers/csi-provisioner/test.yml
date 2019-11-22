@@ -78,6 +78,18 @@
           register: sc_result
           failed_when: "sc_result.rc != 0"
 
+        - name: Update the volume snapshotclass template with the variables
+          template:
+            src: snapshot-class.j2
+            dest: snapshot-class.yml
+
+        - name: Create volume snapshotclass
+          shell: kubectl apply -f snapshot-class.yml
+          args: 
+            executable: /bin/bash
+          register: result
+          failed_when: "result.rc != 0"
+              
         - set_fact:
             flag: "Pass"
 
