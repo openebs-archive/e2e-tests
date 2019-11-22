@@ -5,6 +5,9 @@ metadata:
   labels:
     name: {{ clone_app }}
 spec:
+  selector:
+    matchLabels:
+      name: {{ clone_app }}
   template:
     metadata:
       labels:
