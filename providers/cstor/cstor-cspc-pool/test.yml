@@ -169,7 +169,7 @@
               args:
                 executable: /bin/bash
               register: sc_list
-              failed_when: "sc_name not in sc_list.stout
+              failed_when: "sc_name not in sc_list.stout"
 
           when: deploy_mode == "create"
 
