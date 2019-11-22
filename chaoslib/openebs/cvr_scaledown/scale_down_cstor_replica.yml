@@ -1,0 +1,109 @@
+---
+       - name: Obtain the total number of cvr
+         shell: kubectl get cvr -n {{ namespace }} --no-headers -l cstorvolume.openebs.io/name={{ cstor_volume_name }} | wc -l
+         args:
+           executable: /bin/bash
+         register: cvr_count
+         failed_when: 'cvr_count.stdout == ""'
+
+       - name: Obtain the ReplicationFactor from cstorvolume and check if it is equal to the cvr count
+         shell: >
+           kubectl get cstorvolume {{ cstor_volume_name }} -n {{ namespace }} -o jsonpath='{.spec.replicationFactor}{"\n"}'
+         args:
+           executable: /bin/bash
+         register: rf
+         failed_when: "cvr_count.stdout != rf.stdout"
+
+       - name: Obtain the consistencyFactor from cstorvolume
+         shell: >
+           kubectl get cstorvolume {{ cstor_volume_name }} -n {{ namespace }} -o jsonpath='{.spec.consistencyFactor}{"\n"}'
+         args:
+           executable: /bin/bash
+         register: cf
+         failed_when: 'cf.stdout == ""'
+
+       - name: Obtain the desiredReplicationFactor from cstorvolume
+         shell: >
+           kubectl get cstorvolume {{ cstor_volume_name }} -n {{ namespace }} -o jsonpath='{.spec.desiredReplicationFactor}{"\n"}'
+         args:
+           executable: /bin/bash
+         register: drf
+         failed_when: 'drf.stdout == ""'
+
+       - name: Obtain the replica id from the selected replica
+         shell: kubectl get cvr -n {{ namespace }} {{ targeted_cvr_name }} --no-headers -o custom-columns=:.spec.replicaid
+         args:
+           executable: /bin/bash
+         register: replica_id
+         failed_when: 'replica_id.stdout == ""'
+
+       - set_fact:
+           cvr_replica_id: "{{ replica_id.stdout }}"
+
+       - set_fact:
+           drf_scaledown_count: "{{ (drf.stdout)|int - 1 }}"
+
+       - name: Identify the patch to be invoked
+         template:
+            src: scale_down_replica_patch.j2
+            dest: scale_down_replica_patch.yml
+
+       - name: Patching cstorvolume to scaledown the replica
+         shell: >
+           kubectl patch cstorvolume {{ cstor_volume_name }} -n {{ namespace }}
+           --patch "$(cat scale_down_replica_patch.yml)" --type='json'
+         register: patch_status
+         failed_when: "'patched' not in patch_status.stdout"
+
+       - name: Check if the targeted CVR is in Offline state
+         shell: >
+           kubectl get cvr -n {{ namespace }} {{ targeted_cvr_name }}
+           -o custom-columns=:.status.phase --no-headers
+         args:
+           executable: /bin/bash
+         register: new_cvr_status
+         until: "'Offline' in new_cvr_status.stdout"
+         retries: 30
+         delay: 10
+
+       - name: Check if the cvr is scaled down successfully
+         shell: >
+           kubectl describe cstorvolume {{ cstor_volume_name }} 
+           -n {{ namespace }} | grep "Successfully updated the desiredReplicationFactor to {{ drf_scaledown_count }}"
+         args:
+           executable: /bin/bash
+         register: drf_status
+         until: "'Successfully updated the desiredReplicationFactor' in drf_status.stdout"
+         retries: 30
+         delay: 10
+
+       - name: Obtain the ReplicationFactor after cvr scaledown and verify the its getting updated
+         shell: >
+           kubectl get cstorvolume {{ cstor_volume_name }} -n {{ namespace }}
+           -o jsonpath='{.spec.replicationFactor}{"\n"}'
+         args:
+           executable: /bin/bash
+         register: after_rf
+         failed_when: "after_rf.stdout != drf_scaledown_count"
+
+         # calculate the consistency factor to check whether it is updated
+       - set_fact:
+            cf_count: "{{ (((drf_scaledown_count)|int / 2) + 1 | round(0,'floor'))|int }}"
+
+       - name: Obtain the consistencyFactor after cvr scaledown and Verify the consistency factor is updated.
+         shell: >
+           kubectl get cstorvolume {{ cstor_volume_name }} -n {{ namespace }}
+           -o jsonpath='{.spec.consistencyFactor}{"\n"}'
+         args:
+           executable: /bin/bash
+         register: after_cf
+         failed_when: "after_cf.stdout != cf_count"
+
+       - name: Obtain the desiredReplicationFactor after cvr scaledown and Verify the value getting updated
+         shell: >
+           kubectl get cstorvolume {{ cstor_volume_name }} -n {{ namespace }}
+           -o jsonpath='{.spec.desiredReplicationFactor}{"\n"}'
+         args:
+           executable: /bin/bash
+         register: after_drf
+         failed_when: "after_drf.stdout != drf_scaledown_count"
