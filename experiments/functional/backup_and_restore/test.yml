@@ -1,0 +1,159 @@
+- hosts: localhost
+  connection: local
+
+  vars_files:
+    - test_vars.yml
+
+  tasks:
+
+    - block:
+    
+         # GENERATING THE TEST NAME
+        - include_tasks: /utils/fcm/create_testname.yml
+
+         ##  RECORD START-OF-TEST IN LITMUS RESULT CR
+        - include_tasks: "/utils/fcm/update_litmus_result_resource.yml"
+          vars:
+            status: 'SOT'
+
+        - name: Verify that the AUT is running
+          include_tasks: /utils/k8s/check_deployment_status.yml
+
+        - include_tasks: "./setup_dependency.yml"
+
+        - name: Get Application pod details
+          shell: kubectl get pods -n {{ app_ns }} -l {{ app_label }} --no-headers -o custom-columns=:metadata.name
+          register: app_pod
+
+        - name: Create new database in the mysql
+          include_tasks: "/utils/scm/applications/mysql/mysql_data_persistence.yml"
+          vars:
+            status: 'LOAD'
+            ns: "{{ app_ns }}"
+            pod_name: "{{ app_pod.stdout }}"
+            dbuser: 'root'
+            dbpassword: 'k8sDem0'
+            dbname: "backup"
+
+        - block:
+            
+           - name: Getting the application deployment name
+             shell: kubectl get deploy -n {{ app_ns }} -l {{ app_label }} -o jsonpath='{.items[0].metadata.name}'
+             register: app_deploy_name
+
+           - name: Fetching the volume name of application
+             shell: kubectl get deploy {{ app_deploy_name.stdout }} -n {{ app_ns }} -o jsonpath='{.spec.template.spec.volumes[0].name}'
+             register: app_vol_name
+           # annotation is limited to one volume only
+           - name: Annotating the application pod
+             shell: kubectl -n {{ app_ns }} annotate pod/{{ app_pod.stdout }} backup.velero.io/backup-volumes={{ app_vol_name.stdout }}
+
+          when: "storage_engine == 'jiva' or storage_engine == 'localpv'"
+
+        - name: Creating Backup for the provided application
+          include_tasks: "./backup-restore.yml"
+          vars:
+            action: 'BACKUP'
+
+        - name: Deleting Application
+          shell: |
+            kubectl delete pvc,deploy,svc --all -n {{ app_ns }}
+            kubectl delete ns {{ app_ns }}
+
+        - name: Checking whether namespace is deleted
+          shell: >
+            kubectl get ns 
+            --no-headers 
+            -o custom-columns=:metadata.name
+          args: 
+            executable: /bin/bash
+          register: ns_list
+          until: "app_ns not in ns_list.stdout_lines"
+          delay: 5
+          retries: 15
+
+        - name: Restoring Application
+          include_tasks: "./backup-restore.yml"
+          vars:
+            action: 'RESTORE'
+
+        - block:
+
+           - name: Getting the volume name
+             shell: kubectl get pvc {{ app_pvc }} -n {{ app_ns }} -o jsonpath='{.spec.volumeName}'
+             register: volume_name
+   
+           - name: Getting the target IP
+             shell: kubectl get pod -n openebs -l openebs.io/persistent-volume={{ volume_name.stdout }} -o jsonpath='{.items[0].status.podIP}'
+             register: target_ip
+             until: 'target_ip.stdout != ""'
+             delay: 5
+             retries: 10
+   
+           - name: Getting the volume name
+             shell: kubectl get pvc {{ app_pvc }} -n {{ app_ns }} -o jsonpath='{.spec.volumeName}'
+             register: volume_name
+    
+           - name: Getting the CVR name from the corresponding PV
+             shell:  kubectl get cvr -n openebs -l openebs.io/persistent-volume={{ volume_name.stdout }} -o jsonpath='{range.items[*]}{.metadata.labels.cstorpool\.openebs\.io/name}{"\n"}{end}'
+             register: cvr_name
+   
+           - name: Geting the CSP name corresponding to CVR
+             shell: kubectl get csp {{item}} -n openebs -o jsonpath='{.metadata.name}'
+             register: csp_pod
+             with_items: "{{ cvr_name.stdout_lines }}"     
+   
+           - name: Getting the pool pod name
+             shell: kubectl get pod -n openebs | grep {{item}} | awk '{print $1}'
+             register: pool_pod
+             with_items: "{{ cvr_name.stdout_lines }}" 
+   
+           - name: Getting the volume name inside cstor pool
+             shell: |
+               echo $(kubectl exec -it {{item.stdout}} -n openebs -c cstor-pool -- zfs list | grep {{ volume_name.stdout }} | awk '{print $1}') >> cstor-vol
+             with_items: "{{ pool_pod.results }}"
+     
+           - name: Assigning the cstor-pool volume name to variable
+             shell: cat ./cstor-vol
+             register: pool_volume_name
+           
+           - name: Setting target IP for volume inside cstor pool
+             shell: kubectl exec -it {{item.0.stdout}} -n openebs -- zfs set io.openebs:targetip={{ target_ip.stdout }} {{item.1}}
+             with_together:
+               - "{{ pool_pod.results }}"  
+               - "{{ pool_volume_name.stdout_lines }}" 
+          
+          when: storage_engine == "cstor"
+
+        - name: Waiting for application to be in running state
+          shell: kubectl get pod {{ app_pod.stdout }} -n {{ app_ns }} -o jsonpath='{.status.phase}'
+          register: app_pod_status
+          until: "'Running' in app_pod_status.stdout"
+          delay: 5
+          retries: 30
+
+        - name: Verifying Data persistense
+          include_tasks: "/utils/scm/applications/mysql/mysql_data_persistence.yml"
+          vars:
+            status: 'VERIFY'
+            ns: "{{ app_ns }}"
+            pod_name: "{{ app_pod.stdout }}"
+            dbuser: 'root'
+            dbpassword: 'k8sDem0'
+            dbname: "backup"
+            label: "{{ app_label }}"
+
+        - set_fact:
+            flag: "Pass"
+
+      rescue:
+        - set_fact:
+            flag: "Fail"
+
+      always: 
+        - include_tasks: /utils/fcm/update_litmus_result_resource.yml
+          vars:
+            status: 'EOT'    
+
+        - name: Deprovisioning Velero server
+          shell: kubectl delete namespace velero    

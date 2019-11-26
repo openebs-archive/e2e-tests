@@ -1,11 +1,35 @@
 ---
 - block:
 
-   - name: Creating Backup
-     shell: >
-       velero backup create {{ backup_name }} --include-namespaces={{ app_ns }} --snapshot-volumes --volume-snapshot-locations=minio
-     args:
-       executable: /bin/bash
+   - block: 
+
+      - name: Creating Backup
+        shell: >
+          velero backup create {{ backup_name }} --include-namespaces={{ app_ns }} --snapshot-volumes --volume-snapshot-locations=minio
+        args:
+          executable: /bin/bash
+
+     when: storage_engine == "cstor"
+
+   - block:
+      
+      - name: Creating Backup
+        shell: >
+          velero backup create {{ backup_name }} --selector '!openebs.io/controller,!openebs.io/replica' --include-namespaces={{ app_ns }}
+        args:
+          executable: /bin/bash
+        
+     when: storage_engine == "jiva"
+
+   - block: 
+
+      - name: Creating Backup
+        shell: >
+          velero backup create {{ backup_name }} -l {{ app_label }} --include-namespaces={{ app_ns }}
+        args:
+          executable: /bin/bash
+
+     when: storage_engine == "localpv"
 
    - name: Getting the state of Backup
      shell: kubectl get backup {{ backup_name }} -n velero -o jsonpath='{.status.phase}'
@@ -22,6 +46,7 @@
      shell: kubectl create ns {{ app_ns }}
      register: volume_snapshot_location
      failed_when: "'created' not in volume_snapshot_location.stdout"
+     when: storage_engine == "cstor"
 
    - name: Restoring application 
      shell: >

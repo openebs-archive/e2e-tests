@@ -51,6 +51,10 @@ spec:
 
           - name: VELERO_VERSION
             value: "v1.1.0"
-            
+
+          # supported values are: cstor, jiva, localpv
+          - name: STORAGE_ENGINE
+            value: "cstor"
+
         command: ["/bin/bash"]
         args: ["-c", "ansible-playbook ./apps/percona/functional/backup_and_restore/test.yml -i /etc/ansible/hosts -vv; exit 0"]

@@ -28,14 +28,32 @@
   delay: 5
   retries: 15
 
-- name: Installing velero server inside cluster
-  shell: >
-    velero install \
-      --provider aws \
-      --bucket velero \
-      --secret-file ./credentials-velero \
-      --use-volume-snapshots=false \
-      --backup-location-config region=minio,s3ForcePathStyle="true",s3Url=http://minio.velero.svc:9000
+- block:
+
+   - name: Installing velero server inside cluster
+     shell: >
+       velero install \
+         --provider aws \
+         --bucket velero \
+         --secret-file ./credentials-velero \
+         --use-volume-snapshots=false \
+         --use-restic \
+         --backup-location-config region=minio,s3ForcePathStyle="true",s3Url=http://minio.velero.svc:9000
+
+  when: "storage_engine == 'jiva' or storage_engine == 'localpv'"  
+
+- block:
+
+   - name: Installing velero server inside cluster
+     shell: >
+       velero install \
+         --provider aws \
+         --bucket velero \
+         --secret-file ./credentials-velero \
+         --use-volume-snapshots=false \
+         --backup-location-config region=minio,s3ForcePathStyle="true",s3Url=http://minio.velero.svc:9000
+
+  when: storage_engine == "cstor"  
 
 - name: Checking for velero server status
   shell: kubectl get pod -n velero -l component=velero -ojsonpath='{.items[0].status.phase}'
@@ -46,6 +64,7 @@
 
 - name: Installing development image of OpenEBS velero-plugin
   shell: velero plugin add {{ velero_plugin_name }}
+  when: storage_engine == "cstor"
 
 - name: Checking for velero server status
   shell: kubectl get pod -n velero -l component=velero -ojsonpath='{.items[0].status.phase}'
@@ -58,3 +77,5 @@
   shell: kubectl apply -f volume-snapshot-location.yml
   register: volume_snapshot_location
   failed_when: "'created' not in volume_snapshot_location.stdout"
+  when: storage_engine == "cstor"
+  
