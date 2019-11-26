@@ -1,7 +1,7 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: busyboxclone
+  name: "{{ app_name }}"
   namespace: "{{ namespace }}"
   labels:
     app: "{{ app_label }}"
@@ -27,4 +27,4 @@ spec:
       volumes:
       - name: data-vol
         persistentVolumeClaim:
-          claimName: "{{ pvc_name }}"
+          claimName: "{{ cloned_pvc }}"

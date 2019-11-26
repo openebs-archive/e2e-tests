@@ -53,10 +53,10 @@
           failed_when: "status.rc != 0"
 
        #  Verify if the snapshot created successfully
-        - name: Get the content of the snapshot taken
+        - name: Get the uid of the snapshot taken
           shell: >
-            kubectl get volumesnapshots.snapshot {{ snapshot_name }} -n {{ namespace }} 
-            --no-headers -o custom-columns=:spec.snapshotContentName | sed 's/snapcontent-//g'
+            kubectl get volumesnapshot.snapshot {{ snapshot_name }} -n {{ namespace }} 
+            --no-headers -o custom-columns=:.metadata.uid
           args:
             executable: /bin/bash
           register: snapcontent
@@ -108,7 +108,7 @@
           failed_when: "volume_snapshot not in snap.stdout"
           with_items:
             - "{{ pool_pods.results }}"
-        
+                          
         - set_fact:
             flag: "Pass"
 

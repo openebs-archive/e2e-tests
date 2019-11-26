@@ -47,6 +47,12 @@ spec:
           - name: APP_PVC
             value: ''
 
+          - name: CLONED_PVC
+            value: ''
+
+          - name: APP_NAME
+            value: 
+            
           - name: APP_LABEL
             value: 'busybox-cloned'
 
