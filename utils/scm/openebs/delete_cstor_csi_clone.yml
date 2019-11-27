@@ -38,9 +38,6 @@
     executable: /bin/bash
   register: cvr
 
-- set_fact:
-    cloned_cvr_name: "{{ cvr.stdout }}"
-
 ## obtain the application pod name
 - name: Get the app pod name
   shell: >
