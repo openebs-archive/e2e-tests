@@ -3,6 +3,9 @@ kind: DaemonSet
 metadata:
   name: crio-chaos
 spec:
+  selector:
+    matchLabels:
+      app: crio
   template:
     metadata:
       labels:

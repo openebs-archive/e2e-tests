@@ -94,6 +94,14 @@
                 label: "{{ app_label }}"
               when: cri == 'containerd'
 
+            - include_tasks: /chaoslib/crio_chaos/crio-crictl-chaos.yml
+              vars:
+                action: "killapp"
+                app_pod: "{{ app_pod_name.stdout }}"
+                namespace: "{{ app_ns }}"
+                label: "{{ app_label }}"
+              when: cri == 'cri-o'
+
             - name: Verify application data persistence
               include: "{{ data_consistency_util_path }}"
               vars:
@@ -131,6 +139,14 @@
                 namespace: "{{ app_ns }}"
                 label: "{{ app_label }}"
               when: cri == 'containerd'
+            
+            - include_tasks: /chaoslib/crio_chaos/crio-crictl-chaos.yml
+              vars:
+                action: "killapp"
+                app_pod: "{{ app_pod_name.stdout }}"
+                namespace: "{{ app_ns }}"
+                label: "{{ app_label }}"
+              when: cri == 'cri-o'
 
           when: lookup('env','DEPLOY_TYPE') == 'statefulset'
 
@@ -177,4 +193,10 @@
             action: "delete-containerd"
             namespace: "{{ app_ns }}"
           when: cri == 'containerd'
+
+        - include_tasks: /chaoslib/crio_chaos/crio-crictl-chaos.yml
+          vars:
+            action: "delete-crio"
+            namespace: "{{ app_ns }}"
+          when: cri == 'cri-o'
 
