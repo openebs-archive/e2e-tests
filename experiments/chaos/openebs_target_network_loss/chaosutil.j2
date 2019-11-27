@@ -1,7 +1,7 @@
 {% if stg_prov is defined and stg_prov == 'openebs.io/provisioner-iscsi' %}
   {% if stg_engine is defined and stg_engine == 'cstor' and cri == 'docker' %}
     chaosutil: openebs/cstor_target_network_delay.yaml
-  {% elif stg_engine is defined and stg_engine == 'cstor' and cri == 'containerd' %}
+  {% elif stg_engine is defined and stg_engine == 'cstor' and (cri == 'containerd' or cri == 'cri-o') %}
     chaosutil: openebs/inject_packet_loss_tc.yml
   {% elif stg_engine is defined and stg_engine == 'jiva' and cri == 'docker' %}
     chaosutil: openebs/jiva_controller_network_delay.yaml

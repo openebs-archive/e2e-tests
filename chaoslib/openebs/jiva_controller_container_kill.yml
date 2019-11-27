@@ -41,6 +41,13 @@
     app_container: "{{ ctrl_container }}"
   when: cri == 'containerd'
 
+- include_tasks: /chaoslib/crio_chaos/crio-crictl-chaos.yml
+  vars:
+    action: "killapp"
+    app_pod: "{{ jiva_controller_pod.stdout }}"
+    app_container: "{{ ctrl_container }}"
+  when: cri == 'cri-o'
+
 - name: Check if the controller pod is running
   shell: >
     kubectl get pod {{ jiva_controller_pod.stdout }} -n {{ app_ns }} --no-headers

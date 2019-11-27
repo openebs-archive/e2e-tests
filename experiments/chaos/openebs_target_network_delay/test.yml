@@ -142,7 +142,9 @@
             target_pod: "{{ cstor_target_pod.stdout }}"
             operator_namespace: "{{ operator_ns }}"
             containername: "cstor-istgt"
-          when: cri == 'containerd' and stg_engine == 'cstor'
+          when: 
+            - cri == 'containerd' or cri =='cri-o'  
+            - stg_engine == 'cstor'
 
         - include: "{{ chaos_util_path }}"
           vars:
@@ -150,7 +152,9 @@
             target_pod: "{{ controller_pod.stdout }}"
             operator_namespace: "{{ namespace }}"
             containername: "{{ pv.stdout }}-ctrl-con"
-          when: cri == 'containerd' and stg_engine == 'jiva'
+          when: 
+            - cri == 'containerd' or cri =='cri-o'  
+            - stg_engine == 'jiva'
 
         - name: Wait for 10s post fault injection 
           wait_for:
@@ -162,7 +166,9 @@
             target_pod: "{{ cstor_target_pod.stdout }}"
             operator_namespace: "{{ operator_ns }}"
             containername: "cstor-istgt"
-          when: cri == 'containerd' and stg_engine == 'cstor'
+          when: 
+            - cri == 'containerd' or cri =='cri-o'  
+            - stg_engine == 'cstor'
 
         - include: "{{ chaos_util_path }}"
           vars:
@@ -170,8 +176,10 @@
             target_pod: "{{ controller_pod.stdout }}"
             operator_namespace: "{{ namespace }}"
             containername: "{{ pv.stdout }}-ctrl-con"
-          when: cri == 'containerd' and stg_engine == 'jiva'
-
+          when: 
+            - cri == 'containerd' or cri =='cri-o'  
+            - stg_engine == 'jiva'
+            
         ## POST-CHAOS APPLICATION LIVENESS CHECK
 
         - name: Verify AUT liveness post fault-injection
