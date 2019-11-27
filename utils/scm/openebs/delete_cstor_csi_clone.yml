@@ -32,7 +32,7 @@
 
 - name: Obtaining the CVR from PV
   shell: >
-    kubectl get cvr -n {{ operator_ns }} -l cstorvolume.openebs.io/name={{ pv.stdout }} 
+    kubectl get cvr -n {{ operator_ns }} -l cstorvolume.openebs.io/name={{ cloned_pv_name }} 
     --no-headers  -o custom-columns=:metadata.name
   args:
     executable: /bin/bash
@@ -56,7 +56,7 @@
 ## delete the busybox deployment  
 - name: delete the busybox_app 
   shell: > 
-    kubectl delete deploy {{ app_name }} -n {{ namespace }}
+    kubectl delete -f busybox.yml
   args:
     executable: /bin/bash
   register: status
@@ -89,27 +89,30 @@
   args:
     executable: /bin/bash
   register: cloned_pvc_name
-  until: "cloned_pvc not in cloned_pvc_name  .stdout"
+  until: "cloned_pvc not in cloned_pvc_name.stdout"
   delay: 30
   retries: 15   
 
   ## verify if the pv for cloned pvc is deleted
 - name: try to obtain the pv for cloned pvc
   shell: >
-    kubectl get pvc -n {{ namespace }}
+    kubectl get pv -n {{ namespace }}
   args:
     executable: /bin/bash
   register: cloned_pv
   failed_when: "cloned_pv_name in cloned_pv.stdout"
 
+- name: sleep for 30 seconds and continue with play
+  wait_for: timeout=30
+
   ## verify if the cvrs for cloned pvc is deleted
 - name: try to obtain the cvrs for cloned pvc
   shell: >
-    kubectl get cvr -n {{ operator_ns }} -l cstorvolume.openebs.io/name={{ pv.stdout }} 
-    --no-headers  -o custom-columns=:metadata.name
+    kubectl get cvr {{ item }} -n {{ operator_ns }} --no-headers -o custom-columns=:metadata.name
   args:
     executable: /bin/bash
   register: cloned_cvr
-  until: "cloned_cvr_name not in cloned_cvr.stdout"
-  delay: 30
-  retries: 15  
+  failed_when: "cloned_cvr.stdout != ''"
+  with_items: 
+    - "{{ cvr.stdout_lines }}"
+    

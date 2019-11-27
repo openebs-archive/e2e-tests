@@ -1,6 +1,5 @@
 ---
 
-
 - name: Obtain the SnapshotContent of the snapshot
   shell: >
     kubectl get volumesnapshot.snapshot {{ snapshot_name }} -n {{ namespace }} 
@@ -49,9 +48,7 @@
   register: ss_content
   failed_when: "snapshotcontent in ss_content.stdout"  
 
-
 ## verify if the snapshot is deleted from all the pool pods
-
 - name: Derive PV name from PVC
   shell: >
     kubectl get pvc {{ pvc_name }} -n {{ namespace }}

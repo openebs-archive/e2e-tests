@@ -101,11 +101,11 @@
             - "{{ pools.results }}"
 
         - name: Checking if the snapshot is created in all the pool pods.
-          shell: kubectl exec -ti {{ item.stdout }} -n {{ operator_ns }} -c cstor-pool -- zfs list -t snapshot
+          shell: kubectl exec -ti {{ item.stdout }} -n {{ operator_ns }} -c cstor-pool -- zfs list -t snapshot | grep {{volume_snapshot}}
           args:
             executable: /bin/bash
           register: snap
-          failed_when: "volume_snapshot not in snap.stdout"
+          failed_when: "snap.stdout == ''"
           with_items:
             - "{{ pool_pods.results }}"
                           
