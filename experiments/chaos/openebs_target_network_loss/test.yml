@@ -177,7 +177,7 @@
             containername: "{{ pv.stdout }}-ctrl-con"
           when: 
             - cri == 'containerd' or cri =='cri-o'  
-            - stg_engine == 'cstor'
+            - stg_engine == 'jiva'
           
         ## POST-CHAOS APPLICATION LIVENESS CHECK
 

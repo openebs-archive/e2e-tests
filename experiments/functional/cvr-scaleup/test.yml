@@ -77,7 +77,7 @@
 
         - name: Get the storage pool claim (spc) name
           shell: >
-            kubectl get sc {{ sc_name.stdout }} --no-headers -o yaml | awk '/StoragePoolClaim/{getline; print}' | cut -d ':' -f2 | sed 's/"//g' | sed 's/ //g'
+            kubectl get sc {{ sc_name.stdout }} -o jsonpath="{.metadata.annotations.cas\.openebs\.io\/config}" | awk '/StoragePoolClaim/{getline; print}' | cut -d ':' -f2 | sed 's/"//g' | sed 's/ //g'
           register: spc_name
 
         - name: Getting the list of csp name correspond to provided spc
