@@ -83,7 +83,7 @@
   failed_when: "status.rc != 0"
 
 ## verify if the cloned pvc is deleted
-- name: try to obtain the cloned pvc
+- name: check if the cloned pvc is deleted
   shell: >
     kubectl get pvc -n {{ namespace }}
   args:
@@ -94,7 +94,7 @@
   retries: 15   
 
   ## verify if the pv for cloned pvc is deleted
-- name: try to obtain the pv for cloned pvc
+- name: check if the pv for cloned pvc is deleted
   shell: >
     kubectl get pv -n {{ namespace }}
   args:
@@ -106,7 +106,7 @@
   wait_for: timeout=30
 
   ## verify if the cvrs for cloned pvc is deleted
-- name: try to obtain the cvrs for cloned pvc
+- name: check if the cvrs for cloned pvc is deleted
   shell: >
     kubectl get cvr {{ item }} -n {{ operator_ns }} --no-headers -o custom-columns=:metadata.name
   args:
