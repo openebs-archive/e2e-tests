@@ -12,6 +12,7 @@
      with_items:
        - "dd if=/dev/urandom of=/busybox/{{ testfile }} bs={{ blocksize }} count={{ blockcount }}"
        - "md5sum /busybox/{{ testfile }} > /busybox/{{ testfile }}-pre-chaos-md5"
+       - "sync;sync;sync"
 
   when: status == "LOAD"
 

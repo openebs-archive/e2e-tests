@@ -32,7 +32,7 @@
         ## Deploy busybox app to check if the snapshot is cloned 
         - name: Check if the pvc is bound
           shell: >
-            kubectl get pvc {{ pvc_name }} -n {{ namespace }} 
+            kubectl get pvc {{ cloned_pvc }} -n {{ namespace }} 
             --no-headers -o custom-columns=:.status.phase
           args:
             executable: /bin/bash
