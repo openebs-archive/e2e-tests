@@ -53,6 +53,14 @@
     app_container: "{{ container_name }}"
   when: cri == 'containerd'
 
+- include_tasks: /chaoslib/crio_chaos/crio-crictl-chaos.yml
+  vars:
+    action: "killapp"
+    namespace: "{{ operator_ns }}"
+    app_pod: "{{ cstor_pool_pod.stdout }}"
+    app_container: "{{ container_name }}"
+  when: cri == 'cri-o'
+
 - name: Check for pool pod in running state
   shell: >
     kubectl get pod {{ cstor_pool_pod.stdout }} -n {{ operator_ns }} |
