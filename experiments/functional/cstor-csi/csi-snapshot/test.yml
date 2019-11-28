@@ -38,7 +38,7 @@
             ns: "{{ namespace }}"
             pod_name: "{{ app_pod_name.stdout }}"  
           when: data_persistence != ''
-
+       
         - name: generating yaml file for snapshot
           template: 
             src: snapshot.j2
