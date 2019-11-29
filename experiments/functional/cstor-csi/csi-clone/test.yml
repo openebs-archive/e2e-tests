@@ -91,6 +91,12 @@
             register: result 
             failed_when: "result.rc != 0 or result.stdout != ''"
           when: data_persistence != ''
+        
+             ## Delete the clone 
+        - include_tasks: /utils/scm/openebs/delete_cstor_csi_clone.yml
+        
+             ## Delete the snapshot
+        - include_tasks: /utils/scm/openebs/delete_cstor_csi_snapshot.yml
 
         - set_fact:
             flag: "Pass"
