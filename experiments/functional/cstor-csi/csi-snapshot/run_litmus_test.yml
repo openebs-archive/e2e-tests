@@ -44,6 +44,10 @@ spec:
           - name: APP_PVC
             value: ''
 
+          # Use 'deprovision' for snapshot cleanup
+          - name: ACTION
+            value: 'provision'  
+
           ##busybox for app busybox 
           - name: DATA_PERSISTENCE
             value: ""
