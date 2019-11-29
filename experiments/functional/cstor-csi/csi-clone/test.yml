@@ -15,7 +15,12 @@
         - include_tasks: "/utils/fcm/update_litmus_result_resource.yml"
           vars:
             status: 'SOT'
-
+        
+        - name: Generate the yaml file to deploy busybox
+          template:
+            src: busybox.j2
+            dest: busybox.yml
+            
         - block:
             - name: Generate the yaml file to clone the snapshot
               template:
@@ -41,12 +46,7 @@
               until: "'Bound' in pvc_status.stdout"
               delay: 30
               retries: 5
-
-            - name: Generate the yaml file to deploy busybox
-              template:
-                src: busybox.j2
-                dest: busybox.yml
-
+            
               ## Cloned PV is mounted in this app
             - name: Deploying the busybox app
               shell: >
