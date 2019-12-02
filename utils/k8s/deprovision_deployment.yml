@@ -151,6 +151,16 @@
 
       when: storage_class is defined    
 
+- name: Check if the pods are deleted in the namespaces
+  shell: >
+    kubectl get pods -n {{ app_ns }} 
+  args:
+    executable: /bin/bash
+  register: result
+  until: "result.stdout == ''"
+  delay: 5
+  retries: 60
+
 - name: Delete the namespace.
   k8s:
     state: absent
