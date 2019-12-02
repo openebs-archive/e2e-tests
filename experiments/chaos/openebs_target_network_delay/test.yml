@@ -123,6 +123,17 @@
               args:
                 executable: /bin/bash
               register: controller_pod
+
+            - name: Check for the jiva controller container status
+              shell: >
+                kubectl get pods {{ controller_pod.stdout }} -n {{ namespace }} 
+                -o jsonpath='{.status.containerStatuses[?(@.name=="{{ pv.stdout}}-ctrl-con")].state}' | grep running
+              args:
+                executable: /bin/bash
+              register: container_status
+              until: "'running' in container_status.stdout"
+              delay: 3
+              retries: 20
                                       
           when: stg_engine == 'jiva'
 
