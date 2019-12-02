@@ -53,7 +53,7 @@
     app_container: "{{ container_name }}"
   when: cri == 'containerd'
 
-- include_tasks: /chaoslib/crio_chaos/crio-crictl-chaos.yml
+- include_tasks: /chaoslib/crio_chaos/openebs-pool-failure.yml
   vars:
     action: "killapp"
     namespace: "{{ operator_ns }}"
