@@ -85,11 +85,11 @@
   with_items:
     - "{{ pools.results }}"
 
-- name: Checking if the snapshot is deleted in all the pool pods.
-  shell: kubectl exec -ti {{ item.stdout }} -n {{ operator_ns }} -c cstor-pool -- zfs list -t snapshot
-  args:
-    executable: /bin/bash
-  register: snap
-  failed_when: "uid_snapshot in snap.stdout"
-  with_items:
-    - "{{ pool_pods.results }}"
+# - name: Checking if the snapshot is deleted in all the pool pods.
+#   shell: kubectl exec -ti {{ item.stdout }} -n {{ operator_ns }} -c cstor-pool -- zfs list -t snapshot
+#   args:
+#     executable: /bin/bash
+#   register: snap
+#   failed_when: "uid_snapshot in snap.stdout"
+#   with_items:
+#     - "{{ pool_pods.results }}"

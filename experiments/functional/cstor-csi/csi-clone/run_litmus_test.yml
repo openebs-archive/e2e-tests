@@ -59,6 +59,10 @@ spec:
           - name: STORAGE_CAPACITY
             value: 5Gi  
             
+          # Use 'deprovision' for clone cleanup  
+          - name: ACTION
+            value: 'provision'
+
             ## busybox for app busybox 
           - name: DATA_PERSISTENCE
             value: ""
