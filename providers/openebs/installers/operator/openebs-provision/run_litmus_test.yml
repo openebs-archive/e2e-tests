@@ -35,6 +35,9 @@ spec:
           - name: NDM_TAG
             value: ""
 
+          - name: DEPLOY_TYPE
+            value: ""
+
           - name: ACTION
             value: provision 
 
