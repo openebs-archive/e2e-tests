@@ -1,3 +1,4 @@
+kubeapply: kubectl --kubeconfig /root/admin.conf
 openebs_operator_link: "https://raw.githubusercontent.com/openebs/openebs/master/k8s/openebs-operator.yaml"
 cspc_operator_link: "https://raw.githubusercontent.com/openebs/openebs/master/k8s/cspc-operator.yaml"
 openebs_link: "https://openebs.github.io/charts/openebs-operator-{{ lookup('env','RELEASE_VERSION') }}.yaml"
@@ -8,3 +9,4 @@ test_name: openebs-provision
 operator_ns: "{{ lookup('env','OPERATOR_NS') }}"
 release_version: "{{ lookup('env','RELEASE_VERSION') }}"
 ndm_tag: "{{ lookup('env','NDM_TAG') }}"
+deploy_type: "{{ lookup('env', 'DEPLOY_TYPE') }}"
