@@ -36,7 +36,7 @@
      register: backup_state
      until: "'Completed' in backup_state.stdout"
      delay: 5
-     retries: 30
+     retries: 60
 
   when: action == "BACKUP"
 
