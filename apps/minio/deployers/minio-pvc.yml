@@ -1,0 +1,31 @@
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: minio-service
+  labels:
+    lkey: lvalue
+spec:
+  ports:
+    - port: 9000
+    #  nodePort: 32703
+      protocol: TCP
+  selector:
+    lkey: lvalue
+  sessionAffinity: None
+  type: NodePort
+  
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: testclaim
+  labels:
+    app: minio-storage-claim
+spec:
+  storageClassName: testclass 
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: volume-capacity
