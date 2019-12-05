@@ -16,6 +16,47 @@
           vars:
             status: 'SOT'
          
+        - name: Get the application label values from env
+          set_fact:
+            app_lkey: "{{ app_label.split('=')[0] }}"
+            app_lvalue: "{{ app_label.split('=')[1] }}"
+
+        - name: Replace the application label placeholder in service spec
+          replace:
+            path: "{{ pvc_deployment }}"
+            regexp: "lkey: lvalue"
+            replace: "{{ app_lkey }}: {{ app_lvalue }}"
+
+        - name: Replace the storage capacity placeholder
+          replace:
+              path: "{{ pvc_deployment }}"
+              regexp: "volume-capacity"
+              replace: "{{ lookup('env','CAPACITY') }}" 
+
+        - name: Replace the storage class placeholder
+          replace:
+              path: "{{ pvc_deployment }}"
+              regexp: "testclass"
+              replace: "{{ lookup('env','PROVIDER_STORAGE_CLASS') }}" 
+
+        - name: Replace the PVC name placeholder
+          replace:
+              path: "{{ pvc_deployment }}"
+              regexp: "testclaim"
+              replace: "{{ lookup('env','APP_PVC') }}"
+
+        - name: Replace the PVC access method placeholder
+          replace:
+              path: "{{ pvc_deployment }}"
+              regexp: "ReadWriteOnce"
+              replace: "{{ lookup('env','ACCESS_MODE') }}"
+ 
+        - name: Replace the PVC name placeholder with PVC created earlier
+          replace:
+              path: "{{ application_deployment }}"
+              regexp: "testclaim"
+              replace: "{{ lookup('env','APP_PVC') }}"
+
         - block: 
             - name: Check whether the provider storageclass is applied
               k8s_facts:
@@ -26,39 +67,14 @@
 
               # Creating namespace
             - include_tasks: /utils/k8s/create_ns.yml
-
-            - name: Get the application label values from env
-              set_fact:
-                app_lkey: "{{ app_label.split('=')[0] }}"
-                app_lvalue: "{{ app_label.split('=')[1] }}"
-
-            - name: Replace the application label placeholder in service spec
-              replace:
-                path: "{{ pvc_deployment }}"
-                regexp: "lkey: lvalue"
-                replace: "{{ app_lkey }}: {{ app_lvalue }}"
-
-            - name: Replace the storage capacity placeholder
-              replace:
-                  path: "{{ pvc_deployment }}"
-                  regexp: "volume-capacity"
-                  replace: "{{ lookup('env','CAPACITY') }}" 
-
-            - name: Replace the storage class placeholder
-              replace:
-                  path: "{{ pvc_deployment }}"
-                  regexp: "testclass"
-                  replace: "{{ lookup('env','PROVIDER_STORAGE_CLASS') }}" 
-
-            - name: Replace the PVC name placeholder
-              replace:
-                  path: "{{ pvc_deployment }}"
-                  regexp: "testclaim"
-                  replace: "{{ lookup('env','APP_PVC') }}"
-
+            
             - name: Applying the pvc
               shell: kubectl apply -f minio-pvc.yml -n {{ app_ns }}
-            
+              args:
+                executable: /bin/bash
+              register: status
+              failed_when: "status.rc != 0"
+
             - name: Checking the status of PVC
               shell: kubectl get pvc {{ app_pvc }} -n {{ app_ns }} -o jsonpath='{.status.phase}'
               register: pvc_status
@@ -67,23 +83,22 @@
               retries: 15
 
           when: lookup('env','ACTION') == 'provision'      
-      
+              
       ## create and delete the deployments according to action
-        - include_tasks: ./minio_prerequisite.yml
+        - include_tasks: ./minio_prerequisites.yml
           loop: "{{ range(0, deploy_count | int, 1)|list }}"
 
         - block:
-            ## verify and delete the pvc 
-            - name: delete the pvc
-              shell: >
-                kubectl delete pvc {{ app_pvc }} -n {{ app_ns }} 
+            ## verify and delete the pvc and service
+            - name: Deleting the PVC and service
+              shell: kubectl delete -f minio-pvc.yml -n {{ app_ns }}
               args:
                 executable: /bin/bash
               register: status
               failed_when: "status.rc != 0"
 
             ## verify if the pvc is deleted
-            - name: check if the cloned pvc is deleted
+            - name: check if the pvc is deleted successfully
               shell: >
                 kubectl get pvc -n {{ app_ns }}
               args:
@@ -92,14 +107,7 @@
               until: "app_pvc not in pvc_name.stdout"
               delay: 30
               retries: 15   
-            
-            - name: Delete the service
-              shell: kubectl delete service minio-service -n {{ app_ns }}
-              args:
-                executable: /bin/bash
-              register: status
-              failed_when: "status.rc != 0"
-
+                        
             - name: Check if the service is deleted successfully
               shell: >
                 kubectl get service -n {{ app_ns }} -l "{{ app_lkey }}={{ app_lvalue }}" --no-headers 

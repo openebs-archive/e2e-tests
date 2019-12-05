@@ -21,7 +21,7 @@ kind: PersistentVolumeClaim
 metadata:
   name: testclaim
   labels:
-    app: minio-storage-claim
+    lkey: lvalue
 spec:
   storageClassName: testclass 
   accessModes:

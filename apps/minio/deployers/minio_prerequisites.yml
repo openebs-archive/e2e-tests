@@ -15,12 +15,6 @@
     regexp: "lkey: lvalue"
     replace: "{{ app_lkey }}: {{ app_lvalue }}"
 
-- name: Replace the PVC name placeholder with PVC created earlier
-  replace:
-      path: minio-{{item}}.yml
-      regexp: "testclaim"
-      replace: "{{ lookup('env','APP_PVC') }}"
-
 - name: modify the Deployment name appended with number generated earlier
   replace:
       path: minio-{{item}}.yml
@@ -30,11 +24,14 @@
 - name: print the specific spec
   shell: cat minio-{{item}}.yml   
 
-
 - block:
 
     - name: Applying the deployment spec
       shell: kubectl apply -f minio-{{item}}.yml -n {{ app_ns }}
+      args:
+        executable: /bin/bash
+      register: status
+      failed_when: "status.rc != 0"
 
     - name: Check the pod status
       shell: >
@@ -60,7 +57,7 @@
     ## verify if the pod is deleted
     - name: Check if the pod is deleted successfully
       shell: >
-        kubectl get po -n {{ app_ns }} -l "{{ app_lkey }}={{ app_lvalue }}" --no-headers 
+        kubectl get pods -n {{ app_ns }} -l "{{ app_lkey }}={{ app_lvalue }}" --no-headers 
       args:
         executable: /bin/bash
       register: result
