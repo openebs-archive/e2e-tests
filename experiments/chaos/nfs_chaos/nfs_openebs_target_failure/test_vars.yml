@@ -1,0 +1,25 @@
+test_name: openebs-target-failure
+
+target_namespace: "{{ lookup('env','TARGET_NAMESPACE') }}"
+
+namespace: "{{ lookup('env','NFS_NAMESPACE') }}"
+
+label: "{{ lookup('env','NFS_LABEL') }}"
+
+pvc: "{{ lookup('env','NFS_PVC') }}"
+
+app_namespace: "{{ lookup('env','APP_NAMESPACE') }}"
+
+app_label: "{{ lookup('env','APP_LABEL') }}"
+
+liveness_label: "{{ lookup('env','LIVENESS_APP_LABEL') }}"
+
+liveness_namespace: "{{ lookup('env','LIVENESS_APP_NAMESPACE') }}"
+
+chaos_type: "{{ lookup('env','CHAOS_TYPE') }}"
+
+target_container: "{{ lookup('env','TARGET_CONTAINER') }}"
+
+chaos_duration: 120
+
+cri: "{{ lookup('env','CONTAINER_RUNTIME') }}"
