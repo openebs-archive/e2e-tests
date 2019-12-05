@@ -53,7 +53,7 @@ spec:
             value: '4'
            
            # Access mode for pvc
-           # For RWM use 'ReadWriteMany'
+           # For RWM use 'ReadWriteMany' and For RWO use 'ReadWriteOnce'
           - name: ACCESS_MODE
             value: 'ReadWriteMany'  
 
