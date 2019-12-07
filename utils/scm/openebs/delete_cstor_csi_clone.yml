@@ -93,11 +93,11 @@
   ## verify if the pv for cloned pvc is deleted
 - name: check if the pv for cloned pvc is deleted
   shell: >
-    kubectl get pv -n {{ namespace }}
+    kubectl get pv
   args:
     executable: /bin/bash
   register: cloned_pv
-  failed_when: "cloned_pv_name in cloned_pv.stdout"
+  until: "cloned_pv_name not in cloned_pv.stdout"
 
 - name: sleep for 30 seconds and continue with play
   wait_for: timeout=30
