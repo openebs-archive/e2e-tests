@@ -216,9 +216,9 @@
           register: newpod_name
 
         - name: Checking application pod in running state
-          shell: kubectl get pods -n {{ namespace }} -o jsonpath='{.items[?(@.metadata.name=="{{ newpod_name.stdout }}")].status.containerStatuses[*].state.waiting.reason}'
+          shell: kubectl get pods -n {{ namespace }} -o jsonpath='{.items[?(@.metadata.name=="{{ newpod_name.stdout }}")].status.containerStatuses[*].state}'
           register: result
-          until: "((result.stdout.split()|unique)|length) == 1 and 'Running' in result.stdout"
+          until: "'running' in result.stdout"
           delay: 2
           retries: 150
 
