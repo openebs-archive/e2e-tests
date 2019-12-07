@@ -49,6 +49,9 @@ spec:
             # Enable storage i/o based liveness probe
           - name: IO_PROBE
             value: enabled
+          
+          - name: TARGET_AFFINITY_CHECK
+            value: enable
 
         command: ["/bin/bash"]
         args: ["-c", "ansible-playbook ./apps/percona/deployers/test.yml -i /etc/ansible/hosts -v; exit 0"]

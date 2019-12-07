@@ -43,6 +43,7 @@
    
             ## Check application-target pod affinity
             - include_tasks: /utils/scm/openebs/target_affinity_check.yml
+              when: lookup('env','TARGET_AFFINITY_CHECK') == 'enable'
 
             - set_fact:
                 flag: "Pass"  
