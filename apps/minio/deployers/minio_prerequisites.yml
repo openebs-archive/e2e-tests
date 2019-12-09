@@ -52,7 +52,6 @@
       args:
         executable: /bin/bash
       register: status
-      failed_when: "status.rc != 0"
     
     ## verify if the pod is deleted
     - name: Check if the pod is deleted successfully

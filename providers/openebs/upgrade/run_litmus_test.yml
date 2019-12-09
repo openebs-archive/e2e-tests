@@ -40,7 +40,7 @@ spec:
             value: ""
  
             # UPGRADE TO CI image tag then the value should be v1.x.x-ci
-          - name: UPGARDE_TO_CI
+          - name: UPGRADE_TO_CI
             value: ""
 
             # set to "true" if you want to upgrade cStor pool and Volumes
