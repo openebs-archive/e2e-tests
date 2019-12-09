@@ -135,14 +135,14 @@
                         path: "{{ openebs_operator }}"
                         regexp: ':ci'
                         replace: ":{{ new_version }}"
-                      when: upgrade_to_ci is undefined
+                      when: upgrade_to_ci == ""
 
                     - name: Change the Image tag to newer version in operator yaml
                       replace:
                         path: "{{ openebs_operator }}"
                         regexp: ':ci'
                         replace: ":{{ upgrade_to_ci }}"
-                      when: upgrade_to_ci is defined
+                      when: upgrade_to_ci != ""
 
                   when: "'OK' not in new_operator_file.msg"
 
