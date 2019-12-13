@@ -104,6 +104,15 @@
                 src: patch.j2
                 dest: patch.yml
 
+            - name: Identify the jiva controller pod name
+              shell: >
+                kubectl get pods -l openebs.io/controller=jiva-controller
+                -n {{ namespace }} --no-headers | grep {{ pv.stdout }} 
+                | awk '{print $1}' 
+              args:
+                executable: /bin/bash
+              register: controller_pod_before
+
             - name: Patching jiva controller deployment to allow security privileged
               shell: >
                 kubectl patch deployment {{ pv.stdout }}-ctrl -n {{ namespace }}
@@ -115,18 +124,28 @@
               wait_for:
                 timeout: 10
 
-            - name: Identify the jiva controller pod belonging to the PV
+            - name: Verify if the jiva controller pod is terminated
+              shell: kubectl get pods -n {{ namespace }}
+              args:
+                executable: /bin/bash
+              register: pod_status
+              until: '"{{ controller_pod_before.stdout }}" not in pod_status.stdout' 
+              delay: 5
+              retries: 60
+              when: "'no change' not in patch_status.stdout"
+              
+            - name: Identify the new jiva controller pod belonging to the PV
               shell: > 
                 kubectl get pods -l openebs.io/controller=jiva-controller
                 -n {{ namespace }} --no-headers | grep {{ pv.stdout }} 
                 | awk '{print $1}'
               args:
                 executable: /bin/bash
-              register: controller_pod
+              register: controller_pod_after
 
             - name: Check for the jiva controller container status
               shell: >
-                kubectl get pods {{ controller_pod.stdout }} -n {{ namespace }} 
+                kubectl get pods {{ controller_pod_after.stdout }} -n {{ namespace }} 
                 -o jsonpath='{.status.containerStatuses[?(@.name=="{{ pv.stdout}}-ctrl-con")].state}' | grep running
               args:
                 executable: /bin/bash
@@ -160,7 +179,7 @@
         - include: "{{ chaos_util_path }}"
           vars:
             status: "induce"
-            target_pod: "{{ controller_pod.stdout }}"
+            target_pod: "{{ controller_pod_after.stdout }}"
             operator_namespace: "{{ namespace }}"
             containername: "{{ pv.stdout }}-ctrl-con"
           when: 
@@ -184,7 +203,7 @@
         - include: "{{ chaos_util_path }}"
           vars:
             status: "remove"
-            target_pod: "{{ controller_pod.stdout }}"
+            target_pod: "{{ controller_pod_after.stdout }}"
             operator_namespace: "{{ namespace }}"
             containername: "{{ pv.stdout }}-ctrl-con"
           when: 

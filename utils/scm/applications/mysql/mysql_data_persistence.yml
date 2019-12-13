@@ -34,7 +34,7 @@
      retries: 2
      delay: 150
 
-   - name: Obtain the newly created pod name for applicaion
+   - name: Obtain the newly created pod name for application
      shell: >
        kubectl get pods -n {{ ns }} -l {{ label }} -o jsonpath='{.items[].metadata.name}'
      args:
