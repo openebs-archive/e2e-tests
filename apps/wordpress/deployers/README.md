@@ -1,4 +1,4 @@
-# Deploying Wordpress and MySQL applicaion
+# Deploying Wordpress and MySQL application
 
 ## Description
    - This LitmusBook is to deploy MySQL and Wordpress application using OpenEBS PV
@@ -7,7 +7,7 @@
    - This file has the details of the environmental variables that need to deploy MySQL and Wordpress application
    - Environmental Variables used for this litmusbook is listed below:
         - PROVIDER_STORAGE_CLASS : StorageClass to deploy MySQL application
-        - STORAGE_CLASS : StorageClass to deploy WordPress applicaiton
+        - STORAGE_CLASS : StorageClass to deploy WordPress application
         - MYSQL_APP_PVC : PersistentVolumeClaim name for the MySQL application
         - MYSQL_PASS : Secret pass for MySQL
         - WORDPRESS_APP_PVC : PersistentVolumeClaim name for the wordpress application
