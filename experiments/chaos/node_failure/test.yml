@@ -110,13 +110,30 @@
             timeout: 300
 
         ## Application verification after injecting chaos
-        - include_tasks: /utils/k8s/status_app_pod.yml
-          vars:
-            app_ns: "{{ namespace }}"
-            app_lkey: "{{ label.split('=')[0] }}"
-            app_lvalue: "{{ label.split('=')[1] }}"
-            delay: '2'
-            retries: '150'
+        - name: check the application status
+          shell: kubectl get pods -n {{ namespace}} -l {{ label }} --no-headers -o custom-columns=:.status.phase
+          args:
+            executable: /bin/bash
+          register: app_status
+          until: "'Running' in app_status.stdout"
+          delay: 5
+          retries: 10
+          ignore_errors: true
+
+          ### Due to node shutdown, the application pod will be in containercreating state due to multi-attach error.
+          ### As a workaround, the node CR can be deleted which can forcefully remove the terminating pod.
+
+        - name: Delete the node CR
+          shell: kubectl delete node {{ app_node.stdout }}
+          args:
+            executable: /bin/bash
+          register: node_status
+          failed_when: node_status.rc != 0
+
+          ## After deleting node CR, it will take 6 minutes for the volume to be running
+        - name: wait for the application pod to start
+          wait_for:
+            timeout: 360
 
         - name: Check if the application pod is rescheduled
           shell: >
