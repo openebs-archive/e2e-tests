@@ -110,13 +110,30 @@
             timeout: 300
 
         ## Application verification after injecting chaos
-        - include_tasks: /utils/k8s/status_app_pod.yml
-          vars:
-            app_ns: "{{ namespace }}"
-            app_lkey: "{{ label.split('=')[0] }}"
-            app_lvalue: "{{ label.split('=')[1] }}"
-            delay: '2'
-            retries: '150'
+        - name: check the application status
+          shell: kubectl get pods -n {{ namespace}} -l {{ label }} --no-headers -o custom-columns=:.status.phase
+          args:
+            executable: /bin/bash
+          register: app_status
+          until: "'Running' in app_status.stdout"
+          delay: 5
+          retries: 10
+          ignore_errors: true
+
+          ### Due to node shutdown, the application pod will be in containercreating state due to multi-attach error.
+          ### As a workaround, the node CR can be deleted which can forcefully remove the terminating pod.
+
+        - name: Delete the node CR
+          shell: kubectl delete node {{ app_node.stdout }}
+          args:
+            executable: /bin/bash
+          register: node_status
+          failed_when: node_status.rc != 0
+
+          ## After deleting node CR, it will take 6 minutes for the volume to be running
+        - name: wait for the application pod to start
+          wait_for:
+            timeout: 360
 
         - name: Check if the application pod is rescheduled
           shell: >
@@ -124,17 +141,28 @@
             -o wide | grep -v {{ app_node.stdout }} | awk '{print $3}'
           args:
             executable: /bin/bash
-          register: rescheduled_app_pod
-          until: "'Running' in rescheduled_app_pod.stdout"
+          register: rescheduled_app_pod_status
+          until: "'Running' in rescheduled_app_pod_status.stdout"
           delay: 10
           retries: 30
 
-        - name: Verify application data persistence
-          include: "{{ data_consistency_util_path }}"
-          vars:
-            status: 'VERIFY'
-            ns: "{{ namespace }}"
-            pod_name: "{{ rescheduled_app_pod.stdout }}"
+        - block:
+
+            - name: Obtain the rescheduled pod name
+              shell: >
+                kubectl get pods -n {{ namespace }} -l {{ label }} --no-headers
+                -o custom-columns=:metadata.name
+              args:
+                executable: /bin/bash
+              register: rescheduled_app_pod
+
+            - name: Verify application data persistence
+              include: "{{ data_consistency_util_path }}"
+              vars:
+                status: 'VERIFY'
+                ns: "{{ namespace }}"
+                pod_name: "{{ rescheduled_app_pod.stdout }}"
+
           when: data_persistence != ''
 
         - set_fact:
@@ -145,19 +173,6 @@
             flag: "Fail"
 
       always:
-
-        - name: Get the pending pod
-          shell: >
-            kubectl get po -n {{ namespace }} -l app=node-failure-cstor --no-headers | grep -v {{ app_pod_name.stdout }} | awk '{print $1}'
-          args:
-            executable: /bin/bash
-          register: test
-   
-        - name: describe the pending pod
-          shell: >
-            kubectl describe po {{ test.stdout }} -n {{ namespace }}
-          args:
-            executable: /bin/bash
 
         # Turn on the k8s node
         - include_tasks: "{{ chaos_util_path }}"
