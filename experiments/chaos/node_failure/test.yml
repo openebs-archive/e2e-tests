@@ -141,17 +141,28 @@
             -o wide | grep -v {{ app_node.stdout }} | awk '{print $3}'
           args:
             executable: /bin/bash
-          register: rescheduled_app_pod
-          until: "'Running' in rescheduled_app_pod.stdout"
+          register: rescheduled_app_pod_status
+          until: "'Running' in rescheduled_app_pod_status.stdout"
           delay: 10
           retries: 30
 
-        - name: Verify application data persistence
-          include: "{{ data_consistency_util_path }}"
-          vars:
-            status: 'VERIFY'
-            ns: "{{ namespace }}"
-            pod_name: "{{ rescheduled_app_pod.stdout }}"
+        - block:
+
+            - name: Obtain the rescheduled pod name
+              shell: >
+                kubectl get pods -n {{ namespace }} -l {{ label }} --no-headers
+                -o custom-columns=:metadata.name
+              args:
+                executable: /bin/bash
+              register: rescheduled_app_pod
+
+            - name: Verify application data persistence
+              include: "{{ data_consistency_util_path }}"
+              vars:
+                status: 'VERIFY'
+                ns: "{{ namespace }}"
+                pod_name: "{{ rescheduled_app_pod.stdout }}"
+
           when: data_persistence != ''
 
         - set_fact:
@@ -162,19 +173,6 @@
             flag: "Fail"
 
       always:
-
-        - name: Get the pending pod
-          shell: >
-            kubectl get po -n {{ namespace }} -l app=node-failure-cstor --no-headers | grep -v {{ app_pod_name.stdout }} | awk '{print $1}'
-          args:
-            executable: /bin/bash
-          register: test
-   
-        - name: describe the pending pod
-          shell: >
-            kubectl describe po {{ test.stdout }} -n {{ namespace }}
-          args:
-            executable: /bin/bash
 
         # Turn on the k8s node
         - include_tasks: "{{ chaos_util_path }}"
