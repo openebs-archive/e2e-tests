@@ -58,6 +58,13 @@
      delay: 2
      retries: 150
 
+   - name: Check if db is ready for connections
+     shell: kubectl logs {{ newpod_name.stdout }} -n {{ ns }} | grep 'ready for connections'
+     register: initcheck
+     until: "'ready for connections' in initcheck.stdout"
+     delay: 5
+     retries: 180
+
    - name: Checking for the Corrupted tables
      shell: >
        kubectl exec {{ newpod_name.stdout }} -n {{ ns }}
