@@ -1,0 +1,60 @@
+---
+apiVersion: batch/v1
+kind: Job
+metadata:
+  generateName: litmus-velero-backup-restore
+  namespace: litmus
+spec:
+  template:
+    metadata:
+      name: litmus
+      labels:
+        app: velero-backup-restore
+
+    spec:
+      serviceAccountName: litmus
+      restartPolicy: Never
+      containers:
+      - name: ansibletest
+        image: openebs/ansible-runner:ci
+        imagePullPolicy: Always
+
+        env:
+          - name: ANSIBLE_STDOUT_CALLBACK
+            value: default
+
+          - name: APP_LABEL
+            value: 'name=percona'
+
+            # Application pvc
+          - name: APP_PVC
+            value: percona-mysql-claim
+
+            # Application namespace
+          - name: APP_NAMESPACE
+            value: app-percona-ns 
+
+          - name: DB_USER_NAME
+            value: root
+
+          - name: DB_PASSWORD
+            value: k8sDem0
+
+          - name: DEPLOY_TYPE
+            value: deployment
+
+          - name: BACKUP_NAME
+            value: percona-backup
+
+          - name: VELERO_PLUGIN_NAME
+            value: "openebs/velero-plugin:ci"
+
+          - name: VELERO_VERSION
+            value: "v1.1.0"
+
+          # supported values are: cstor, jiva, localpv
+          - name: STORAGE_ENGINE
+            value: "cstor"
+
+        command: ["/bin/bash"]
+        args: ["-c", "ansible-playbook ./experiments/functional/backup_and_restore/test.yml -i /etc/ansible/hosts -vv; exit 0"]

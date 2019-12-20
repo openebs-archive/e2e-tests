@@ -6,11 +6,17 @@ LABEL maintainer="OpenEBS"
 RUN rm -rf /var/lib/apt/lists/* && \
     apt-get clean && \
     apt-get update --fix-missing || true && \
-    apt-get install -y python-minimal python-pip netcat iproute2 jq sshpass bc \
+    apt-get install -y python-minimal python-pip netcat iproute2 jq sshpass bc git\
     curl openssh-client
 
 #Installing ansible
 RUN pip install ansible==2.7.3
+
+#Installing openshift
+RUN pip install openshift
+
+#Installing jmespath
+RUN pip install jmespath
 
 RUN touch /mnt/parameters.yml
 

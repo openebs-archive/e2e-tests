@@ -40,7 +40,7 @@ spec:
             
             #Persistent Volume storage capacity
           - name: PV_CAPACITY
-            value: 5G
+            value: 5Gi
 
             #Application replicas for statefulset application
           - name: APP_REPLICA

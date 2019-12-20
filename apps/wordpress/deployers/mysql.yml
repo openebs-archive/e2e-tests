@@ -74,4 +74,3 @@ spec:
   resources:
     requests:
       storage: volume-capacity
----

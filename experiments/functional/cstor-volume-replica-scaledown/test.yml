@@ -1,0 +1,186 @@
+---
+
+- hosts: localhost
+  connection: local
+
+  vars_files:
+    - test_vars.yml
+    - /mnt/parameters.yml
+
+  tasks:
+
+   - block:
+
+       - include_tasks: /utils/fcm/create_testname.yml
+
+      ## RECORD START-OF-TEST IN LITMUS RESULT CR
+       - include_tasks: /utils/fcm/update_litmus_result_resource.yml
+         vars:
+           status: 'SOT'
+
+       - name: Identify the data consistency util to be invoked
+         template:
+           src: data_persistence.j2
+           dest: data_persistence.yml
+
+       - include_vars:
+           file: data_persistence.yml
+
+       - name: Record the data consistency util path
+         set_fact:
+           data_consistency_util_path: "{{ consistencyutil }}"
+         when: data_persistence != ''
+
+       - name: Checking the status of application pod
+         shell: kubectl get pod -n {{ app_ns }} -l {{ label }} -o jsonpath='{.items[0].status.phase}'
+         args:
+           executable: /bin/bash
+         register: app_pod_status
+         until: "'Running' in app_pod_status.stdout"
+         delay: 5
+         retries: 30
+
+       - name: Getting the pod name of Application
+         shell: kubectl get pod -n {{ app_ns }} -l {{ label }} -o jsonpath='{.items[0].metadata.name}'
+         args:
+           executable: /bin/bash
+         register: app_pod_name
+
+       - name: Obtain the Persistent Volume name
+         shell: kubectl get pvc {{ app_pvc }} -n {{ app_ns }} --no-headers -o custom-columns=:.spec.volumeName
+         args:
+           executable: /bin/bash
+         register: pv
+         failed_when: 'pv.stdout == ""'
+
+       - name: Create some test data
+         include: "{{ data_consistency_util_path }}"
+         vars:
+           status: 'LOAD'
+           ns: "{{ app_ns }}"
+           pod_name: "{{ app_pod_name.stdout }}"
+         when: data_persistence != ''
+
+       - name: Get the cStorVolume name
+         shell: >
+           kubectl get cstorvolume -n {{ operator_ns }} -l openebs.io/persistent-volume={{ pv.stdout }}
+           -o custom-columns=:.metadata.name --no-headers
+         args:
+           executable: /bin/bash
+         register: cv_name
+         failed_when: 'cv_name.stdout == ""'
+
+       - name: Check if the CVRs in healthy state
+         shell: >
+           kubectl get cvr -n {{ operator_ns }} -l cstorvolume.openebs.io/name={{ cv_name.stdout }}
+           -o custom-columns=:.status.phase --no-headers
+         args:
+           executable: /bin/bash
+         register: cvr_status
+         until: "((cvr_status.stdout_lines|unique)|length) == 1 and 'Healthy' in cvr_status.stdout"
+         retries: 30
+         delay: 10
+
+       - name: Obtain the List of CVR's
+         shell: >
+           kubectl get cvr -n {{ operator_ns }} -l openebs.io/persistent-volume={{ pv.stdout }}
+           -o custom-columns=:.metadata.name --no-headers
+         args:
+           executable: /bin/bash
+         register: cvr_list
+         failed_when: 'cvr_list.stdout == ""'
+
+       - name: Select random cvr from the list of cvr as target cvr to scaledown
+         set_fact:
+           target_cvr: "{{ item }}"
+         with_random_choice: "{{ cvr_list.stdout_lines }}"
+
+       - include_tasks: "/chaoslib/openebs/cvr_scaledown/scale_down_cstor_replica.yml"
+         vars:
+           cstor_volume_name: "{{ cv_name.stdout }}"
+           namespace: "{{ operator_ns }}"
+           targeted_cvr_name: "{{ target_cvr }}"
+
+       - name: Remove the scale down cstor volume replica
+         shell: kubectl delete cvr -n {{ operator_ns }} {{ target_cvr }}
+         args:
+           executable: /bin/bash
+
+       - name: Check if the cvr got removed
+         shell: >
+           kubectl get cvr -n {{ operator_ns }} -l openebs.io/persistent-volume={{ pv.stdout }}
+           -o custom-columns=:.metadata.name --no-headers
+         args:
+           executable: /bin/bash
+         register: new_cvr_list
+         until: "target_cvr not in new_cvr_list.stdout"
+         delay: 5
+         retries: 30
+
+       - name: Check if the CVRs in healthy state
+         shell: >
+           kubectl get cvr -n {{ operator_ns }} -l openebs.io/persistent-volume={{ pv.stdout }}
+           -o custom-columns=:.status.phase --no-headers
+         args:
+           executable: /bin/bash
+         register: new_cvr_status
+         until: "((new_cvr_status.stdout_lines|unique)|length) == 1 and 'Healthy' in new_cvr_status.stdout"
+         retries: 30
+         delay: 10
+
+       - name: Obtain the cstor target name
+         shell: >
+           kubectl get pods -n {{ operator_ns }} -l openebs.io/persistent-volume={{ pv.stdout }}
+           -o custom-columns=:.metadata.name --no-headers
+         args:
+           executable: /bin/bash
+         register: target_pod
+         failed_when: 'target_pod.stdout == ""'
+
+       - name: Restart the cstor target pod
+         shell: kubectl delete pod -n {{ operator_ns }} {{ target_pod.stdout }}
+         args:
+           executable: /bin/bash
+
+       - name: Check if the cstor target is deleted
+         shell: >
+           kubectl get pods -n {{ operator_ns }} -l openebs.io/persistent-volume={{ pv.stdout }}
+           -o custom-columns=:.metadata.name --no-headers
+         args:
+           executable: /bin/bash
+         register: new_target
+         until: "target_pod.stdout not in new_target.stdout"
+         delay: 5
+         retries: 30
+
+       - name: check if the cstor target is in Running state
+         shell: >
+           kubectl get pods -n {{ operator_ns }} -l openebs.io/persistent-volume={{ pv.stdout }}
+           -o custom-columns=:.status.phase --no-headers
+         args:
+           executable: /bin/bash
+         register: target_status
+         until: "'Running' in target_status.stdout"
+         delay: 5
+         retries: 30
+
+       - name: Verify application data persistence
+         include: "{{ data_consistency_util_path }}"
+         vars:
+            status: 'VERIFY'
+            ns: "{{ app_ns }}"
+            pod_name: "{{ app_pod_name.stdout }}"
+         when: data_persistence != ''
+
+       - set_fact:
+           flag: "Pass"
+
+     rescue:
+       - set_fact:
+           flag: "Fail"
+
+     always:
+           ## RECORD END-OF-TEST IN LITMUS RESULT CR
+        - include_tasks: /utils/fcm/update_litmus_result_resource.yml
+          vars:
+            status: 'EOT'

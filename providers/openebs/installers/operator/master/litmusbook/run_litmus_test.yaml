@@ -54,6 +54,16 @@ spec:
             value:  
           - name: CSPC_OPERATOR_IMAGE
             value:
+          - name: OPENEBS_LOCALPV_PROVISIONER_IMAGE
+            value:
+          - name: OPENEBS_ADMISSION_SERVER_IMAGE
+            value:
+          - name: OPENEBS_SNAPSHOT_OPERATOR_IMAGE
+            value:
+          - name: OPENEBS_PROVISIONER_IMAGE
+            value:
+          - name: SNAPSHOT_PROVISIONER_IMAGE
+            value:      
           - name: IMAGE_PULL_POLICY
             value:
           - name: OPENEBS_INFRA_CHAOS

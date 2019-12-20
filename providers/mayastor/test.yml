@@ -1,0 +1,111 @@
+- hosts: localhost
+  connection: local
+
+  vars_files:
+    - test_vars.yml
+
+  tasks:
+
+    - block:
+    
+         # GENERATING THE TEST NAME
+        - include_tasks: /utils/fcm/create_testname.yml
+
+         ##  RECORD START-OF-TEST IN LITMUS RESULT CR
+        - include_tasks: "/utils/fcm/update_litmus_result_resource.yml"
+          vars:
+            status: 'SOT'
+
+        - name: Getting the number of compute nodes
+          shell: kubectl get nodes --no-headers | grep node | wc -l
+          register: compute_nodes
+
+        - name: Getting the node names
+          shell: kubectl get nodes --no-headers | grep node | awk '{print $1}'
+          register: node_names
+
+        - name: Bootsrapping compute nodes using nsenter daemonset
+          shell: kubectl apply -f bootstrap_nodes.yml
+
+        - name: Checking for demon pods in running state
+          shell: kubectl get pod -n nsenter -l job=bootstrap -o jsonpath='{.items[*].status.phase}' | grep Running | wc -w
+          register: demon_count
+          until: (compute_nodes.stdout)|int == (demon_count.stdout)|int
+          delay: 5
+          retries: 50
+
+        - name: Labeling the nodes
+          shell: kubectl label node {{item}} openebs.io/engine=mayastor
+          with_items: "{{ node_names.stdout_lines }}"
+
+        - name: Creating namespace holding MayaStor resources
+          shell: kubectl apply -f namespace.yml
+          register: namespace_status
+          failed_when: "'created' not in namespace_status.stdout"
+
+        - name: Creating moac deployment
+          shell: kubectl apply -f moac-deployment.yaml
+
+        - name: Checking moac pod status
+          shell: kubectl get pod -n mayastor -l app=moac -o jsonpath='{.items[0].status.phase}'
+          register: moac_status
+          until: "'Running' in moac_status.stdout"
+          delay: 5
+          retries: 120
+
+        - name: Creating MayaStor daemonset
+          shell: kubectl apply -f mayastor-daemonset.yml      
+          
+        - name: Checking the status of MataStor Daemonset
+          shell: kubectl get pod -n mayastor -l app=mayastor -o jsonpath='{.items[*].status.phase}' | grep Running | wc -w
+          register: mayastor_demon_count
+          until: (compute_nodes.stdout)|int == (mayastor_demon_count.stdout)|int
+          delay: 5
+          retries: 50
+
+        - name: Getting the compute node name
+          shell: kubectl get nodes | grep node | awk 'NR == 1 {print}' | awk '{print $1}'
+          register: compute_node_name
+
+        - name: Relpacing the node name in storage-pool yml
+          replace:
+            path: "./storage-pool.yml"
+            regexp: "node-name"
+            replace: "{{ compute_node_name.stdout }}"
+
+        - name: Relpacing the storage devide name in storage-pool yml
+          replace:
+            path: "./storage-pool.yml"
+            regexp: "storage-device"
+            replace: "{{ lookup('env','DEVICE_NAME') }}"
+
+        - name: Createing storage pool for volume provisioning
+          shell: kubectl apply -f storage-pool.yml
+
+        - name: Checking for status of storage-pool
+          shell: kubectl get msp disk-pool -o jsonpath='{.status.state}'
+          register: pool_status
+          until: "'ONLINE' in pool_status.stdout"
+          delay: 10
+          retries: 60
+
+        - name: Creating mayastor storage class
+          shell: kubectl apply -f storage-class.yml
+
+        - set_fact:
+            flag: "Pass"
+
+      rescue:
+        - set_fact:
+            flag: "Fail"
+          
+      always:
+        ## RECORD END-OF-TEST IN LITMUS RESULT CR
+        - include_tasks: /utils/fcm/update_litmus_result_resource.yml
+          vars:
+            status: 'EOT'
+
+        - name: Deprovisioning nsenter
+          shell: |
+            kubectl delete daemonset --all -n nsenter
+            kubectl delete namespace nsenter

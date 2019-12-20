@@ -16,7 +16,7 @@
     executable: /bin/bash
   register: cstor_target_pod
 
-- name: Get the restartCount of cstor-istgt container
+- name: Get the restartCount of "{{ target_container }}" container
   shell: >
     kubectl get pod {{ cstor_target_pod.stdout }} -n {{ target_ns }}
     -o=jsonpath='{.status.containerStatuses[?(@.name==''"{{target_container}}"'')].restartCount}'
@@ -30,6 +30,23 @@
     namespace: "{{ target_ns }}"
     app_pod: "{{ cstor_target_pod.stdout }}"
     app_container: "{{ target_container }}"
+  when: cri == 'docker'
+
+- include_tasks: /chaoslib/containerd_chaos/crictl-chaos.yml
+  vars:
+    action: "killapp"
+    namespace: "{{ target_ns }}"
+    app_pod: "{{ cstor_target_pod.stdout }}"
+    app_container: "{{ target_container }}"
+  when: cri == 'containerd'
+
+- include_tasks: /chaoslib/crio_chaos/crio-crictl-chaos.yml
+  vars:
+    action: "killapp"
+    namespace: "{{ target_ns }}"
+    app_pod: "{{ cstor_target_pod.stdout }}"
+    app_container: "{{ target_container }}"
+  when: cri == 'cri-o'
 
 - name: Check for target pod in running state
   shell: >
@@ -54,7 +71,7 @@
   delay: 30
   retries: 10
 
-- name: Get the restartCount of cstor-istgt container
+- name: Get the restartCount of "{{ target_container }}" container
   shell: >
     kubectl get pod {{ cstor_target_pod.stdout }} -n {{ target_ns }}
     -o=jsonpath='{.status.containerStatuses[?(@.name==''"{{target_container}}"'')].restartCount}'

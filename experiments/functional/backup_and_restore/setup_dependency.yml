@@ -1,0 +1,97 @@
+- name: Downloading velero binary
+  get_url:
+    url: "{{ velero_binary_url }}"
+    dest: "./"
+    force: yes
+  register: result
+  until:  "'OK' in result.msg"
+  delay: 5
+  retries: 3
+
+- name: Installing velero inside litmus container
+  shell: |
+    tar -xvf velero-v1.1.0-linux-amd64.tar.gz
+    mv velero-v1.1.0-linux-amd64/velero /usr/local/bin/
+
+- name: Checking the velero version
+  shell: velero version
+  register: velero
+  failed_when: "velero_version not in velero.stdout"
+
+- name: Installing minio s3-bucket
+  shell: kubectl apply -f velero-v1.1.0-linux-amd64/examples/minio/00-minio-deployment.yaml
+
+- name: Checking for minio pod status
+  shell: kubectl get pod -n velero -l component=minio -ojsonpath='{.items[0].status.phase}'
+  register: minio_status
+  until: "'Running' in minio_status.stdout"
+  delay: 5
+  retries: 15
+
+- block:
+
+   - name: Installing velero server inside cluster
+     shell: >
+        velero install \
+          --provider aws \
+          --bucket velero \
+          --secret-file ./credentials-velero \
+          --use-volume-snapshots=false \
+          --use-restic \
+          --backup-location-config region=minio,s3ForcePathStyle="true",s3Url=http://minio.velero.svc:9000
+
+   - name: Patching restic demonset for privileged access
+     shell: kubectl patch ds restic -n velero --patch "$(cat patch.yml)"
+     register: patch_status
+     failed_when: "'patched' not in patch_status.stdout"
+
+   - name: Getting the number of compute nodes
+     shell: kubectl get nodes | grep worker | wc -l
+     register: node_count
+
+   - name: Checking the status of restic demonset pods
+     shell: kubectl get po -n velero -o jsonpath='{.items[?(@.metadata.labels.name=="restic")].status.phase}' | wc -w
+     register: restic_pod_count
+     until: (node_count.stdout)|int == (restic_pod_count.stdout)|int
+     delay: 5
+     retries: 60
+
+  when: "storage_engine == 'jiva' or storage_engine == 'localpv'"  
+
+- block:
+
+   - name: Installing velero server inside cluster
+     shell: >
+       velero install \
+         --provider aws \
+         --bucket velero \
+         --secret-file ./credentials-velero \
+         --use-volume-snapshots=false \
+         --backup-location-config region=minio,s3ForcePathStyle="true",s3Url=http://minio.velero.svc:9000
+
+  when: storage_engine == "cstor"  
+
+- name: Checking for velero server status
+  shell: kubectl get pod -n velero -l component=velero -ojsonpath='{.items[0].status.phase}'
+  register: velero_status
+  until: "'Running' in velero_status.stdout"
+  delay: 5
+  retries: 20
+
+- name: Installing development image of OpenEBS velero-plugin
+  shell: velero plugin add {{ velero_plugin_name }}
+  when: storage_engine == "cstor"
+
+- name: Checking for velero server status
+  shell: kubectl get pod -n velero -l component=velero -ojsonpath='{.items[0].status.phase}'
+  register: velero_status_post_update
+  until: "'Running' in velero_status_post_update.stdout"
+  delay: 5
+  retries: 20
+
+- name: Creating volume snapshot location
+  shell: kubectl apply -f volume-snapshot-location.yml
+  register: volume_snapshot_location
+  failed_when: "'created' not in volume_snapshot_location.stdout"
+  when: storage_engine == "cstor"
+  

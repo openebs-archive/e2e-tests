@@ -1,0 +1,78 @@
+---
+apiVersion: batch/v1
+kind: Job
+metadata:
+  generateName: nfs-openebs-target-failure-
+  namespace: litmus
+spec:
+  template:
+    metadata:
+      labels:
+        name: nfs-openebs-target-failure
+    spec:
+      serviceAccountName: litmus
+      restartPolicy: Never
+      containers:
+      - name: ansibletest
+        image: openebs/ansible-runner:ci
+        imagePullPolicy: Always
+        env:
+          - name: ANSIBLE_STDOUT_CALLBACK
+            #value: log_plays
+            #value: actionable
+            value: default
+
+            # Namespace where the NFS provisioner is deployed
+          - name: NFS_NAMESPACE
+            value: ""
+
+            # namespace where the OpenEBS components are deployed
+          - name: TARGET_NAMESPACE
+            value: openebs
+
+            # Label for the NFS provisioner deployment
+          - name: NFS_LABEL
+            value: ""
+
+            # PVC name for the NFS provisioner
+          - name: NFS_PVC
+            value: ""
+
+            # Application(s) namespace that are using NFS volume
+          - name: APP_NAMESPACE
+            value: ""
+
+            # Label for the Application that are using NFS volume
+          - name: APP_LABEL
+            value: ""
+         
+            # Liveness label for the applications that are using NFS volumes
+          - name: LIVENESS_APP_LABEL
+            value: ""
+
+            # Liveness namespace for the application that are using NFS volume
+          - name: LIVENESS_APP_NAMESPACE
+            value: ""
+       
+          # Specify the container runtime used , to pick the relevant chaos util
+          # Available Container runtimes are docker,condainerd,cri-o
+          - name: CONTAINER_RUNTIME
+            value: docker 
+
+            # CHAOS_TYPE values :  target-zrepl-kill , target-kill , target-delete , jiva-ctrl-kill
+            # For cstor-volume-istgt container kill Use : target-kill
+            # For Volume-mgmt-kill container Use  : target-zrepl-kill
+            # For cstor-target-failure Use    : target-delete
+            # For Jiva-Controller-container-kill Use : jiva-ctrl-kill
+
+          - name: CHAOS_TYPE
+            value: "target-zrepl-kill"
+            
+            # TARGET_CONTAINER values: cstor-volume-mgmt , cstor-istgt
+            # For cstor-volume-istgt container kill use : cstor-istgt
+            # For volume-mgmt-kill container use : cstor-volume-mgmt
+          - name: TARGET_CONTAINER
+            value: "cstor-volume-mgmt"
+
+        command: ["/bin/bash"]
+        args: ["-c", "ansible-playbook ./experiments/chaos/nfs_chaos/nfs_openebs_target_failure/test.yml -i /etc/ansible/hosts -vv; exit 0"]

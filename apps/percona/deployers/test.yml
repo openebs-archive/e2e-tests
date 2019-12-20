@@ -16,6 +16,12 @@
           vars:
             status: 'SOT'
    
+        - name: Replace the storage capacity placeholder
+          replace:
+              path: "{{ application_deployment }}"
+              regexp: "volume-capacity"
+              replace: "{{ lookup('env','CAPACITY') }}" 
+
         - block:
 
             ## Actual test
@@ -37,6 +43,7 @@
    
             ## Check application-target pod affinity
             - include_tasks: /utils/scm/openebs/target_affinity_check.yml
+              when: lookup('env','TARGET_AFFINITY_CHECK') == 'enable'
 
             - set_fact:
                 flag: "Pass"  

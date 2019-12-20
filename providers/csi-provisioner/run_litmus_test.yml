@@ -25,10 +25,13 @@ spec:
           - name: PROVIDER_STORAGE_CLASS
             value: openebs-csi-cstor-sparse
 
+          - name: SNAPSHOT_CLASS
+            value: csi-cstor
+
           - name: NODE_OS
             value: ubuntu-16.04
 
-          - name: SPC
+          - name: CSPC
             value: cstor-sparse-pool
 
           - name: REPLICA_COUNT

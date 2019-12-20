@@ -65,11 +65,11 @@ spec:
 
            # Pv capacity for MySql
           - name: MYSQL_PV_CAPACITY
-            value: 5G
+            value: 5Gi
 
            # PV capacity for wordpress  
           - name: WORDPRESS_PV_CAPACITY
-            value: 5G
+            value: 5Gi
 
            # PV access mode for Worpress deployment
           - name: PVC_ACCESS_MODE

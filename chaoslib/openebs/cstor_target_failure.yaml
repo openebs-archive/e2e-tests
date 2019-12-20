@@ -15,7 +15,7 @@
 - name: Get the resourceVersion of the target deploy before fault injection
   shell: >
     kubectl get deploy {{ cstor_target_deploy }} -n {{ target_ns }} 
-    -o yaml | grep resourceVersion | awk '{print $2}' | sed 's|"||g'
+    --no-headers -o custom-columns=:.metadata.resourceVersion
   args:
     executable: /bin/bash
   register: rv_bef
@@ -39,7 +39,7 @@
 - name: Get the resourceVersion of the target deploy after fault injection
   shell: >
     kubectl get deploy {{ cstor_target_deploy }} -n {{ target_ns }} 
-    -o yaml | grep resourceVersion | awk '{print $2}' | sed 's|"||g'
+    --no-headers -o custom-columns=:.metadata.resourceVersion
   args:
     executable: /bin/bash
   register: rv_aft

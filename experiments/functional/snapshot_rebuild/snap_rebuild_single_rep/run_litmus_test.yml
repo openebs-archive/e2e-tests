@@ -38,5 +38,8 @@ spec:
           - name: snapshot
             value: snapshot-percona
 
+          - name: CONTAINER_NAME
+            value: cstor-pool
+
         command: ["/bin/bash"]
         args: ["-c", "ansible-playbook ./experiments/functional/snapshot_rebuild/snap_rebuild_single_rep/test.yml -i /etc/ansible/hosts -vv; exit 0"]

@@ -4,6 +4,7 @@
 
   vars_files:
     - test_vars.yml
+    - /mnt/parameters.yml
 
   tasks:
     - block:
@@ -16,46 +17,39 @@
               until: "'Running' in liveness_pod.stdout"
               delay: 10
               retries: 10
-             
-          when: liveness_label != ''  
 
-        ## RECORD START-OF-TEST IN LITMUS RESULT CR
+          when: liveness_label != ''
 
-        - block:
- 
-            - name: Record test instance/run ID 
-              set_fact: 
-                run_id: "{{ lookup('env','RUN_ID') }}"
-           
-            - name: Construct testname appended with runID
-              set_fact:
-                test_name: "{{ test_name }}-{{ run_id }}"
+        ## Creating test name
 
-          when: lookup('env','RUN_ID')
+        - include_tasks: /utils/fcm/create_testname.yml
 
-        - name: Generate the litmus result CR to reflect SOT (Start of Test) 
-          template: 
-            src: /litmus-result.j2
-            dest: litmus-result.yaml
-          vars: 
-            test: "{{ test_name }}"
-            chaostype: ""
+         ## RECORD START-OF-TEST IN LITMUS RESULT CR
+
+        - include_tasks: /utils/fcm/update_litmus_result_resource.yml
+          vars:
+            status: 'SOT'
+            chaostype: "app-failure"
             app: ""
-            phase: in-progress
-            verdict: none
 
-        - name: Apply the litmus result CR
-          shell: kubectl apply -f litmus-result.yaml
-          args:
-            executable: /bin/bash
-          register: lr_status 
-          failed_when: "lr_status.rc != 0"
+        - name: Identify the data consistency util to be invoked
+          template:
+            src: data_persistence.j2
+            dest: data_persistence.yml
 
-        ## DISPLAY APP INFORMATION 
- 
+        - include_vars:
+            file: data_persistence.yml
+
+        - name: Record the data consistency util path
+          set_fact:
+            data_consistency_util_path: "{{ consistencyutil }}"
+          when: data_persistence != ''
+
+        ## DISPLAY APP INFORMATION
+
         - name: Display the app information passed via the test job
-          debug: 
-            msg: 
+          debug:
+            msg:
               - "The application info is as follows:"
               - "Namespace    : {{ app_ns }}"
               - "Label        : {{ app_label }}"
@@ -65,14 +59,23 @@
           include_tasks: /utils/k8s/check_deployment_status.yml
 
         - block:
-            - name: Get application pod name 
+
+            - name: Get application pod name
               shell: >
                 kubectl get pods -n {{ app_ns }} -l {{ app_label }} --no-headers
                 -o=custom-columns=NAME:".metadata.name" | shuf -n 1
               args:
                 executable: /bin/bash
               register: app_pod_name
-  
+
+            - name: Create some test data
+              include: "{{ data_consistency_util_path }}"
+              vars:
+                status: 'LOAD'
+                ns: "{{ app_ns }}"
+                pod_name: "{{ app_pod_name.stdout }}"
+              when: data_persistence != ''
+
              ## APPLICATION FAULT INJECTION
 
             - include_tasks: /chaoslib/pumba/pod_failure_by_sigkill.yaml
@@ -81,6 +84,32 @@
                 app_pod: "{{ app_pod_name.stdout }}"
                 namespace: "{{ app_ns }}"
                 label: "{{ app_label }}"
+              when: cri == 'docker'
+
+            - include_tasks: /chaoslib/containerd_chaos/crictl-chaos.yml
+              vars:
+                action: "killapp"
+                app_pod: "{{ app_pod_name.stdout }}"
+                namespace: "{{ app_ns }}"
+                label: "{{ app_label }}"
+              when: cri == 'containerd'
+
+            - include_tasks: /chaoslib/crio_chaos/crio-crictl-chaos.yml
+              vars:
+                action: "killapp"
+                app_pod: "{{ app_pod_name.stdout }}"
+                namespace: "{{ app_ns }}"
+                label: "{{ app_label }}"
+              when: cri == 'cri-o'
+
+            - name: Verify application data persistence
+              include: "{{ data_consistency_util_path }}"
+              vars:
+                status: 'VERIFY'
+                ns: "{{ app_ns }}"
+                label: "{{ app_label }}"
+                pod_name: "{{ app_pod_name.stdout }}"                 
+              when: data_persistence != ''
 
           when: lookup('env','DEPLOY_TYPE') == 'deployment'
 
@@ -101,6 +130,23 @@
                 app_pod: "{{ app_pod_name.stdout }}"
                 namespace: "{{ app_ns }}"
                 label: "{{ app_label }}"
+              when: cri == 'docker'
+
+            - include_tasks: /chaoslib/containerd_chaos/crictl-chaos.yml
+              vars:
+                action: "killapp"
+                app_pod: "{{ app_pod_name.stdout }}"
+                namespace: "{{ app_ns }}"
+                label: "{{ app_label }}"
+              when: cri == 'containerd'
+            
+            - include_tasks: /chaoslib/crio_chaos/crio-crictl-chaos.yml
+              vars:
+                action: "killapp"
+                app_pod: "{{ app_pod_name.stdout }}"
+                namespace: "{{ app_ns }}"
+                label: "{{ app_label }}"
+              when: cri == 'cri-o'
 
           when: lookup('env','DEPLOY_TYPE') == 'statefulset'
 
@@ -108,7 +154,7 @@
 
         - name: Verify AUT liveness post fault-injection
           include_tasks: /utils/k8s/check_deployment_status.yml
-  
+
         - block:
 
             - name: Checking status of liveness pod
@@ -117,39 +163,40 @@
               until: "'Running' in liveness_pod.stdout"
               delay: 10
               retries: 10
-             
-          when: liveness_label != ''  
+
+          when: liveness_label != ''
 
         - set_fact:
             flag: "Pass"
 
-      rescue: 
-        - set_fact: 
+      rescue:
+        - set_fact:
             flag: "Fail"
 
-      always: 
+      always:
 
         ## RECORD END-OF-TEST IN LITMUS RESULT CR
- 
-        - name: Generate the litmus result CR to reflect EOT (End of Test) 
-          template: 
-            src: /litmus-result.j2
-            dest: litmus-result.yaml
-          vars: 
-            test: "{{ test_name }}"
+        - include_tasks: /utils/fcm/update_litmus_result_resource.yml
+          vars:
+            status: 'EOT'
             chaostype: ""
             app: ""
-            phase: completed
-            verdict: "{{ flag }}"
-           
-        - name: Apply the litmus result CR
-          shell: kubectl apply -f litmus-result.yaml
-          args:
-            executable: /bin/bash
-          register: lr_status 
-          failed_when: "lr_status.rc != 0"
-           
-        - include_tasks: /chaoslib/pumba/pod_failure_by_sigkill.yaml 
+
+        - include_tasks: /chaoslib/pumba/pod_failure_by_sigkill.yaml
           vars:
             action: "deletepumba"
             namespace: "{{ app_ns }}"
+          when: cri == 'docker'
+
+        - include_tasks: /chaoslib/containerd_chaos/crictl-chaos.yml
+          vars:
+            action: "delete-containerd"
+            namespace: "{{ app_ns }}"
+          when: cri == 'containerd'
+
+        - include_tasks: /chaoslib/crio_chaos/crio-crictl-chaos.yml
+          vars:
+            action: "delete-crio"
+            namespace: "{{ app_ns }}"
+          when: cri == 'cri-o'
+

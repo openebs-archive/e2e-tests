@@ -1,5 +1,4 @@
 ---
-
 # This Utility task file can delete the application and its underlying resources such as pvc and service from K8s cluster
 # This accepts application namespace, application label and application manifest file as input parameters.
 # The parameters used are
@@ -9,30 +8,34 @@
 #
 - block:
 
-    - name: Check if the application to be deleted is running.
-      shell: kubectl get pods -n {{ app_ns }} -l {{ app_label }} --no-headers -o custom-columns=:status.phase
-      args:
-        executable: /bin/bash
-      register: result
-      until: "'Running' in result.stdout"
+    - name: Check if the application to be deleted is available.
+      k8s_facts:
+        kind: Pod
+        label_selectors:
+          - "{{ app_label }}"
+        namespace: "{{ app_ns }}"
+      register: po_name
+      until: "{{ po_name | json_query('resources[*].status.phase') | unique | length==1}}"
       delay: 5
       retries: 60
-    
+
     - name: Obtaining the PVC name using application label.
-      shell: kubectl get pods -n {{ app_ns }} -l {{ app_label }} -o custom-columns=:..claimName --no-headers
-      args:
-        executable: /bin/bash
-      register: pvc_name
-    
-    - name: Obtaining the PV name from PVC name.
-      shell: kubectl get pvc {{ pvc_name.stdout }} -n {{ app_ns }} -o custom-columns=:spec.volumeName --no-headers
-      args:
-        executable: /bin/bash
+      set_fact:
+        pvc_name: "{{ po_name.resources.0.spec.volumes.0.persistentVolumeClaim.claimName }}"
+
+    - name: Obtaining the PV name from PVC name. 
+      k8s_facts:
+        kind: PersistentVolumeClaim
+        namespace: "{{ app_ns }}"
+        name: "{{ pvc_name }}"
       register: pv_name
+
+    - set_fact:
+        pvname: "{{ pv_name | json_query('resources[0].spec.volumeName') }}"
 
     - name: Check for presence & value of cas type annotation
       shell: >
-        kubectl get pv {{ pv_name.stdout }} --no-headers
+        kubectl get pv {{ pvname }} --no-headers
         -o jsonpath="{.metadata.annotations.openebs\\.io/cas-type}"
       args:
         executable: /bin/bash
@@ -41,7 +44,7 @@
     - name: Record the storage engine name
       set_fact:
         stg_engine: "{{ openebs_stg_engine.stdout }}"
-    
+
     ## Replacing the item names in the respective deployer spec file.
     - name: Replace the PVC name in application deployer spec.
       replace:
@@ -49,7 +52,7 @@
         regexp: "testclaim"
         replace: "{{ lookup('env','APP_PVC') }}"
       when: app_pvc is defined
-    
+ 
     - name: Replace the storageclass placeholder with provider
       replace:
         path: "{{ app_deployer }}"
@@ -64,7 +67,7 @@
             app_lkey: "{{ app_label.split('=')[0] }}"
             app_lvalue: "{{ app_label.split('=')[1] }}"
     
-        - name: Replace the application label placeholder
+        - name: Replace the application label placeholder 
           replace:
             path: "{{ app_deployer }}"
             regexp: "lkey: lvalue"
@@ -75,13 +78,16 @@
       shell: kubectl delete -f {{ app_deployer }} -n {{ app_ns }}
       args:
         executable: /bin/bash
+      ignore_errors: true
     
     - name: Check if the PVC is deleted.
-      shell: kubectl get pvc -n {{ app_ns }} --no-headers
-      args:
-        executable: /bin/bash
+      k8s_facts:
+        kind: PersistentVolumeClaim
+        namespace: "{{ app_ns }}"
+        label_selectors:
+          - "{{ app_label }}"
       register: resource_list
-      until: "app_pvc not in resource_list.stdout"
+      until: resource_list.resources | length < 1
       delay: 5
       retries: 120
     
@@ -90,22 +96,26 @@
         - block:
 
             - name: Check if the ctrl-pod is deleted.
-              shell: >
-                 kubectl get pods -n {{ app_ns }}
-                 -l openebs.io/controller=jiva-controller --no-headers
-              args:
-                executable: /bin/bash
+              k8s_facts:
+                kind: Pod
+                namespace: "{{ app_ns }}"
+                label_selectors:
+                  - "openebs.io/controller=jiva-controller" 
+                  - "openebs.io/persistent-volume={{ pvname }}"
               register: ctrl_status
-              until: "'No resources found' in ctrl_status.stderr"
+              until: "ctrl_status.resources | length < 1"
               delay: 5
               retries: 15
 
             - name: Check if the  replica-pod is deleted.
-              shell: kubectl get pods -n {{ app_ns }} -l openebs.io/replica=jiva-replica
-              args:
-                executable: /bin/bash
+              k8s_facts:
+                kind: Pod
+                namespace: "{{ app_ns }}"
+                label_selectors:
+                  - "openebs.io/replica=jiva-replica"
+                  - "openebs.io/persistent-volume={{ pvname }}"
               register: rep_status
-              until: "'No resources found' in rep_status.stderr"
+              until: "rep_status.resources | length < 1"
               delay: 5
               retries: 15
 
@@ -114,22 +124,26 @@
         - block:
 
             - name: Check if the target pod is deleted.
-              shell: >
-                  kubectl get pods -l openebs.io/target=cstor-target  -n {{ operator_ns }} --no-headers
-              args:
-                executable: /bin/bash
+              k8s_facts:
+                kind: Pod
+                label_selectors:
+                  - "openebs.io/target=cstor-target"
+                  - "openebs.io/persistent-volume={{ pvname }}"
+                namespace: "{{ operator_ns }}"        
               register: target_status
-              until: " pv_name.stdout  not  in target_status.stdout"
+              until: " target_status.resources | length < 1"
               delay: 5
               retries: 20
 
             - name: Check status of the pool deployments from cvr
-              shell: >
-                  kubectl get cvr -n {{ operator_ns }} --no-headers
-              args:
-                executable:  /bin/bash
+              k8s_facts:
+                kind: CStorVolumeReplica
+                namespace: "{{ operator_ns }}"
+                label_selectors:
+                  - "openebs.io/target=cstor-target"
+                  - "openebs.io/persistent-volume={{ pvname }}"
               register: cvr_status
-              until: " pv_name.stdout not in cvr_status.stdout"
+              until: " cvr_status.resources | length < 1 "
               delay: 5
               retries: 20
 
@@ -137,14 +151,27 @@
 
       when: storage_class is defined    
 
-- name: Delete the namespace.
-  shell: kubectl delete ns {{ app_ns }}
+- name: Check if the pods are deleted in the namespaces
+  shell: >
+    kubectl get pods -n {{ app_ns }} 
   args:
     executable: /bin/bash
+  register: result
+  until: "result.stdout == ''"
+  delay: 5
+  retries: 60
+
+- name: Delete the namespace.
+  k8s:
+    state: absent
+    kind: Namespace
+    name: "{{ app_ns }}"
 
 - name: Check if the PV is deleted.
-  shell: kubectl get pv {{ pv_name.stdout }}
-  args:
-    executable: /bin/bash
+  k8s_facts:
+    kind: PersistentVolume
+    name: "{{ pvname }}"
+    label_selectors:
+      - "{{ app_label }}"
   register: pv_result
-  failed_when: "pv_name.stdout in pv_result.stdout"
+  failed_when: "pv_result.resources | length > 1"

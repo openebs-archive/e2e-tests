@@ -59,7 +59,7 @@
 - name: Increase the volume capacity in {{ pvc_yml }} to 98% of pool size
   replace:
     dest: "{{ pvc_yml }}"
-    regexp: "5G"
+    regexp: "5Gi"
     replace: "{{ value_num }}{{ symbol.stdout }}"
 
 - name: Display
@@ -202,7 +202,7 @@
       replace:
         dest: "{{ pvc_yml }}"
         regexp: "{{ pvc_value }}{{ symbol.stdout }}"
-        replace: "5G"
+        replace: "5Gi"
 
     - name: Replace the data sample size with 90% of pvc size in {{ fio_write_yml }}
       replace:

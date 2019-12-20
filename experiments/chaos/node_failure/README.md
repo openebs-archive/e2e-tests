@@ -29,7 +29,7 @@
 
 ### Procedure
 
-This scenario validates the behaviour of application and OpenEBS persistent volumes in the amidst of chaos induced on the node where the application pod is scheduled. It is performed by shutting down the node(virtual machine) created on VMware hypervisor. After attaining podevictiontimeout(5 minutes by default), the application pod is expected to be scheduled on other available node.
+This scenario validates the behaviour of application and OpenEBS persistent volumes in the amidst of chaos induced on the node where the application pod is scheduled. It is performed by shutting down the node(virtual machine) created on VMware hypervisor. After attaining podevictiontimeout(5 minutes by default), the application pod is expected to be scheduled on other available node. Due to abrupt shutdown, the old application pod still remain in unknown state. As an impact, volume mount in the newly scheduled pod fails due to multi-attach error. As a workaround for this, the node CR will be deleted which kills the old pod. Then, the application pod is expected to run successfully after 5 minutes.
 
 Based on the value of env `DATA_PERSISTENCE`, the corresponding data consistency util will be executed. At present, only busybox and percona-mysql are supported. Along with specifying env in the litmus experiment, user needs to pass name for configmap and the data consistency specific parameters required via configmap in the format as follows:
 

@@ -54,20 +54,20 @@
         - name: Generate the load to fill capacity of volume
           shell: >
               kubectl exec -it "{{ app_pod.stdout }}" -n "{{ app_ns }}" 
-              -- sh -c "cd {{ mount.stdout }} && dd if=/dev/urandom of=volume.txt bs={{ value_num }}k count=1024 >> test.txt && cat test.txt | grep test && rm test.txt"
+              -- sh -c "cd {{ mount.stdout }} && dd if=/dev/urandom of=volume.txt bs=1024k count={{ value_num }} >> test.txt && cat test.txt | grep test && rm test.txt"
           args:
               executable: /bin/bash
           register: load
           ignore_errors: true
 
         - name: Check the volume is successfully filled
-          shell: kubectl logs -f {{ app_pod.stdout }} -n {{ app_ns }} | grep 'No space left on device'
+          shell: kubectl logs {{ app_pod.stdout }} -n {{ app_ns }} | grep 'No space left on device'
           args:
             executable: /bin/bash
           register: space
           until: "'No space left on device' in space.stdout"
-          retries: 15
-          delay: 2
+          retries: 150
+          delay: 5
 
         # - name: Check the application pod status
         #   shell: >

@@ -46,8 +46,8 @@ spec:
             value: "60000" # in milliseconds
 
           - name: CHAOS_DURATION
-            value: "60" # in seconds
-
+            value: "60000" # in milliseconds
+            
           - name: LIVENESS_APP_LABEL
             value: ""
 
@@ -56,6 +56,9 @@ spec:
 
           - name: DATA_PERSISTENCE
             value: ""   
+
+          - name: CONTAINER_RUNTIME
+            value: docker
 
         command: ["/bin/bash"]
         args: ["-c", "ansible-playbook ./experiments/chaos/openebs_target_network_delay/test.yml -i /etc/ansible/hosts -vv; exit 0"]

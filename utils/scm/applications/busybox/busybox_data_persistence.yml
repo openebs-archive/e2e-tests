@@ -12,6 +12,7 @@
      with_items:
        - "dd if=/dev/urandom of=/busybox/{{ testfile }} bs={{ blocksize }} count={{ blockcount }}"
        - "md5sum /busybox/{{ testfile }} > /busybox/{{ testfile }}-pre-chaos-md5"
+       - "sync;sync;sync"
 
   when: status == "LOAD"
 
@@ -23,7 +24,7 @@
      args:
        executable: /bin/bash
 
-   - name: Verify if the applicaion pod is deleted
+   - name: Verify if the application pod is deleted
      shell: >
        kubectl get pods -n {{ ns }}
      args:
@@ -33,7 +34,7 @@
      retries: 2
      delay: 150
 
-   - name: Obtain the newly created pod name for applicaion
+   - name: Obtain the newly created pod name for application
      shell: >
        kubectl get pods -n {{ ns }} -l {{ label }} -o jsonpath='{.items[].metadata.name}'
      args:
@@ -79,7 +80,7 @@
 
 - block:
 
-   - name: Obtain the current pod name for applicaion
+   - name: Obtain the current pod name for application
      shell: >
        kubectl get pods -n {{ ns }} -l {{ label }} -o jsonpath='{.items[].metadata.name}'
      args:

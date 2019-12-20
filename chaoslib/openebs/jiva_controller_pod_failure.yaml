@@ -71,6 +71,17 @@
     executable: /bin/bash
   register: jctrl_pod_after
 
+- name: Check jiva controller container status
+  shell: >
+    kubectl get pods {{ jctrl_pod_after.stdout }} -n {{ app_ns }} 
+    -o jsonpath='{.status.containerStatuses[?(@.name=="{{ pv.stdout}}-ctrl-con")].state}' | grep running
+  args:
+    executable: /bin/bash
+  register: container_status
+  until: "'running' in container_status.stdout"
+  delay: 3
+  retries: 20
+
 - name: Install jq package inside a controller container
   shell: >
     kubectl exec -it {{ jctrl_pod_after.stdout }} -n {{ app_ns }} -c {{ jiva_controller_name }}

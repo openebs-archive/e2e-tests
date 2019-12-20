@@ -16,25 +16,29 @@
           vars:
             status: 'SOT'
 
-        - name: Deploy CSI Driver 
-          shell: >
-            kubectl apply -f https://raw.githubusercontent.com/openebs/csi/master/deploy/csi-operator.yaml
-          args:
-            executable: /bin/bash
-          register: result
-          failed_when: "result.rc != 0"
-          when: node_os == "ubuntu-16.06" or "centos"
+        - block:
 
-        - name: Deploy CSI Driver if os is ubuntu 18.04
-          shell: >
-            kubectl apply -f https://raw.githubusercontent.com/openebs/csi/master/deploy/csi-operator-ubuntu-18.04.yaml
-          args:
-            executable: /bin/bash
+           - name: Deploy CSI Driver if OS is either centos or ubuntu-16.04 
+             shell: >
+               kubectl apply -f https://raw.githubusercontent.com/openebs/csi/master/deploy/csi-operator.yaml
+             args:
+               executable: /bin/bash
+
+          when: node_os == "ubuntu-16.04" or node_os == "centos"
+
+        - block:
+
+           - name: Deploy CSI Driver if os is ubuntu 18.04
+             shell: >
+               kubectl apply -f https://raw.githubusercontent.com/openebs/csi/master/deploy/csi-operator-ubuntu-18.04.yaml
+             args:
+               executable: /bin/bash
+
           when: node_os == "ubuntu-18.04"
 
         - name: check if csi-controller pod is running
           shell: >
-            kubectl get pods -n kube-system -l app=openebs-csi-controller 
+            kubectl get pods -n kube-system -l app=openebs-cstor-csi-controller 
             --no-headers -o custom-columns=:status.phase
           args:
             executable: /bin/bash
@@ -45,7 +49,7 @@
 
         - name: Obtain the desired number of openebs-csi-node pods
           shell: >
-            kubectl get ds -n kube-system openebs-csi-node --no-headers 
+            kubectl get ds -n kube-system openebs-cstor-csi-node --no-headers 
             -o custom-columns=:status.desiredNumberScheduled
           args:
             executable: /bin/bash
@@ -53,7 +57,7 @@
 
         - name: Check if the desired count matches the ready pods
           command: >
-            kubectl get ds -n kube-system openebs-csi-node --no-headers 
+            kubectl get ds -n kube-system openebs-cstor-csi-node --no-headers 
             -o custom-columns=:status.numberReady
           args:
             executable: /bin/bash
@@ -74,6 +78,18 @@
           register: sc_result
           failed_when: "sc_result.rc != 0"
 
+        - name: Update the volume snapshotclass template with the variables
+          template:
+            src: snapshot-class.j2
+            dest: snapshot-class.yml
+
+        - name: Create volume snapshotclass
+          shell: kubectl apply -f snapshot-class.yml
+          args: 
+            executable: /bin/bash
+          register: result
+          failed_when: "result.rc != 0"
+              
         - set_fact:
             flag: "Pass"
 

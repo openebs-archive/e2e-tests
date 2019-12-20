@@ -81,7 +81,7 @@ spec:
           - name: JIVA_REPLICA_COUNT 
             value: 3
           - name: CAPACITY 
-            value: 5G
+            value: 5Gi
           - name: VOLUME_MONITOR 
             value: true
         command: ["/bin/bash"]

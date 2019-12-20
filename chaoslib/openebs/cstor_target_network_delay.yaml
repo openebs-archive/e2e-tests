@@ -36,11 +36,6 @@
     executable: /bin/bash
   register: cstor_target_pod
 
-- name: Record the cstor target container name
-  set_fact:
-    # Depends on the naming convention in maya-apiserver (<pv-id>-rep)
-    cstor_target_name: "{{ pv.stdout }}"
-
 - name: Get the node on which the cstor target is scheduled
   shell: >
     kubectl get pod {{ cstor_target_pod.stdout }} -n {{ operator_ns }}
@@ -57,11 +52,11 @@
     executable: /bin/bash
   register: pumba_pod
 
-- name: Inject egress delay of {{network_delay}}ms on cstor target for {{ chaos_duration }}s
+- name: Inject egress delay of {{network_delay}}ms on cstor target for {{ chaos_duration }}ms
   shell: >
     kubectl exec {{ pumba_pod.stdout }} -n {{ app_ns }} 
-    -- pumba netem --interface eth0 --duration {{ chaos_duration }}s delay
-    --time {{ network_delay }} re2:k8s_cstor-istgt_{{ cstor_target_name }} 
+    -- pumba netem --interface eth0 --duration {{ chaos_duration }}ms delay
+    --time {{ network_delay }} re2:k8s_cstor-istgt_{{ cstor_target_pod.stdout }} 
   args:
     executable: /bin/bash
 

@@ -1,0 +1,26 @@
+apiVersion: openebs.io/v1alpha1
+kind: CStorVolumeReplica
+metadata:
+  annotations:
+    cstorpool.openebs.io/hostname: <node_name>
+    isRestoreVol: "false"
+    openebs.io/storage-class-ref: |
+      name: <storage-class>
+  finalizers:
+  - cstorvolumereplica.openebs.io/finalizer
+  generation: 1
+  labels:
+    cstorpool.openebs.io/name: <csp-name>
+    cstorpool.openebs.io/uid: "<csp-uid>"
+    cstorvolume.openebs.io/name: <cstor-volume-name>
+    openebs.io/cas-template-name: cstor-volume-create-default-<openebs-version>
+    openebs.io/persistent-volume: <cstor-volume-name>
+    openebs.io/version: <openebs-version>
+  name: <cstor-volume-name>-<csp-name>
+  namespace: openebs
+spec:
+  capacity: <initial_capacity>
+  targetIP: "<target-ip>"
+  replicaid: ""
+status:
+  phase: Recreate

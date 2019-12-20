@@ -20,3 +20,5 @@ storage_class: "{{ lookup('env','PROVIDER_STORAGE_CLASS') }}"
 clone_action: "{{ lookup('env','CLONE_ACTION') }}"
 
 volume_capacity: "{{ lookup('env','CAPACITY') }}"
+
+container_name: "{{ lookup('env','CONTAINER_NAME') }}"
