@@ -20,18 +20,6 @@
              - name: Creating VPC
                shell: gcloud compute --project={{ project }} networks create {{ vpc }} --subnet-mode=auto
 
-             - name: deleting logs/vpc
-               shell: rm -rf ~logs/vpc
-               args:
-                 executable: bin/bash
-               ignore_errors: yes
-
-             - name: creating repo logs and file vpc
-               shell: mkdir ~logs && touch ~logs/vpc
-               args:
-                 executable: bin/bash
-               ignore_errors: yes
-
              - lineinfile:
                  create: yes
                  state: present
