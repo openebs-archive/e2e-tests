@@ -10,4 +10,10 @@
   {% endif %}
 {% endif %}
 
+{% if stg_prov is defined and stg_prov == 'cstor.csi.openebs.io' %}
+  {% if stg_engine is defined and stg_engine == 'cstor' and (cri == 'containerd' or cri == 'cri-o') %}
+    chaosutil: openebs/inject_packet_loss_tc.yml
+  {% endif %}
+{% endif %}
+
 
