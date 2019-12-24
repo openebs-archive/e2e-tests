@@ -166,9 +166,10 @@
             - cri == 'containerd' or cri =='cri-o'  
             - stg_engine == 'jiva'
 
-        - name: Wait for 10s post fault injection 
+        - name: Wait for 240s post fault injection 
           wait_for:
-            timeout: 10
+            timeout: 240
+          when: cri == 'containerd' or cri =='cri-o'
 
         - include: "{{ chaos_util_path }}"
           vars:
@@ -192,35 +193,68 @@
           
         ## POST-CHAOS APPLICATION LIVENESS CHECK
 
-        - name: Kill the application pod
-          shell: >
-            kubectl delete pod {{ app_pod_name.stdout }} -n {{ namespace }}
-          args:
-            executable: /bin/bash
+        - block:
+            - name: Kill the application pod
+              shell: >
+                kubectl delete pod {{ app_pod_name.stdout }} -n {{ namespace }}
+              args:
+                executable: /bin/bash
 
-        - name: Verify if the application pod is deleted
-          shell: >
-            kubectl get pods -n {{ namespace }}
-          args:
-            executable: /bin/bash
-          register: podstatus
-          until: '"{{ app_pod_name.stdout }}" not in podstatus.stdout'
-          retries: 2
-          delay: 150
+            - name: Verify if the application pod is deleted
+              shell: >
+                kubectl get pods -n {{ namespace }}
+              args:
+                executable: /bin/bash
+              register: podstatus
+              until: '"{{ app_pod_name.stdout }}" not in podstatus.stdout'
+              retries: 2
+              delay: 150
 
-        - name: Obtain the newly created pod name for application
-          shell: >
-            kubectl get pods -n {{ namespace }} -l {{ label }} -o jsonpath='{.items[].metadata.name}'
-          args:
-            executable: /bin/bash
-          register: newpod_name
+            - name: Obtain the newly created pod name for application
+              shell: >
+                kubectl get pods -n {{ namespace }} -l {{ label }} -o jsonpath='{.items[].metadata.name}'
+              args:
+                executable: /bin/bash
+              register: newpod_name
 
-        - name: Checking application pod in running state
-          shell: kubectl get pods -n {{ namespace }} -o jsonpath='{.items[?(@.metadata.name=="{{ newpod_name.stdout }}")].status.containerStatuses[*].state}'
-          register: result
-          until: "'running' in result.stdout"
-          delay: 2
-          retries: 150
+            - name: Checking application pod in running state
+              shell: kubectl get pods -n {{ namespace }} -o jsonpath='{.items[?(@.metadata.name=="{{ newpod_name.stdout }}")].status.containerStatuses[*].state}'
+              register: result
+              until: "'running' in result.stdout"
+              delay: 2
+              retries: 150
+          when: stg_prov == 'openebs.io/provisioner-iscsi'
+
+        - block:
+
+            - name: Verify that the volume is healthy
+              shell: >
+                kubectl get cstorvolume {{ pv.stdout }} -n {{ operator_ns }} 
+                --no-headers -o custom-columns=:.status.phase
+              args:
+                executable: /bin/bash
+              register: Status
+              until: "'Healthy' in Status.stdout"
+              delay: 5
+              retries: 60
+
+            - name: Verify that the AUT (Application Under Test) is running
+              include_tasks: "/utils/k8s/status_app_pod.yml"
+              vars:
+                app_ns: "{{namespace}}" 
+                app_lkey: "{{ label.split('=')[0] }}"
+                app_lvalue: "{{ label.split('=')[1] }}"       
+                delay: 5
+                retries: 60
+
+            - name: Verify test data
+              include: "{{ data_consistency_util_path }}"
+              vars:
+                status: 'VERIFY'
+                ns: "{{ namespace }}"
+                pod_name: "{{ app_pod_name.stdout }}"
+              when: data_persistence != '' 
+          when: stg_prov == 'cstor.csi.openebs.io'
 
         - set_fact:
             flag: "Pass"
