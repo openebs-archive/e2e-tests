@@ -1,12 +1,12 @@
 ---
 - block:
     - name: Check whether the provider storageclass is applied
-      k8s_facts:
-        kind: StorageClass
-        name: "{{ lookup('env','PROVIDER_STORAGE_CLASS') }}"
+      shell: kubectl get sc "{{ lookup('env','PROVIDER_STORAGE_CLASS') }}"
+      args:
+        executable: /bin/bash
       register: result
-      failed_when: result.resources | length < 1
-
+      failed_when: "result.rc != 0"
+      
     - name: Replace the pvc placeholder with provider
       replace:
         path: "{{ application_deployment }}"
