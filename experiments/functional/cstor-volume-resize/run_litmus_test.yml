@@ -34,6 +34,9 @@ spec:
           - name: APP_LABEL
             value: 'name=percona'
 
+          - name: STORAGE_CLASS
+            value: ''
+
           - name: PV_CAPACITY
             value: 5Gi
           

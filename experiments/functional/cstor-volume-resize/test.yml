@@ -46,6 +46,7 @@
             - name: Update the desired capacity in PVC spec
               replace:
                 path: pvc.yml
+                before: 'storageClassName: {{ storage_class }}'
                 regexp: "storage: {{ vol_size }}"
                 replace: "storage: {{ desired_vol_size }}"
 
@@ -72,7 +73,7 @@
               args:
                 executable: /bin/bash
               register: capacity
-              until: "desired_vol_size not in capacity.stdout"
+              until: "desired_vol_size in capacity.stdout"
               delay: 10
               retries: 50
 
