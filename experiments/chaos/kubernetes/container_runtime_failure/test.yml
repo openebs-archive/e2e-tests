@@ -12,8 +12,6 @@
         - include_tasks: /utils/k8s/application_liveness_check.yml
           when: liveness_label != ''
 
-        - include: test_prerequisites.yml
-  
         - name: Identify the data consistency util to be invoked
           template:
             src: data_persistence.j2
@@ -34,16 +32,6 @@
           vars:
             status: 'SOT'
 
-        ## DISPLAY APP INFORMATION 
- 
-        - name: Display the app information passed via the test job
-          debug: 
-            msg: 
-              - "The application info is as follows:"
-              - "Namespace    : {{ namespace }}"
-              - "Label        : {{ label }}"
-              - "PVC          : {{ pvc }}"  
-              - "StorageClass : {{ sc }}"
 
         ## PRE-CHAOS APPLICATION LIVENESS CHECK
 
@@ -101,7 +89,7 @@
           vars:
             app_ns: "{{ namespace }}"
             app_label: "{{ label }}"
-            action: "cri_svc_restart"
+            action: "cri_svc_start"
             target_pod: "{{ target_pod_name.stdout }}"
             app_pod: "{{ app_pod_name.stdout }}"
 
@@ -117,7 +105,7 @@
             delay: 5
             retries: 60
 
-        - name: Create some test data
+        - name: Verify application data persistence
           include: "{{ data_consistency_util_path }}"
           vars:
             status: 'VERIFY'

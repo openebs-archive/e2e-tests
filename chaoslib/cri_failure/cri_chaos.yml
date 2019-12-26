@@ -12,12 +12,14 @@
       set_fact:
         app_node: "{{ node_name.stdout }}"
 
-    - name: Get the ip address of the application node
+    - name: Get the IP Address of the node on which application pod is scheduled
       shell: >
         kubectl get nodes {{ app_node }} --no-headers -o jsonpath='{.status.addresses[0].address}'
+      args:
+        executable: /bin/bash
       register: node_ip_address
 
-    - name: Record the application node ip address
+    - name: Record the IP Address of the node on which application pod is scheduled
       set_fact:
         node_ip_add: "{{ node_ip_address.stdout }}"
  
@@ -29,7 +31,7 @@
         executable: /bin/bash
       register: target_node_name
 
-    - name: Record the target pod node name
+    - name: Record the node name on which target pod is scheduled
       set_fact: 
         target_node: "{{ target_node_name.stdout }}"
 
@@ -42,9 +44,9 @@
            executable: /bin/bash
          ignore_errors: true
 
-       - name: Check the node {{ app_node }} status on which chaos is induced
+       - name: Check the node {{ app_node }} status on which {{ cri }} failure chaos is induced
          shell:
-           kubectl get nodes {{ app_node }} --no-headers | grep NotReady
+           kubectl get nodes {{ app_node }}
          args: 
            executable: /bin/bash
          register: node_status
@@ -56,7 +58,7 @@
 
           - name: Check if the new target pod is scheduled on some other node after {{ cri }} failure
             shell: >
-              kubectl get pods -n {{ operator_ns }} --no-headers | grep {{ pvol_name }} | wc -l
+              kubectl get pods -n {{ operator_ns }} -l openebs.io/persistent-volume={{ pvol_name }} --no-headers |  wc -l
             args:
               executable: /bin/bash
             register: target_pod_count
@@ -66,7 +68,7 @@
 
           - name: Get the new target pod name
             shell: >
-              kubectl get pods -n {{ operator_ns }} | grep {{ pvol_name }} | grep -v Terminating | awk '{print $1}'
+              kubectl get pods -n {{ operator_ns }} -l openebs.io/persistent-volume={{ pvol_name }} --no-headers | grep -v Terminating | awk '{print $1}'
             args:
               executable: /bin/bash
             register: new_target_pod
@@ -151,5 +153,5 @@
      delay: 10
      retries: 50
 
-  when: action == "cri_svc_restart"
+  when: action == "cri_svc_start"
           

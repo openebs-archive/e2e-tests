@@ -1,4 +1,4 @@
-test_name: cri-failure-svc-chaos
+test_name: cri-svc-failure-chaos
 namespace: "{{ lookup('env','APP_NAMESPACE') }}"
 label: "{{ lookup('env','APP_LABEL') }}"
 pvc: "{{ lookup('env','APP_PVC') }}"
@@ -8,4 +8,3 @@ liveness_label: "{{ lookup('env','LIVENESS_APP_LABEL') }}"
 liveness_namespace: "{{ lookup('env','LIVENESS_APP_NAMESPACE') }}"
 data_persistence: "{{ lookup('env','DATA_PERSISTENCE') }}"
 node_pwd: "{{ lookup('env','NODE_PASSWORD') }}"
-
