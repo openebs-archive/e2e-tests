@@ -1,0 +1,155 @@
+- block:
+
+    - name: Identify the node on which application pod is scheduled
+      shell: >
+        kubectl get pod {{ app_pod }} -n {{ app_ns }}
+        --no-headers -o custom-columns=:spec.nodeName
+      args: 
+        executable: /bin/bash
+      register: node_name 
+               
+    - name: Record the application pod node name 
+      set_fact:
+        app_node: "{{ node_name.stdout }}"
+
+    - name: Get the ip address of the application node
+      shell: >
+        kubectl get nodes {{ app_node }} --no-headers -o jsonpath='{.status.addresses[0].address}'
+      register: node_ip_address
+
+    - name: Record the application node ip address
+      set_fact:
+        node_ip_add: "{{ node_ip_address.stdout }}"
+ 
+    - name: Identify the node name on which target pod is scheduled
+      shell: >
+        kubectl get pod {{ target_pod }} -n {{ operator_ns }}
+        --no-headers -o custom-columns=:.spec.nodeName
+      args:
+        executable: /bin/bash
+      register: target_node_name
+
+    - name: Record the target pod node name
+      set_fact: 
+        target_node: "{{ target_node_name.stdout }}"
+
+    - block:
+       
+       - name: stop the {{ cri }} runtime service
+         shell: > 
+           sshpass -p {{ node_pwd }} ssh -o StrictHostKeyChecking=no root@{{ node_ip_add }} 'systemctl stop {{ cri }}.service'
+         args:
+           executable: /bin/bash
+         ignore_errors: true
+
+       - name: Check the node {{ app_node }} status on which chaos is induced
+         shell:
+           kubectl get nodes {{ app_node }} --no-headers | grep NotReady
+         args: 
+           executable: /bin/bash
+         register: node_status
+         until: "'NotReady' in node_status.stdout"
+         delay: 10
+         retries: 30
+ 
+       - block:
+
+          - name: Check if the new target pod is scheduled on some other node after {{ cri }} failure
+            shell: >
+              kubectl get pods -n {{ operator_ns }} --no-headers | grep {{ pvol_name }} | wc -l
+            args:
+              executable: /bin/bash
+            register: target_pod_count
+            until: "'2' in target_pod_count.stdout"
+            delay: 15
+            retries: 30
+
+          - name: Get the new target pod name
+            shell: >
+              kubectl get pods -n {{ operator_ns }} | grep {{ pvol_name }} | grep -v Terminating | awk '{print $1}'
+            args:
+              executable: /bin/bash
+            register: new_target_pod
+
+          - name: Check the newly created target pod status
+            shell: >
+              kubectl get pod {{ new_target_pod.stdout }} -n {{ operator_ns }} --no-headers -o custom-columns=:.status.phase
+            args:
+              executable: /bin/bash
+            register: new_target_pod_status
+            until: "'Running' in new_target_pod_status.stdout"
+            delay: 15
+            retries: 35
+
+         when: app_node == target_node
+ 
+       - name: Check if the new application pod is scheduled on some other node after {{ cri }} failure
+         shell: >
+           kubectl get pods -n {{ app_ns }} -l {{ app_label }} --no-headers | wc -l
+         args:
+           executable: /bin/bash
+         register: app_pod_count
+         until: "'2' in app_pod_count.stdout"
+         delay: 15
+         retries: 30
+
+       - name: Get the new application pod name
+         shell: > 
+           kubectl get pod -n {{ app_ns }} -l {{ app_label }} --no-headers | grep -v Terminating | awk '{print $1}'
+         args:
+           executable: /bin/bash
+         register: new_app_pod_name
+
+       - name: Record the new application pod name 
+         set_fact:
+           new_app_pod: "{{ new_app_pod_name.stdout }}"
+         
+       - name: Check for the newly created application pod status 
+         shell: >
+           kubectl get pod {{ new_app_pod }} -n {{ app_ns }} --no-headers -o custom-columns=:.status.phase
+         args:
+           executable: /bin/bash
+         register: new_app_pod_status
+         until: "'Pending' in new_app_pod_status.stdout"
+         delay: 5
+         retries: 20
+       
+      when: cri=="cri-o" or cri=="containerd"
+
+  when: action == "cri_svc_stop"
+
+  
+- block: 
+
+   - name:  Restart the {{ cri }} runtime service
+     shell: > 
+       sshpass -p {{ node_pwd }} ssh -o StrictHostKeyChecking=no root@{{ node_ip_add }} 'systemctl start containerd.service'
+     args:
+       executable: /bin/bash
+
+   - name: Wait after restarting the {{ cri }} runtime service
+     shell: >
+       sleep 120
+
+   - name: Check for the node status after restarting {{ cri }} service
+     shell: >
+       kubectl get nodes {{ app_node }} --no-headers
+     args: 
+       executable: /bin/bash
+     register: node_status
+     until: "'Ready' in node_status.stdout"
+     delay: 10
+     retries: 30
+     
+   - name: Get the status of newly created application pod
+     shell: >
+       kubectl get pod {{ new_app_pod }} -n {{ app_ns }} --no-headers -o custom-columns=:.status.phase
+     args:
+       executable: /bin/bash
+     register: application_pod
+     until: "'Running' in application_pod.stdout"
+     delay: 10
+     retries: 50
+
+  when: action == "cri_svc_restart"
+          
