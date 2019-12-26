@@ -18,21 +18,55 @@
 
         - block:
 
-           - name: Deploy CSI Driver if OS is either centos or ubuntu-16.04 
-             shell: >
-               kubectl apply -f https://raw.githubusercontent.com/openebs/csi/master/deploy/csi-operator.yaml
-             args:
-               executable: /bin/bash
+            - name: Deploy CSI Driver if OS is either centos or ubuntu-16.04 
+              shell: >
+                kubectl apply -f https://raw.githubusercontent.com/openebs/csi/master/deploy/csi-operator.yaml
+              args:
+                executable: /bin/bash
+
+            - name: Identify the patch to be invoked
+              template:
+                src: patch.j2
+                dest: patch.yml
+
+            - name: Patching openebs cstor csi-driver statefulset to allow volume remount
+              shell: >
+                kubectl patch statefulset openebs-cstor-csi-controller -n kube-system --patch "$(cat patch.yml)"
+              register: patch_status
+              failed_when: "'patched' not in patch_status.stdout"
+
+            - name: Patching openebs cstor csi-driver daemonset to allow volume remount
+              shell: >
+                kubectl patch daemonset openebs-cstor-csi-node -n kube-system --patch "$(cat patch.yml)"
+              register: patch_status
+              failed_when: "'patched' not in patch_status.stdout"
 
           when: node_os == "ubuntu-16.04" or node_os == "centos"
 
         - block:
 
-           - name: Deploy CSI Driver if os is ubuntu 18.04
-             shell: >
-               kubectl apply -f https://raw.githubusercontent.com/openebs/csi/master/deploy/csi-operator-ubuntu-18.04.yaml
-             args:
-               executable: /bin/bash
+            - name: Deploy CSI Driver if os is ubuntu 18.04
+              shell: >
+                kubectl apply -f https://raw.githubusercontent.com/openebs/csi/master/deploy/csi-operator-ubuntu-18.04.yaml
+              args:
+                executable: /bin/bash
+
+            - name: Identify the patch to be invoked
+              template:
+                src: patch.j2
+                dest: patch.yml
+
+            - name: Patching openebs cstor csi-driver statefulset to allow volume remount
+              shell: >
+                kubectl patch statefulset openebs-cstor-csi-controller -n kube-system --patch "$(cat patch.yml)"
+              register: patch_status
+              failed_when: "'patched' not in patch_status.stdout"
+              
+            - name: Patching openebs cstor csi-driver daemonset to allow volume remount
+              shell: >
+                kubectl patch daemonset openebs-cstor-csi-node -n kube-system --patch "$(cat patch.yml)"
+              register: patch_status
+              failed_when: "'patched' not in patch_status.stdout"    
 
           when: node_os == "ubuntu-18.04"
 
