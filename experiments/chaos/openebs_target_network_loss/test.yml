@@ -217,10 +217,10 @@
                 executable: /bin/bash
               register: newpod_name
 
-            - name: Checking application pod in running state
+            - name: Checking application pod not in running state
               shell: kubectl get pods -n {{ namespace }} -o jsonpath='{.items[?(@.metadata.name=="{{ newpod_name.stdout }}")].status.containerStatuses[*].state}'
               register: result
-              until: "'running' in result.stdout"
+              until: "'running' not in result.stdout"
               delay: 2
               retries: 150
           when: stg_prov == 'openebs.io/provisioner-iscsi'
