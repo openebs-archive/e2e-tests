@@ -59,12 +59,33 @@
             executable: /bin/bash
           register: pv_name
 
+        - name: Check for presence & value of cas type annotation
+          shell: >
+            kubectl get pv {{ pv_name.stdout }} --no-headers
+            -o jsonpath="{.metadata.annotations.openebs\\.io/cas-type}"
+          args:
+            executable: /bin/bash
+          register: openebs_stg_engine
+    
+        - name: Record the storage engine name
+          set_fact:
+            stg_engine: "{{ openebs_stg_engine.stdout }}"
+
         - name: Get the target pod name associated with this pv
           shell: >
-            kubectl get pods -n {{ operator_ns }} | grep {{ pv_name.stdout }} | awk '{print $1}'
+            kubectl get pods -n {{ operator_ns }} -l openebs.io/persistent-volume={{ pv_name.stdout }} --no-headers -o custom-columns=:.metadata.name
           args:
             executable: /bin/bash
           register: target_pod_name
+          when: stg_engine == 'cstor'
+
+        - name: Get the controller pod name associated with this pv
+          shell: >
+            kubectl get pods -n {{ namespace }} -l openebs.io/controller=jiva-controller,openebs.io/persistent-volume={{ pv_name.stdout }} --no-headers -o custom-columns=:.metadata.name
+          args:
+            executable: /bin/bash
+          register: ctrl_pod_name
+          when: stg_engine == 'jiva'
 
         - name: Create some test data
           include: "{{ data_consistency_util_path }}"
@@ -82,6 +103,7 @@
             app_label: "{{ label }}"
             action: "cri_svc_stop"
             target_pod: "{{ target_pod_name.stdout }}"
+            ctrl_pod: "{{ ctrl_pod_name.stdout }}"
             app_pod: "{{ app_pod_name.stdout }}"
             pvol_name: "{{ pv_name.stdout }}"
 
@@ -91,6 +113,7 @@
             app_label: "{{ label }}"
             action: "cri_svc_start"
             target_pod: "{{ target_pod_name.stdout }}"
+            ctrl_pod: "{{ ctrl_pod_name }}"
             app_pod: "{{ app_pod_name.stdout }}"
 
 
