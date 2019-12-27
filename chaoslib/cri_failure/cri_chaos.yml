@@ -123,17 +123,17 @@
   
 - block: 
 
-   - name:  Restart the {{ cri }} runtime service
+   - name:  Start the {{ cri }} runtime service
      shell: > 
        sshpass -p {{ node_pwd }} ssh -o StrictHostKeyChecking=no root@{{ node_ip_add }} 'systemctl start containerd.service'
      args:
        executable: /bin/bash
 
-   - name: Wait after restarting the {{ cri }} runtime service
+   - name: Wait after starting the {{ cri }} runtime service
      shell: >
        sleep 120
 
-   - name: Check for the node status after restarting {{ cri }} service
+   - name: Check for the node status after starting {{ cri }} service
      shell: >
        kubectl get nodes {{ app_node }} --no-headers
      args: 
