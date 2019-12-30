@@ -60,7 +60,7 @@ spec:
             ## specify the service name to perform chaos
             ## for kubelet failure use value: kubelet
             ## for container runtime failure use value: (docker,containerd,cri-o)
-          - name: SVC_NAME 
+          - name: SVC_TYPE 
             value: ""
 
           - name: LIVENESS_APP_LABEL
