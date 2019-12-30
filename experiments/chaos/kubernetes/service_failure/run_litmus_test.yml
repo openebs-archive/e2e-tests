@@ -57,7 +57,7 @@ spec:
           - name: APP_PVC
             value: ""
              
-            ## specify the service name to perform chaos
+            ## specify the service type to perform chaos
             ## for kubelet failure use value: kubelet
             ## for container runtime failure use value: (docker,containerd,cri-o)
           - name: SVC_TYPE 
