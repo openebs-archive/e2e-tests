@@ -97,21 +97,21 @@
 
         ## STORAGE FAULT INJECTION 
 
-        - include_tasks: /chaoslib/cri_failure/cri_chaos.yml
+        - include_tasks: /chaoslib/service_failure/service_chaos.yml
           vars:
             app_ns: "{{ namespace }}"
             app_label: "{{ label }}"
-            action: "cri_svc_stop"
+            action: "svc_stop"
             target_pod: "{{ target_pod_name.stdout }}"
             ctrl_pod: "{{ ctrl_pod_name.stdout }}"
             app_pod: "{{ app_pod_name.stdout }}"
             pvol_name: "{{ pv_name.stdout }}"
 
-        - include_tasks: /chaoslib/cri_failure/cri_chaos.yml
+        - include_tasks: /chaoslib/service_failure/service_chaos.yml
           vars:
             app_ns: "{{ namespace }}"
             app_label: "{{ label }}"
-            action: "cri_svc_start"
+            action: "svc_start"
             target_pod: "{{ target_pod_name.stdout }}"
             ctrl_pod: "{{ ctrl_pod_name }}"
             app_pod: "{{ app_pod_name.stdout }}"

@@ -2,7 +2,7 @@ test_name: cri-svc-failure-chaos
 namespace: "{{ lookup('env','APP_NAMESPACE') }}"
 label: "{{ lookup('env','APP_LABEL') }}"
 pvc: "{{ lookup('env','APP_PVC') }}"
-cri: "{{ lookup('env','CRI') }}"
+svc_name: "{{ lookup('env','SVC_NAME') }}"
 operator_ns: "{{ lookup('env','OPERATOR_NAMESPACE') }}"
 liveness_label: "{{ lookup('env','LIVENESS_APP_LABEL') }}"
 liveness_namespace: "{{ lookup('env','LIVENESS_APP_NAMESPACE') }}"

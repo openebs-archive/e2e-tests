@@ -52,13 +52,23 @@
 
     - block:
        
-       - name: stop the {{ cri }} runtime service
+       - name: stop the {{ svc_name }} services
          shell: > 
-           sshpass -p {{ node_pwd }} ssh -o StrictHostKeyChecking=no root@{{ node_ip_add }} 'systemctl stop {{ cri }}.service'
+           sshpass -p {{ node_pwd }} ssh -o StrictHostKeyChecking=no root@{{ node_ip_add }} 'systemctl stop {{ svc_name }}.service'
          args:
            executable: /bin/bash
 
-       - name: Check the node {{ app_node }} status on which {{ cri }} failure chaos is induced
+       - name: Check for the {{ svc_name }} service status
+         shell: >
+           sshpass -p {{ node_pwd }} ssh -o StrictHostKeyChecking=no root@{{ node_ip_add }} 'systemctl status {{ svc_name }}.service' | grep 'inactive'
+         args:
+          executable: /bin/bash
+         register: svc_status
+         until: "'inactive' in svc_status.stdout"
+         delay: 5
+         retries: 15
+
+       - name: Check the node {{ app_node }} status on which {{ svc_name }} failure chaos is induced
          shell:
            kubectl get nodes {{ app_node }}
          args: 
@@ -70,7 +80,7 @@
  
        - block:
 
-          - name: Check if the new target pod is scheduled on some other node after {{ cri }} failure
+          - name: Check if the new target pod is scheduled on some other node after {{ svc_name }} failure
             shell: >
               kubectl get pods -n {{ operator_ns }} -l openebs.io/persistent-volume={{ pvol_name }} --no-headers |  wc -l
             args:
@@ -104,7 +114,7 @@
 
        - block:
 
-          - name: Check if the new controller pod is scheduled on some other node after {{ cri }} failure
+          - name: Check if the new controller pod is scheduled on some other node after {{ svc_name }} failure
             shell: >
               kubectl get pods -n {{ app_ns }} -l openebs.io/controller=jiva-controller,openebs.io/persistent-volume={{ pvol_name }} --no-headers  |  wc -l
             args:
@@ -135,7 +145,7 @@
           - stg_engine == 'jiva'
           - app_node == ctrl_node
  
-       - name: Check if the new application pod is scheduled on some other node after {{ cri }} failure
+       - name: Check if the new application pod is scheduled on some other node after {{ svc_name }} failure
          shell: >
            kubectl get pods -n {{ app_ns }} -l {{ app_label }} --no-headers | wc -l
          args:
@@ -166,30 +176,40 @@
          delay: 5
          retries: 20
        
-      when: cri=="cri-o" or cri=="containerd"
+      when: svc_name=="cri-o" or svc_name=="containerd" or svc_name=="kubelet"
 
-  when: action == "cri_svc_stop"
+  when: action == "svc_stop"
 
   
 - block: 
 
-   - name:  Start the {{ cri }} runtime service
+   - name: Start the {{ svc_name }} services
      shell: > 
-       sshpass -p {{ node_pwd }} ssh -o StrictHostKeyChecking=no root@{{ node_ip_add }} 'systemctl start containerd.service'
+       sshpass -p {{ node_pwd }} ssh -o StrictHostKeyChecking=no root@{{ node_ip_add }} 'systemctl start {{ svc_name }}.service'
      args:
        executable: /bin/bash
 
-   - name: Wait after starting the {{ cri }} runtime service
+   - name: Check for the {{ svc_name }} services status
+     shell: >
+       sshpass -p {{ node_pwd }} ssh -o StrictHostKeyChecking=no root@{{ node_ip_add }} 'systemctl status {{ svc_name }}.service' | grep 'active (running)'
+     args: 
+       executable: /bin/bash
+     register: svc_status
+     until: "'active (running)' in svc_status.stdout"
+     delay: 5
+     retries: 15
+
+   - name: Wait after starting the {{ svc_name }} services
      shell: >
        sleep 120
 
-   - name: Check for the node status after starting {{ cri }} service
+   - name: Check for the node status after starting {{ svc_name }} service
      shell: >
        kubectl get nodes {{ app_node }} --no-headers
      args: 
        executable: /bin/bash
      register: node_status
-     until: "'Ready' in node_status.stdout"
+     until: "'NotReady' not in node_status.stdout"
      delay: 10
      retries: 30
      
@@ -203,5 +223,5 @@
      delay: 10
      retries: 50
 
-  when: action == "cri_svc_start"
+  when: action == "svc_start"
           
