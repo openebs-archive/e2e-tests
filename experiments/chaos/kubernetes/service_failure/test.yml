@@ -1,0 +1,154 @@
+---
+- hosts: localhost
+  connection: local
+
+  vars_files:
+    - test_vars.yml
+    - /mnt/parameters.yml
+
+  tasks:
+    - block:
+
+        - include_tasks: /utils/k8s/application_liveness_check.yml
+          when: liveness_label != ''
+
+        - name: Identify the data consistency util to be invoked
+          template:
+            src: data_persistence.j2
+            dest: data_persistence.yml
+
+        - include_vars:
+            file: data_persistence.yml
+            
+        - name: Record the data consistency util path
+          set_fact:
+            data_consistency_util_path: "{{ consistencyutil }}"
+          when: data_persistence != ''
+
+        ## RECORD START-OF-TEST IN LITMUS RESULT CR
+        - include_tasks: /utils/fcm/create_testname.yml
+
+        - include_tasks: /utils/fcm/update_litmus_result_resource.yml
+          vars:
+            status: 'SOT'
+
+
+        ## PRE-CHAOS APPLICATION LIVENESS CHECK
+
+        - name: Verify that the AUT (Application Under Test) is running
+          include_tasks: "/utils/k8s/status_app_pod.yml"
+          vars:
+            app_ns: "{{namespace}}" 
+            app_lkey: "{{ label.split('=')[0] }}"
+            app_lvalue: "{{ label.split('=')[1] }}"       
+            delay: 5
+            retries: 60 
+        
+        - name: Get the application pod name
+          shell: > 
+            kubectl get pods -n {{ namespace }} -l {{ label }} --no-headers
+            -o custom-columns=:.metadata.name
+          args:
+            executable: /bin/bash
+          register: app_pod_name
+        
+        - name: Get the PV name
+          shell: >
+            kubectl get pvc -n {{ namespace }} --no-headers -o custom-columns=:.spec.volumeName
+          args:
+            executable: /bin/bash
+          register: pv_name
+
+        - name: Check for presence & value of cas type annotation
+          shell: >
+            kubectl get pv {{ pv_name.stdout }} --no-headers
+            -o jsonpath="{.metadata.annotations.openebs\\.io/cas-type}"
+          args:
+            executable: /bin/bash
+          register: openebs_stg_engine
+    
+        - name: Record the storage engine name
+          set_fact:
+            stg_engine: "{{ openebs_stg_engine.stdout }}"
+
+        - name: Get the target pod name associated with this pv
+          shell: >
+            kubectl get pods -n {{ operator_ns }} -l openebs.io/persistent-volume={{ pv_name.stdout }} --no-headers -o custom-columns=:.metadata.name
+          args:
+            executable: /bin/bash
+          register: target_pod_name
+          when: stg_engine == 'cstor'
+
+        - name: Get the controller pod name associated with this pv
+          shell: >
+            kubectl get pods -n {{ namespace }} -l openebs.io/controller=jiva-controller,openebs.io/persistent-volume={{ pv_name.stdout }} --no-headers -o custom-columns=:.metadata.name
+          args:
+            executable: /bin/bash
+          register: ctrl_pod_name
+          when: stg_engine == 'jiva'
+
+        - name: Create some test data
+          include: "{{ data_consistency_util_path }}"
+          vars:
+            status: 'LOAD'
+            ns: "{{ namespace }}"
+            pod_name: "{{ app_pod_name.stdout }}"
+          when: data_persistence != ''
+
+        ## STORAGE FAULT INJECTION 
+
+        - include_tasks: /chaoslib/service_failure/service_chaos.yml
+          vars:
+            app_ns: "{{ namespace }}"
+            app_label: "{{ label }}"
+            action: "svc_stop"
+            target_pod: "{{ target_pod_name.stdout }}"
+            ctrl_pod: "{{ ctrl_pod_name.stdout }}"
+            app_pod: "{{ app_pod_name.stdout }}"
+            pvol_name: "{{ pv_name.stdout }}"
+
+        - include_tasks: /chaoslib/service_failure/service_chaos.yml
+          vars:
+            app_ns: "{{ namespace }}"
+            app_label: "{{ label }}"
+            action: "svc_start"
+            target_pod: "{{ target_pod_name.stdout }}"
+            ctrl_pod: "{{ ctrl_pod_name }}"
+            app_pod: "{{ app_pod_name.stdout }}"
+
+
+        ## POST-CHAOS APPLICATION LIVENESS CHECK
+
+        - name: Verify AUT liveness post fault-injection
+          include_tasks: "/utils/k8s/status_app_pod.yml"
+          vars:
+            app_ns: "{{namespace}}" 
+            app_lkey: "{{ label.split('=')[0] }}"
+            app_lvalue: "{{ label.split('=')[1] }}"       
+            delay: 5
+            retries: 60
+
+        - name: Verify application data persistence
+          include: "{{ data_consistency_util_path }}"
+          vars:
+            status: 'VERIFY'
+            ns: "{{ namespace }}"
+            pod_name: "{{ new_app_pod }}"
+          when: data_persistence != ''
+
+        - include_tasks: /utils/k8s/application_liveness_check.yml
+          when: liveness_label != ''
+   
+        - set_fact:
+            flag: "Pass"
+
+      rescue: 
+        - set_fact: 
+            flag: "Fail"
+
+      always: 
+        ## RECORD END-OF-TEST IN LITMUS RESULT CR
+ 
+        - include_tasks: /utils/fcm/update_litmus_result_resource.yml
+          vars:
+            status: 'EOT'
