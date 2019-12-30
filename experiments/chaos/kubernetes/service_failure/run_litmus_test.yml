@@ -2,7 +2,7 @@
   apiVersion: v1
   kind: ConfigMap
   metadata:
-    name: cri-failure
+    name: svc-failure
     namespace: litmus
   data:
     parameters.yml: |
@@ -21,13 +21,13 @@
 apiVersion: batch/v1
 kind: Job
 metadata:
-  generateName: cri-failure-chaos-
+  generateName: svc-failure-chaos-
   namespace: litmus 
 spec:
   template:
     metadata:
       labels:
-        name: cri-failure-chaos
+        name: svc-failure-chaos
     spec:
       serviceAccountName: litmus
       restartPolicy: Never
@@ -89,5 +89,5 @@ spec:
       volumes:
         - name: parameters
           configMap:
-            name: cri-failure
+            name: svc-failure
   
