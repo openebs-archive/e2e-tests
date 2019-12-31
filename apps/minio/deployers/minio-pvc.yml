@@ -11,7 +11,7 @@ spec:
     #  nodePort: 32703
       protocol: TCP
   selector:
-    lkey: lvalue
+    app: minio
   sessionAffinity: None
   type: NodePort
   
