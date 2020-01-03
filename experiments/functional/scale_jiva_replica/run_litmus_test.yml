@@ -23,6 +23,9 @@ spec:
           - name: ANSIBLE_STDOUT_CALLBACK 
             value: default
 
+          - name: APP_LABEL
+            value: ''
+
           - name: APP_NAMESPACE
             value: 'app-percona-ns'
           
@@ -31,6 +34,11 @@ spec:
 
           - name: OPERATOR_NS
             value: 'openebs'  
+            
+            #Supported values are {controller, replica}
+            # Will have no impact if variable is undefined i.e; will not induce any failure
+          - name: COMPONENT_FAILURE
+            value: ''
 
         command: ["/bin/bash"]
         args: ["-c", "ansible-playbook ./experiments/functional/scale_jiva_replica/test.yml -i /etc/ansible/hosts -v; exit 0"]

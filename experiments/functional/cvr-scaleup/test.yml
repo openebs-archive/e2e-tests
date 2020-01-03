@@ -47,9 +47,9 @@
               shell: kubectl get pod {{ app_pod_name.stdout }} -n {{ app_ns }} -o jsonpath='{.spec.containers[0].volumeMounts[0].mountPath}'
               register: app_mount_path
               
-              #Writing approx 782M of data at mount point
+              #Writing approx 1.6G of data at mount point
             - name: Writing data on application mount point
-              shell: kubectl exec -it {{ app_pod_name.stdout }} -n {{ app_ns }} -- sh -c "cd {{ app_mount_path.stdout }} && dd if=/dev/urandom of=test.txt bs=4k count=200024"
+              shell: kubectl exec -it {{ app_pod_name.stdout }} -n {{ app_ns }} -- sh -c "cd {{ app_mount_path.stdout }} && dd if=/dev/urandom of=test.txt bs=4k count=400024"
 
           when: lookup('env','INDUCE_TARGET_FAILURE') == 'enable'
          
