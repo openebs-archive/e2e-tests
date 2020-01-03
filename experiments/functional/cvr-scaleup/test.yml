@@ -41,6 +41,19 @@
           shell: kubectl get pod -n {{ app_ns }} -l {{ label }} -o jsonpath='{.items[0].metadata.name}'
           register: app_pod_name
 
+        - block:
+
+            - name: Getting the application mount point
+              shell: kubectl get pod {{ app_pod_name.stdout }} -n {{ app_ns }} -o jsonpath='{.spec.containers[0].volumeMounts[0].mountPath}'
+              register: app_mount_path
+              
+              #Writing approx 782M of data at mount point
+            - name: Writing data on application mount point
+              shell: kubectl exec -it {{ app_pod_name.stdout }} -n {{ app_ns }} -- sh -c "cd {{ app_mount_path.stdout }} && dd if=/dev/urandom of=test.txt bs=4k count=200024"
+
+          when: lookup('env','INDUCE_TARGET_FAILURE') == 'enable'
+         
+
         - name: Geting the PV name
           shell: kubectl get pvc {{ app_pvc }} -n {{ app_ns }} -o jsonpath='{.spec.volumeName}'
           register: pv
@@ -224,6 +237,40 @@
           until: "'Running' in pod_status.stdout"
           delay: 10
           retries: 50
+
+        - block: 
+
+            - name: Getting the target name 
+              shell:  kubectl get pod -n {{ operator_ns }} -l openebs.io/persistent-volume={{ pv.stdout }} -o jsonpath='{.items[0].metadata.name}' 
+              register: target_name
+
+            - name: Checking for reconstructing state of newly created cvr 
+              shell: kubectl get cvr {{ pv.stdout }}-{{ csp_name.stdout_lines[0] }} -n {{ operator_ns }} -o jsonpath='{.status.phase}'
+              register: new_cvr_state
+              until: "'ReconstructingNewReplica' in new_cvr_state.stdout"
+              delay: 10
+              retries: 100
+
+            - name: Restarting target
+              shell: kubectl delete pod {{ target_name.stdout }} -n {{ operator_ns }}
+              register: target_delete_status
+              failed_when: "'deleted' not in target_delete_status.stdout"
+
+            - name: Verifying successful deletion of target
+              shell: kubectl get pod -n {{ operator_ns }} -l openebs.io/persistent-volume={{ pv.stdout }} -o jsonpath='{.items[0].metadata.name}'
+              register: target_del
+              until: "'{{ target_name.stdout }}' not in target_del.stdout"
+              delay: 10
+              retries: 100
+
+            - name: Waiting for new target to be in running state
+              shell: kubectl get pod -n {{ operator_ns }} -l openebs.io/persistent-volume={{ pv.stdout }} -o jsonpath='{.items[0].status.phase}'
+              register: new_target_state
+              until: "'Running' in new_target_state.stdout"
+              delay: 10
+              retries: 100
+               
+          when: lookup('env','INDUCE_TARGET_FAILURE') == 'enable'
 
         - name: Verify newly Created replicaID exists in cstorVolume or not
           shell: kubectl get cstorvolume {{ pv.stdout }} -n {{ operator_ns }} -o jsonpath='{.status.replicaDetails.knownReplicas.{{ md5sum.stdout }}}'
