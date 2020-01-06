@@ -144,7 +144,7 @@
           register: rescheduled_app_pod_status
           until: "'Running' in rescheduled_app_pod_status.stdout"
           delay: 10
-          retries: 30
+          retries: 45
 
         - block:
 
