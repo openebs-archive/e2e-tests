@@ -28,6 +28,13 @@
   delay: 5
   retries: 15
 
+- name: Waiting for minio job to create bucket
+  shell: kubectl get pod -n velero -l job-name=minio-setup -o jsonpath='{.items[*].status.phase}'
+  register: minio_job_status
+  until: "'Succeeded' in minio_job_status.stdout"
+  delay: 5
+  retries: 10
+
 - block:
 
    - name: Installing velero server inside cluster
