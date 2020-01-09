@@ -45,7 +45,6 @@
             msg: 
               - "The application info is as follows:"
               - "Namespace        : {{ namespace }}"
-              # - "Target Namespace : {{ target_namespace }}"
               - "Label            : {{ label }}"
               - "PVC              : {{ pvc }}"  
               - "StorageClass     : {{ sc }}"
@@ -77,12 +76,10 @@
             pod_name: "{{ app_pod_name.stdout }}"
           when: data_persistence != ''      
 
-
         ## STORAGE FAULT INJECTION 
 
         - include: "{{ chaos_util_path }}"
           app_ns: "{{ namespace }}"
-          target_ns: "{{ target_namespace }}"
           app_pvc: "{{ pvc }}"
 
         ## POST-CHAOS APPLICATION LIVENESS CHECK
@@ -114,7 +111,6 @@
             ns: "{{ namespace }}"
             pod_name: "{{ rescheduled_app_pod.stdout }}"
           when: data_persistence != ''
-
 
         - set_fact:
             flag: "Pass"
