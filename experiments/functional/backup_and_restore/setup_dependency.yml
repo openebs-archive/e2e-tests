@@ -10,8 +10,8 @@
 
 - name: Installing velero inside litmus container
   shell: |
-    tar -xvf velero-v1.1.0-linux-amd64.tar.gz
-    mv velero-v1.1.0-linux-amd64/velero /usr/local/bin/
+    tar -xvf velero-{{ velero_version }}-linux-amd64.tar.gz
+    mv velero-{{ velero_version }}-linux-amd64/velero /usr/local/bin/
 
 - name: Checking the velero version
   shell: velero version
