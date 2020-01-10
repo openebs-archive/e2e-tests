@@ -13,3 +13,5 @@ replica_storageclass: "{{ lookup('env','REPLICA_SC') }}"
 replica_count: "{{ lookup('env','REPLICA_COUNT') }}"
 
 node_os: "{{ lookup('env','NODE_OS') }}"
+
+operator_image: "{{ lookup('env','OPERATOR_IMAGE') }}"

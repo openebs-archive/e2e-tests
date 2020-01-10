@@ -22,6 +22,9 @@ spec:
             #value: log_plays
             value: default
 
+          - name: OPERATOR_IMAGE
+            value: ci
+
           - name: PROVIDER_STORAGE_CLASS
             value: openebs-jiva-csi-sc
           

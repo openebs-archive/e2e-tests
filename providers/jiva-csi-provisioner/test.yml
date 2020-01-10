@@ -16,13 +16,35 @@
           vars:
             status: 'SOT'
 
-        - name: Install Jiva operator in operator namespace
+        - name: Install prerequisites for Jiva operator in operator namespace
           shell: |
             kubectl apply -f https://raw.githubusercontent.com/openebs/jiva-operator/master/deploy/crds/openebs_v1alpha1_jivavolume_crd.yaml
             kubectl apply -f https://raw.githubusercontent.com/openebs/jiva-operator/master/deploy/service_account.yaml
             kubectl apply -f https://raw.githubusercontent.com/openebs/jiva-operator/master/deploy/role.yaml
             kubectl apply -f https://raw.githubusercontent.com/openebs/jiva-operator/master/deploy/role_binding.yaml
-            kubectl apply -f https://raw.githubusercontent.com/openebs/jiva-operator/master/deploy/operator.yaml
+          args:
+            executable: /bin/bash
+          register: status
+          failed_when: "status.rc != 0"
+
+        - name: Download the Jiva operator spec
+          get_url:
+            url: https://raw.githubusercontent.com/openebs/jiva-operator/master/deploy/operator.yaml
+            dest: "./"
+            force: yes
+          register: result
+          until:  "'OK' in result.msg"
+          delay: 5
+          retries: 3
+
+        - name: Update the Jiva operator image
+          replace:
+            path: operator.yaml
+            regexp: ":ci"
+            replace: ":{{ operator_image }}"
+
+        - name: Install the Jiva operator in operator namespace
+          shell: kubectl apply -f operator.yaml
           args:
             executable: /bin/bash
           register: status
@@ -35,6 +57,7 @@
           args:
             executable: /bin/bash
           register: jiva_operator_pod
+          failed_when: "jiva_operator_pod.rc != 0"
           
         - name: Verify the status of Jiva operator
           shell: >
@@ -47,21 +70,59 @@
           delay: 10
           retries: 30
             
-        - name: Deploy Jiva CSI Driver if OS is either centos or ubuntu-16.04 
-          shell: >
-            kubectl apply -f https://raw.githubusercontent.com/openebs/jiva-csi/master/deploy/jiva-csi-ubuntu-16.04.yaml
-          args:
-            executable: /bin/bash
+        - block:
+
+            - name: Download the Jiva CSI Driver if OS is either centos or ubuntu-16.04
+              get_url:
+                url: https://raw.githubusercontent.com/openebs/jiva-csi/master/deploy/jiva-csi-ubuntu-16.04.yaml
+                dest: "./"
+                force: yes
+              register: result
+              until:  "'OK' in result.msg"
+              delay: 5
+              retries: 3
+
+            - name: Update the operator image in jiva csi driver spec
+              replace:
+                path: jiva-csi-ubuntu-16.04.yaml
+                regexp: ":ci"
+                replace: ":{{ operator_image }}"
+
+            - name: Deploy Jiva CSI Driver if OS is either centos or ubuntu-16.04 
+              shell: >
+                kubectl apply -f jiva-csi-ubuntu-16.04.yaml
+              args:
+                executable: /bin/bash
+
           when: node_os == "ubuntu-16.04" or node_os == "centos"
     
-        - name: Deploy CSI Driver if os is ubuntu 18.04
-          shell: >
-            kubectl apply -f https://raw.githubusercontent.com/openebs/jiva-csi/master/deploy/jiva-csi.yaml
-          args:
-            executable: /bin/bash
+        - block: 
+
+            - name: Download the Jiva CSI Driver if OS is ubuntu-18.04
+              get_url:
+                url: https://raw.githubusercontent.com/openebs/jiva-csi/master/deploy/jiva-csi.yaml
+                dest: "./"
+                force: yes
+              register: result
+              until:  "'OK' in result.msg"
+              delay: 5
+              retries: 3
+
+            - name: Update the operator image in jiva csi driver spec
+              replace:
+                path: jiva-csi.yaml
+                regexp: ":ci"
+                replace: ":{{ operator_image }}"
+
+            - name: Deploy CSI Driver if os is ubuntu 18.04
+              shell: >
+                kubectl apply -f jiva-csi.yaml
+              args:
+                executable: /bin/bash
+
           when: node_os == "ubuntu-18.04"
 
-        - name: check if csi-controller pod is running
+        - name: check if jiva csi-controller pod is running
           shell: >
             kubectl get pods -n kube-system -l app=openebs-jiva-csi-controller 
             --no-headers -o custom-columns=:status.phase
@@ -79,6 +140,7 @@
           args:
             executable: /bin/bash
           register: desired_count
+          failed_when: "desired_count.rc != 0"
 
         - name: Check if the desired count matches the ready pods
           command: >
