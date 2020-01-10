@@ -52,7 +52,6 @@
             scopes:
               - https://www.googleapis.com/auth/cloud-platform
             state: present
-          no_log: True
 
         - name: Enable auto-scaling
           shell: gcloud container clusters update {{ cluster_name }} --enable-autoscaling --min-nodes {{ initial_node_count }} --max-nodes {{ max_node_count }} --zone={{ set_zone }} --node-pool default-pool
