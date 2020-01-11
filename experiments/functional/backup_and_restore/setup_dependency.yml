@@ -46,6 +46,19 @@
           --use-volume-snapshots=false \
           --use-restic \
           --backup-location-config region=minio,s3ForcePathStyle="true",s3Url=http://minio.velero.svc:9000
+     when: velero_version == "v1.1.0"
+
+   - name: Installing velero server inside cluster
+     shell: >
+        velero install \
+          --provider aws \
+          --bucket velero \
+          --secret-file ./credentials-velero \
+          --plugins velero/velero-plugin-for-aws:v1.0.0 \
+          --use-volume-snapshots=false \
+          --use-restic \
+          --backup-location-config region=minio,s3ForcePathStyle="true",s3Url=http://minio.velero.svc:9000
+     when: velero_version == "v1.2.0"
 
    - name: Patching restic demonset for privileged access
      shell: kubectl patch ds restic -n velero --patch "$(cat patch.yml)"
@@ -75,6 +88,18 @@
          --secret-file ./credentials-velero \
          --use-volume-snapshots=false \
          --backup-location-config region=minio,s3ForcePathStyle="true",s3Url=http://minio.velero.svc:9000
+     when: velero_version == "v1.1.0"
+
+   - name: Installing velero server inside cluster
+     shell: >
+       velero install \
+         --provider aws \
+         --bucket velero \
+         --secret-file ./credentials-velero \
+         --use-volume-snapshots=false \
+         --plugins velero/velero-plugin-for-aws:v1.0.0 \
+         --backup-location-config region=minio,s3ForcePathStyle="true",s3Url=http://minio.velero.svc:9000
+     when: velero_version == "v1.2.0"
 
   when: storage_engine == "cstor"  
 
