@@ -1,0 +1,19 @@
+---
+
+# Test specific parameters
+
+operator_ns: 'openebs'
+
+test_name: "jiva-csi-provision"
+
+storage_class: "{{ lookup('env','PROVIDER_STORAGE_CLASS') }}"
+
+replica_storageclass: "{{ lookup('env','REPLICA_SC') }}"
+
+replica_count: "{{ lookup('env','REPLICA_COUNT') }}"
+
+node_os: "{{ lookup('env','NODE_OS') }}"
+
+operator_image: "{{ lookup('env','OPERATOR_IMAGE') }}"
+
+action: "{{ lookup('env','ACTION') }}"
