@@ -15,3 +15,5 @@ replica_count: "{{ lookup('env','REPLICA_COUNT') }}"
 node_os: "{{ lookup('env','NODE_OS') }}"
 
 operator_image: "{{ lookup('env','OPERATOR_IMAGE') }}"
+
+action: "{{ lookup('env','ACTION') }}"
