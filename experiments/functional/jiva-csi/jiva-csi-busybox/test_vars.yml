@@ -1,0 +1,19 @@
+---
+
+# Test specific parameters
+
+action: "{{ lookup('env','ACTION') }}"
+
+app_label: "{{ lookup('env','APP_LABEL') }}"
+
+app_ns: "{{ lookup('env','APP_NAMESPACE') }}"
+
+operator_ns: 'openebs'
+
+pvc_name: "{{ lookup('env','PVC') }}"
+
+storage_capacity: "{{ lookup('env','CAPACITY') }}"
+
+storage_class: "{{ lookup('env','PROVIDER_STORAGE_CLASS') }}"
+
+test_name: "jiva-csi-busybox"
