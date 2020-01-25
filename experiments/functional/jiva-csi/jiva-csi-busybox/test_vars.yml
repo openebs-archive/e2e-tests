@@ -12,6 +12,10 @@ operator_ns: 'openebs'
 
 pvc_name: "{{ lookup('env','PVC') }}"
 
+replica_count: "{{ lookup('env','REPLICA_COUNT') }}"
+
+replica_storageclass: "{{ lookup('env','REPLICA_SC') }}"
+
 storage_capacity: "{{ lookup('env','CAPACITY') }}"
 
 storage_class: "{{ lookup('env','PROVIDER_STORAGE_CLASS') }}"

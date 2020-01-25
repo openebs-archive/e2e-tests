@@ -29,7 +29,13 @@ spec:
             value: ''
 
           - name: PROVIDER_STORAGE_CLASS
-            value: openebs-jiva-csi-sc
+            value: openebs-jiva-csi-busybox
+
+          - name: REPLICA_SC
+            value: openebs-hostpath
+
+          - name: REPLICA_COUNT
+            value: "3"
                     
           - name: PVC
             value: ''
