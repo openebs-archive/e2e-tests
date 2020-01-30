@@ -1,0 +1,9 @@
+test_name: zfspv-provisioner
+
+pool_name: "{{ lookup('env','POOL_NAME') }}"
+
+storage_class: "{{ lookup('env','STORAGE_CLASS') }}"
+
+pool_type: "{{ lookup('env','POOL_TYPE') }}"
+
+fs_type: "{{ lookup('env','FILE_SYSTEM') }}"

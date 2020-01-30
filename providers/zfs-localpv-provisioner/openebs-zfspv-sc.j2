@@ -1,0 +1,13 @@
+apiVersion: storage.k8s.io/v1
+kind: StorageClass
+metadata:
+  name: "{{ storage_class }}"
+parameters:
+  recordsize: "4k"
+  compression: "off"
+  dedup: "off"
+  fstype: "{{ fs_type }}:"
+  poolname: "{{ pool_name }}"
+provisioner: zfs.csi.openebs.io
+volumeBindingMode: WaitForFirstConsumer
+

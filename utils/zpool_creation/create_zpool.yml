@@ -1,0 +1,48 @@
+- block:  
+
+   - name: Create a daemonset with privileged access to create zpool on each node
+     shell: >
+       kubectl create -f /utils/zpool_creation/privilege_ds.yml
+     args: 
+       executable: /bin/bash
+    
+   - name: Confirm that the ds pods are running on all nodes
+     shell: >
+       kubectl get pod -l app=zfs-ds
+       --no-headers -o custom-columns=:status.phase | sort | uniq
+     args: 
+       executable: /bin/bash
+     register: result
+     until: "result.stdout == 'Running'"
+     delay: 5
+     retries: 20
+
+   - name: List the daemonset pods 
+     shell: >
+       kubectl get pods -l app=zfs-ds --no-headers -o custom-columns=:.metadata.name
+     args:
+       executable: /bin/bash
+     register: zfs_ds_pods
+
+   - block:
+        
+      - name: Install ZFS utils and Create ZPOOL on each node when pool type is STRIPE
+        shell: >
+          kubectl exec -ti {{ item }} -- bash -c 'zpool create {{ pool_name }} /dev/sdb'
+        args: 
+          executable: /bin/bash
+        with_items: "{{ zfs_ds_pods.stdout_lines }}"
+
+     when: "pool_type == 'striped'"
+
+   - block: 
+     
+      - name: Install ZFS utils and Create ZPOOL on each node when pool type is MIRROR
+        shell: >
+          kubectl exec -ti {{ item }} -- bash -c 'zpool create {{ pool_name }} mirror /dev/sdb /dev/sdc'
+        args: 
+          executable: /bin/bash
+        with_items: "{{ zfs_ds_pods.stdout_lines }}"
+
+     when: "pool_type == 'mirrored'"
+
