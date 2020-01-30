@@ -15,40 +15,47 @@
        - include_tasks: /utils/fcm/update_litmus_result_resource.yml
          vars:
            status: 'SOT'
-
-       - include_tasks: /utils/zpool_creation/create_zpool.yml         
-    
-       - name: Install OpenEBS ZFS driver components
-         shell: >
-           kubectl apply -f https://raw.githubusercontent.com/openebs/zfs-localpv/master/deploy/zfs-operator.yaml
-         args: 
-           executable: /bin/bash
-
-        ## Verify the ZFS driver components are installed and running
-
-       - name: Verify that the ZFS-controller pod and zfs-node daemonset is running
-         shell: >
-           kubectl get pods -n kube-system -l role=openebs-zfs
-           --no-headers -o custom-columns=:status.phase | sort | uniq
-         args: 
-           executable: /bin/bash
-         register: ZFS_driver_components
-         until: "ZFS_driver_components.stdout == 'Running'"
-         delay: 5
-         retries: 10
-
-       - name: Update the storage class template with the variables.
-         template:
-           src: openebs-zfspv-sc.j2
-           dest: openebs-zfspv-sc.yml
-
-       - name: Create Storageclass
-         shell: kubectl apply -f openebs-zfspv-sc.yml
-         args:
-           executable: /bin/bash
-         register: sc_result
-         failed_when: "sc_result.rc != 0"
        
+       - block:
+
+          - include_tasks: /utils/zpool_creation/create_zpool.yml
+        
+          - name: Install OpenEBS ZFS driver components
+            shell: >
+              kubectl apply -f https://raw.githubusercontent.com/openebs/zfs-localpv/master/deploy/zfs-operator.yaml
+            args: 
+              executable: /bin/bash
+
+            ## Verify the ZFS driver components are installed and running
+
+          - name: Verify that the ZFS-controller pod and zfs-node daemonset is running
+            shell: >
+              kubectl get pods -n kube-system -l role=openebs-zfs
+              --no-headers -o custom-columns=:status.phase | sort | uniq
+            args: 
+              executable: /bin/bash
+            register: ZFS_driver_components
+            until: "ZFS_driver_components.stdout == 'Running'"
+            delay: 5
+            retries: 10
+
+          - name: Update the storage class template with the variables.
+            template:
+              src: openebs-zfspv-sc.j2
+              dest: openebs-zfspv-sc.yml
+
+          - name: Create Storageclass
+            shell: kubectl apply -f openebs-zfspv-sc.yml
+            args:
+              executable: /bin/bash
+            register: sc_result
+            failed_when: "sc_result.rc != 0"
+
+         when: "'deprovision' not in action"
+
+       - name: Destroy the ZPOOL
+         include_tasks: /utils/zpool_creation/create_zpool.yml
+         when: "'deprovision' is in action"
     
        - set_fact:
            flag: "Pass"
