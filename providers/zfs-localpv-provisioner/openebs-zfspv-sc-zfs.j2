@@ -7,7 +7,7 @@ parameters:
   recordsize: "{{ record_size }}"
   compression: "{{ compress }}" 
   dedup: "{{ de_dup }}"
-  fstype: "{{ fs_type }}:"
+  fstype: "{{ fs_type }}"
   poolname: "{{ pool_name }}"
 provisioner: zfs.csi.openebs.io
 volumeBindingMode: WaitForFirstConsumer
