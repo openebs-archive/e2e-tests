@@ -1,8 +1,12 @@
+## PREREQUISITES: 
+## For creating ZPOOL all nodes must have zfs utils installed.
+## For zfs utils run this command on each `apt-get install zfsutils-linux`
+
 - block: 
 
   - name: Create a daemonset with privileged access to create zpool on each node
     shell: >
-      kubectl create -f /utils/zpool_creation/privilege_ds.yml
+      kubectl create -f /utils/zpool_creation/create_zpool_ds.yml
     args: 
       executable: /bin/bash
     
@@ -26,22 +30,28 @@
 
   - block:
         
-      - name: Install ZFS utils and Create ZPOOL on each node when pool type is STRIPE
+      ## make sure given disks are not is used.
+      - name: Create ZPOOL on each node when pool type is STRIPE
         shell: >
           kubectl exec -ti {{ item }} -- bash -c 'zpool create {{ pool_name }} /dev/sdb'
         args: 
           executable: /bin/bash
+        register: zpool_status
+        failed_when: "zpool_status.rc != 0"
         with_items: "{{ zfs_ds_pods.stdout_lines }}"
+
 
     when: "pool_type == 'striped'"
 
   - block: 
     
-      - name: Install ZFS utils and Create ZPOOL on each node when pool type is MIRROR
+      - name: Create ZPOOL on each node when pool type is MIRROR
         shell: >
           kubectl exec -ti {{ item }} -- bash -c 'zpool create {{ pool_name }} mirror /dev/sdb /dev/sdc'
         args: 
           executable: /bin/bash
+        register: zpool_status
+        failed_when: "zpool_status.rc != 0"
         with_items: "{{ zfs_ds_pods.stdout_lines }}"
 
     when: "pool_type == 'mirrored'"

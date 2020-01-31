@@ -4,7 +4,7 @@ metadata:
   name: "{{ storage_class }}"
 allowVolumeExpansion: true
 parameters:
-  volblocksize: "{{ vol_block_size }}"
+  recordsize: "{{ record_size }}"
   compression: "{{ compress }}" 
   dedup: "{{ de_dup }}"
   fstype: "{{ fs_type }}:"
@@ -16,5 +16,4 @@ volumeBindingMode: WaitForFirstConsumer
 ##- matchLabelExpressions:
 ##  - key: kubernetes.io/hostname
 ##    values:
-
 

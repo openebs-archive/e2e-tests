@@ -26,6 +26,7 @@ spec:
           - name: STORAGE_CLASS  
             value: ''
 
+            ## provide the ZPOOL name to be created  
           - name: POOL_NAME
             value: ''
 
@@ -36,6 +37,20 @@ spec:
             value: ''
 
           - name: ACTION  ##(provision or deprovision)
+            value: ''
+
+          - name: COMPRESSION ## If data compression is needed give value: 'on' else give 'off'
+            value: ''
+
+          - name: DEDUP ## If data duplication is needed give value: 'on' else give 'off'
+            value: ''
+
+            ## In case of xfs and ext file system ; to create ZVOL provide the blocksize with which you want to create the block device
+          - name: VOLBLOCKSIZE 
+            value: ''
+
+            ## In case of zfs file system provide recordsize which is the maximum block size for files and will be used to create ZFS datasets
+          - name: RECORDSIZE
             value: ''
 
         command: ["/bin/bash"]
