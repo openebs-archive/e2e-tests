@@ -22,6 +22,7 @@
     - name: Obtaining the PVC name using application label.
       set_fact:
         pvc_name: "{{ po_name.resources.0.spec.volumes.0.persistentVolumeClaim.claimName }}"
+        pod_name: "{{ po_name.resources.0.metadata.name }}"
 
     - name: Obtaining the PV name from PVC name. 
       k8s_facts:
@@ -157,7 +158,7 @@
   args:
     executable: /bin/bash
   register: result
-  until: "result.stdout == ''"
+  until: "pod_name not in result.stdout"
   delay: 5
   retries: 60
 
