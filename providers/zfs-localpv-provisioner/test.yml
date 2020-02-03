@@ -1,0 +1,94 @@
+---
+- hosts: localhost
+  connection: local
+    
+  vars_files:
+    - test_vars.yml
+    
+  tasks:
+    - block:
+    
+       ## Generating the testname for deployment
+       - include_tasks: /utils/fcm/create_testname.yml
+    
+       ## RECORD START-OF-TEST IN LITMUS RESULT CR
+       - include_tasks: /utils/fcm/update_litmus_result_resource.yml
+         vars:
+           status: 'SOT'
+       
+       - block:
+
+          - include_tasks: /utils/zpool_creation/create_zpool.yml
+        
+          - name: Install OpenEBS ZFS driver components
+            shell: >
+              kubectl apply -f https://raw.githubusercontent.com/openebs/zfs-localpv/master/deploy/zfs-operator.yaml
+            args: 
+              executable: /bin/bash
+
+            ## Verify the ZFS driver components are installed and running
+
+          - name: Verify that the ZFS-controller pod and zfs-node daemonset is running
+            shell: >
+              kubectl get pods -n kube-system -l role=openebs-zfs
+              --no-headers -o custom-columns=:status.phase | sort | uniq
+            args: 
+              executable: /bin/bash
+            register: ZFS_driver_components
+            until: "ZFS_driver_components.stdout == 'Running'"
+            delay: 5
+            retries: 10
+
+          - block:
+
+             - name: Update the storage class template with the variables.
+               template:
+                 src: openebs-zfspv-sc.j2
+                 dest: openebs-zfspv-sc.yml
+
+             - name: Create Storageclass
+               shell: kubectl apply -f openebs-zfspv-sc.yml
+               args:
+                 executable: /bin/bash
+               register: sc_result
+               failed_when: "sc_result.rc != 0"
+
+            when: fs_type == 'ext2' or fs_type == 'ext3' or fs_type == 'ext4' or fs_type == 'xfs'
+
+          - block:
+
+            - name: Update the storage class template with the variables.
+              template:
+                src: openebs-zfspv-sc-zfs.j2
+                dest: openebs-zfspv-sc-zfs.yml
+
+            - name: Create Storageclass
+              shell: kubectl apply -f openebs-zfspv-sc-zfs.yml
+              args:
+                executable: /bin/bash
+              register: sc_result
+              failed_when: "sc_result.rc != 0"
+
+            when: fs_type == 'zfs'
+ 
+         when: "'deprovision' not in action"
+
+       - name: Destroy the ZPOOL
+         include_tasks: /utils/zpool_creation/create_zpool.yml
+         when: "'deprovision' is in action"
+    
+       - set_fact:
+           flag: "Pass"
+
+      rescue:
+        - name: Setting fail flag
+          set_fact:
+            flag: "Fail"
+
+      always:
+        ## RECORD END-OF-TEST IN LITMUS RESULT CR
+        - include_tasks: /utils/fcm/update_litmus_result_resource.yml
+          vars:
+            status: 'EOT'
+        
+ 

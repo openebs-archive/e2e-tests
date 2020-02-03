@@ -1,0 +1,20 @@
+apiVersion: storage.k8s.io/v1
+kind: StorageClass
+metadata:
+  name: "{{ storage_class }}"
+allowVolumeExpansion: true
+parameters:
+  volblocksize: "{{ vol_block_size }}"
+  compression: "{{ compress }}" 
+  dedup: "{{ de_dup }}"
+  fstype: "{{ fs_type }}"
+  poolname: "{{ pool_name }}"
+provisioner: zfs.csi.openebs.io
+volumeBindingMode: WaitForFirstConsumer
+## To create ZPOOL on only some of the node then mention node names in values with allowedTopologies 
+##allowedTopologies:
+##- matchLabelExpressions:
+##  - key: kubernetes.io/hostname
+##    values:
+
+

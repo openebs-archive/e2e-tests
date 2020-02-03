@@ -1,0 +1,19 @@
+test_name: zfspv-provisioner
+
+pool_name: "{{ lookup('env','POOL_NAME') }}"
+
+storage_class: "{{ lookup('env','STORAGE_CLASS') }}"
+
+pool_type: "{{ lookup('env','POOL_TYPE') }}"
+
+fs_type: "{{ lookup('env','FILE_SYSTEM') }}"
+
+action: "{{ lookup('env','ACTION') }}"
+
+compress: "{{ lookup('env','COMPRESSION') }}"
+
+de_dup: "{{ lookup('env','DEDUP') }}"
+
+record_size: "{{ lookup('env','RECORDSIZE') }}"
+
+vol_block_size: "{{ lookup('env','VOLBLOCKSIZE') }}"
