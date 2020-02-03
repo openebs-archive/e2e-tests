@@ -49,7 +49,7 @@ spec:
             value: create
 
           - name: THICK_PROVISIONING
-            value: "true"
+            value: "false"
         
         command: ["/bin/bash"]
         args: ["-c", "ansible-playbook ./providers/cstor/cstor-block-device-pool/test.yml -i /etc/ansible/hosts -v; exit 0"]
