@@ -27,6 +27,13 @@
                 path: ./spc.yml
                 regexp: "pool-type"
                 replace: "{{ pool_type }}"
+
+            - name: Replacing the over provisioning spec if it has to be disabled
+              replace:
+                path: ./spc.yml
+                regexp: "thickProvisioning: false"
+                replace: "thickProvisioning: true"
+              when: "{{ lookup('env', 'THICK_PROVISIONING') }} == true"
             
             - block:
 
