@@ -29,23 +29,28 @@
             set_zone: "{{ set_zone.stdout }}"
           when: set_zone.stdout is defined
 
+          #        - name: Delete GKE cluster
+          #          gcp_container_cluster:
+          #            name: "{{ cluster_name }}"
+          #            initial_node_count: "{{ initial_node_count }}"
+          #            monitoring_service: none 
+          #            node_config:
+          #              machine_type: "{{ machine_type }}"
+          #              disk_size_gb: "{{ disk_size_gb }}"
+          #              image_type: "{{ image_type }}"
+          #              oauth_scopes:
+          #                - https://www.googleapis.com/auth/cloud-platform
+          #            zone: "{{ set_zone }}"
+          #            project: "{{ project }}"
+          #            auth_kind: "{{ auth_kind }}"
+          #            scopes:
+          #              - https://www.googleapis.com/auth/cloud-platform
+          #            state: absent
+
         - name: Delete GKE cluster
-          gcp_container_cluster:
-            name: "{{ cluster_name }}"
-            initial_node_count: "{{ initial_node_count }}"
-            monitoring_service: none 
-            node_config:
-              machine_type: "{{ machine_type }}"
-              disk_size_gb: "{{ disk_size_gb }}"
-              image_type: "{{ image_type }}"
-              oauth_scopes:
-                - https://www.googleapis.com/auth/cloud-platform
-            zone: "{{ set_zone }}"
-            project: "{{ project }}"
-            auth_kind: "{{ auth_kind }}"
-            scopes:
-              - https://www.googleapis.com/auth/cloud-platform
-            state: absent
+          shell: gcloud container clusters delete {{ cluster_name }} --zone={{ set_zone }} --quiet     
+          args:
+            executable: /bin/bash           
 
         - name: Remove Cluster Info
           lineinfile:

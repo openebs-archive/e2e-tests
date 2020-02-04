@@ -36,28 +36,37 @@
             set_zone: "{{ item }}"
           with_random_choice: "{{ zone }}"
 
-        - name: create GKE cluster
-          gcp_container_cluster:
-            name: "{{ cluster_name }}"
-            initial_node_count: "{{ initial_node_count }}"
-            monitoring_service: none
-            logging_service: none
-            node_config:
-              machine_type: "{{ machine_type }}"
-              disk_size_gb: "{{ disk_size_gb }}"
-              image_type: "{{ image_type }}"
-            zone: "{{ set_zone }}"
-            project: "{{ project }}"
-            auth_kind: "{{ auth_kind }}"
-            scopes:
-              - https://www.googleapis.com/auth/cloud-platform
-            state: present
+          #        - name: create GKE cluster
+          #          gcp_container_cluster:
+          #            name: "{{ cluster_name }}"
+          #            initial_node_count: "{{ initial_node_count }}"
+          #            monitoring_service: none
+          #            logging_service: none
+          #            node_config:
+          #              machine_type: "{{ machine_type }}"
+          #              disk_size_gb: "{{ disk_size_gb }}"
+          #              image_type: "{{ image_type }}"
+          #            zone: "{{ set_zone }}"
+          #            project: "{{ project }}"
+          #            auth_kind: "{{ auth_kind }}"
+          #            scopes:
+          #              - https://www.googleapis.com/auth/cloud-platform
+          #            state: present
 
-        - name: Enable auto-scaling
-          shell: gcloud container clusters update {{ cluster_name }} --enable-autoscaling --min-nodes {{ initial_node_count }} --max-nodes {{ max_node_count }} --zone={{ set_zone }} --node-pool default-pool
-          args:
-            executable: /bin/bash
-            warn: False
+          #        - name: Enable auto-scaling
+          #          shell: gcloud container clusters update {{ cluster_name }} --enable-autoscaling --min-nodes {{ initial_node_count }} --max-nodes {{ max_node_count }} --zone={{ set_zone }} --node-pool default-pool
+          #          args:
+          #            executable: /bin/bash
+          #            warn: False
+          #
+
+          #### TODO: Modify the cluster creation ansible module
+
+        - name: create GKE cluster
+          shell: > 
+            gcloud container clusters create {{ cluster_name }}  --enable-autoscaling --max-nodes=5 
+            --min-nodes=3 --machine-type=n1-standard-4 --disk-size=80 --image-type=ubuntu 
+            --zone {{ set_zone }}  --project={{ project }}  --scopes=https://www.googleapis.com/auth/cloud-platform
 
         - name: Save cluster info
           lineinfile:
