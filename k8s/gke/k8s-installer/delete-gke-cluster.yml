@@ -30,7 +30,7 @@
           when: set_zone.stdout is defined
 
         - name: Get Nodes list
-          shell: kubectl get nodes -o=custom-columns=NAME:.metadata.name --no-headers
+          shell: gcloud compute instances list --filter="name~'{{ cluster_name }}'" | awk {'print $1'}  | grep -v NAME
           args:
             executable: /bin/bash
           register: node_names

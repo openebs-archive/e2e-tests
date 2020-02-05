@@ -210,7 +210,26 @@
               until: "runningStatusCount.stdout == device_count"
               delay: 30
               retries: 10
-          
+
+            - name: Obtain the CSP name to verify the status
+              shell: >
+                kubectl get csp -l openebs.io/storage-pool-claim={{ pool_name }}
+                -o custom-columns=:.metadata.name --no-headers
+              args:
+                executable: /bin/bash
+              register: csp_name
+
+            - name: Verify the status of CSP
+              shell: >
+                kubectl get csp -o jsonpath='{.items[?(@.metadata.name=="{{ item }}")].status.phase}'
+              args:
+                executable: /bin/bash
+              register: csp_status
+              with_items: "{{ csp_name.stdout_lines }}"
+              until: "'Healthy' in csp_status.stdout"
+              delay: 5
+              retries: 30
+              
           when: deploy_mode == "create"
 
         - block:
