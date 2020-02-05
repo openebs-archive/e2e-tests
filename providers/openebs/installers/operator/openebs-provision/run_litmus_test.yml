@@ -29,15 +29,18 @@ spec:
             
             # Namespace where OpenEBS is deployed
           - name: OPERATOR_NS
-            value: ""
+            value: openebs
 
-            #  Image tag for NDM
+            #  Image tag for NDM (optional)
           - name: NDM_TAG
             value: ""
 
+            # Mode of the Deploy (operator or helm)
           - name: DEPLOY_TYPE
             value: ""
 
+            # To deploy OpenEBS components ACTION could be 'provision'
+            # To remove the OpenEBS ACTION could be 'deprovision'
           - name: ACTION
             value: provision 
 
