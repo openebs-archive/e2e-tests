@@ -29,6 +29,12 @@
             set_zone: "{{ set_zone.stdout }}"
           when: set_zone.stdout is defined
 
+        - name: Get Nodes list
+          shell: kubectl get nodes -o=custom-columns=NAME:.metadata.name --no-headers
+          args:
+            executable: /bin/bash
+          register: node_names
+         
         - block:
             - name: Detach and delete the disks from nodes
               shell: >
