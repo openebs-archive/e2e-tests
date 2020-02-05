@@ -310,6 +310,27 @@
           when: lookup('env','ACTION') == "provision"
 
         - block:
+
+            - name: Downloading openebs cspc-operator.yaml
+              get_url:
+                url: "{{ cspc_operator_link }}"
+                dest: "{{ playbook_dir }}/{{ cspc_operator }}"
+                force: yes
+              register: result
+              until:  "'OK' in result.msg"
+              delay: 5
+              retries: 3                
+
+            - name: Downloading openebs-operator.yaml
+              get_url:
+                url: "{{ openebs_operator_link }}"
+                dest: "{{ playbook_dir }}/{{ openebs_operator }}"
+                force: yes
+              register: result
+              until:  "'OK' in result.msg"
+              delay: 5
+              retries: 3
+
             - name: Cleaning cspc operator
               shell: kubectl delete -f {{ cspc_operator }}
               args:
