@@ -107,6 +107,19 @@
           loop: "{{ node_names.stdout_lines }}"
           no_log: True
 
+        - block:
+            - name: Creating the required number of disk
+              shell: >
+               for ((i=0; i< "{{ disk_count }}"; i++));do
+                 gcloud compute disks create {{ item }}-disk-${i} --size "{{ disk_size }}" --type "{{ disk_type }}" --zone "{{ set_zone }}" &&
+                 gcloud compute instances attach-disk {{ item }} --disk {{ item }}-disk-${i} --device-name {{ item }}-disk-${i} --zone "{{ set_zone }}"
+               done
+              args:
+               executable: /bin/bash
+              register: result_disk
+              with_items: "{{ node_names.stdout_lines }}"
+          when: disk_action != '' and disk_action == 'attach'
+         
         - name: Set Test Status
           set_fact:
             flag: "Test Passed"

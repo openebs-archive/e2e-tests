@@ -29,6 +29,19 @@
             set_zone: "{{ set_zone.stdout }}"
           when: set_zone.stdout is defined
 
+        - block:
+            - name: Detach and delete the disks from nodes
+              shell: >
+               for ((i=0; i< "{{ disk_count }}"; i++));do
+                 gcloud compute instances detach-disk {{ item }} --disk {{ item }}-disk-${i} --zone "{{ set_zone }}" &&
+                 gcloud compute disks delete {{ item }}-disk-${i} --type "{{ disk_type }}" --zone "{{ set_zone }}"
+               done
+              args:
+                executable: /bin/bash
+              register: result_disk
+              with_items: "{{ node_names.stdout_lines }}"
+          when: disk_action != '' and disk_action == 'detach'          
+
           #        - name: Delete GKE cluster
           #          gcp_container_cluster:
           #            name: "{{ cluster_name }}"
