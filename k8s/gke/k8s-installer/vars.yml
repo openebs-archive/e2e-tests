@@ -9,6 +9,10 @@ project: openebs-ci
 auth_kind: serviceaccount
 ssh_key_fn: gke_ssh_key
 ssh_user: gkeuser
+disk_type: pd-standard
+disk_count: 4
+disk_size: 25
+disk_action: attach
 zone: 
   - us-central1-a
   - us-central1-b
