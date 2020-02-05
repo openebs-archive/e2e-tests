@@ -1,6 +1,6 @@
-## litmus job for Provisioning OpenEBS
+## Litmus Job for Provisioning OpenEBS
 
-This litmus job installs OpenEBS on a litmus enabled cluster. This job first scans the environment variables for explicitly passed image names of OpenEBS and then downloads the openebs-operator.yaml. After that it applies the operator and waits for all the pods to get into running state before exiting. 
+This job installs OpenEBS on a litmus enabled cluster. It first scans the environment variables for explicitly passed release version of OpenEBS and the NDM image tags, downloads the openebs-operator.yaml, preconditions it (if necessary), applies the (updated) operator manifest and waits for all the pods to get into running state before exiting. 
 
 ### Prerequisites
 
