@@ -40,7 +40,7 @@
               shell: >
                for ((i=0; i< "{{ disk_count }}"; i++));do
                  gcloud compute instances detach-disk {{ item }} --disk {{ item }}-disk-${i} --zone "{{ set_zone }}" &&
-                 gcloud compute disks delete {{ item }}-disk-${i} --type "{{ disk_type }}" --zone "{{ set_zone }}"
+                 gcloud compute disks delete {{ item }}-disk-${i} --zone "{{ set_zone }}" --quiet
                done
               args:
                 executable: /bin/bash
