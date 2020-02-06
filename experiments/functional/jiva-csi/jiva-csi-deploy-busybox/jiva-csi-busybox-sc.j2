@@ -4,6 +4,7 @@ kind: StorageClass
 metadata:
   name: "{{ storage_class }}"
 provisioner: jiva.csi.openebs.io
+allowVolumeExpansion: true
 parameters:
   cas-type: "jiva"
   replicaCount: "{{ replica_count }}"
