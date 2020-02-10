@@ -342,6 +342,9 @@
           shell: >
               kubectl exec -it {{ istgt_replica.stdout }} -n {{ operator_ns }} --container  cstor-istgt -- istgtcontrol snapcreate {{ pv.stdout }} {{ snap_name }} 30 30
           register: snap_status
+          until: "'DONE SNAPCREATE command' in snap_status.stdout"
+          delay: 20
+          retries: 10
   
         - name: Install netcat on current host
           shell: apt-get update && apt-get -y install netcat iproute2
