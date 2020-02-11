@@ -110,6 +110,12 @@
   delay: 5
   retries: 20
 
+- name: Creating volume snapshot location
+  shell: kubectl apply -f volume-snapshot-location.yml
+  register: volume_snapshot_location
+  failed_when: "'created' not in volume_snapshot_location.stdout"
+  when: storage_engine == "cstor"
+
 - name: Installing development image of OpenEBS velero-plugin
   shell: velero plugin add {{ velero_plugin_name }}
   when: storage_engine == "cstor"
@@ -120,10 +126,3 @@
   until: "'Running' in velero_status_post_update.stdout"
   delay: 5
   retries: 20
-
-- name: Creating volume snapshot location
-  shell: kubectl apply -f volume-snapshot-location.yml
-  register: volume_snapshot_location
-  failed_when: "'created' not in volume_snapshot_location.stdout"
-  when: storage_engine == "cstor"
-  
