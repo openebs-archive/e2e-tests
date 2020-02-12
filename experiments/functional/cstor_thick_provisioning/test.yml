@@ -88,6 +88,15 @@
             flag: "Fail"
 
       always:
+
+        - name: Delete the PersistentVolumeClaim 
+          shell: > 
+            kubectl delete pvc {{ app_pvc }} -n {{ app_ns }}
+          args:
+            executable: /bin/bash
+          register: status
+          failed_when: "status.rc != 0"
+
         ## RECORD END-OF-TEST RESULT IN LitmusResult CR
         - include_tasks: /utils/fcm/update_litmus_result_resource.yml
           vars:
