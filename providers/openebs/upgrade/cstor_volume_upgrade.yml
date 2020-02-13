@@ -1,0 +1,77 @@
+---
+            - name: create job yaml spec for upgrade cstor volume
+              template:
+                src: ./cstor-volume-upgrade-job.j2
+                dest: ./cstor-volume-upgrade-job-{{ outer_item }}.yml
+
+            - name: Replacing the pv name in upgrade cstor volume job spec
+              replace:
+                path: ./cstor-volume-upgrade-job-{{ outer_item}}.yml
+                regexp: "cstor_volume_name"
+                replace: "{{ outer_item }}"
+
+            - name: Replacing the service Account name in upgrade cstor volume job spec
+              replace:
+                path: ./cstor-volume-upgrade-job-{{ outer_item }}.yml
+                regexp: "service_account"
+                replace: "{{ service_account.stdout }}"
+
+            - name: Adding upgrade ci image tag in upgrade cstor volume job spec
+              lineinfile:
+                path: ./cstor-volume-upgrade-job-{{ outer_item }}.yml
+                insertbefore: '--pv-name'
+                line: '        - "--to-version-image-tag={{ upgrade_to_ci }}"'
+              when: upgrade_to_ci is defined
+
+            - name: Create the job to upgrade the cstor volume
+              shell: kubectl apply -f cstor-volume-upgrade-job-{{ outer_item}}.yml
+              args:
+                executable: /bin/bash
+
+            - name: Check if the upgrade jobs have been completed
+              shell: kubectl get pods -n {{ operator_ns }} -l job-name={{ outer_item}} -o custom-columns=:.status.phase --no-headers
+              register: job_status
+              until: "'Succeeded' in job_status.stdout"
+              delay: 10
+              retries: 60
+
+            - name: Check if the target pod is in Running state
+              shell: >
+                kubectl get pods -n {{ operator_ns }} -l openebs.io/persistent-volume={{ outer_item }}
+                -o custom-columns=:.status.phase --no-headers
+              register: target_status
+              until: "((target_status.stdout_lines|unique)|length) == 1 and 'Running' in target_status.stdout"
+              retries: 30
+              delay: 10
+
+            - name: Check if the target has been upgraded to latest version
+              shell: >
+                kubectl get pods -n {{ operator_ns }} -l openebs.io/persistent-volume={{ outer_item }}
+                -o=jsonpath='{range .items[*]}{.metadata.labels.openebs\.io\/version}{"\n"}{end}'
+              register: target_version
+              failed_when: "target_version.stdout != new_version"
+
+            - name: Check if the CVRs are in Healthy state
+              shell: >
+                kubectl get cvr -n {{ operator_ns }} -l openebs.io/persistent-volume={{ outer_item }}
+                -o custom-columns=:.status.phase --no-headers
+              register: cvr_status
+              until: "((cvr_status.stdout_lines|unique)|length) == 1 and 'Healthy' in cvr_status.stdout"
+              retries: 45
+              delay: 5
+
+            - name: Obtain the CVR name to verify the current version
+              shell: >
+                kubectl get cvr -n {{ operator_ns }} -l openebs.io/persistent-volume={{ outer_item }}
+                -o=jsonpath='{range .items[*]}{.metadata.name}{"\n"}{end}'
+              register: cvr_name
+              failed_when: 'cvr_name.stdout == ""'
+
+            - name: Check if the CVRs are upgraded to newer version
+              shell: >
+                 kubectl get cvr -n {{ operator_ns }} {{ item }}
+                 -o custom-columns=:.versionDetails.status.current --no-headers
+              register: cvr_version
+              failed_when: "cvr_version.stdout != new_version"
+              with_items:
+                  - "{{ cvr_name.stdout_lines }}"
