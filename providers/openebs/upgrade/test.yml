@@ -501,112 +501,11 @@
               register: pv_name
               failed_when: 'pv_name.stdout == ""'
 
-            - name: create job yaml spec for upgrade cstor volume
-              template:
-                src: ./cstor-volume-upgrade-job.j2
-                dest: ./cstor-volume-upgrade-job-{{ item }}.yml
-              with_items:
-                - "{{ pv_name.stdout_lines }}"
-
-            - name: Replacing the pv name in upgrade cstor volume job spec
-              replace:
-                path: ./cstor-volume-upgrade-job-{{ item }}.yml
-                regexp: "cstor_volume_name"
-                replace: "{{ item }}"
-              with_items:
-                - "{{ pv_name.stdout_lines }}"
-
-            - name: Replacing the service Account name in upgrade cstor volume job spec
-              replace:
-                path: ./cstor-volume-upgrade-job-{{ item }}.yml
-                regexp: "service_account"
-                replace: "{{ service_account.stdout }}"
-              with_items:
-                - "{{ pv_name.stdout_lines }}"
-
-            - name: Adding upgrade ci imgae tag in upgrade cstor volume job spec
-              lineinfile:
-                path: ./cstor-volume-upgrade-job-{{ item }}.yml
-                insertbefore: '--pv-name'
-                line: '        - "--to-version-image-tag={{ upgrade_to_ci }}"'
-              with_items:
-                - "{{ pv_name.stdout_lines }}"
-              when: upgrade_to_ci is defined
-
-            - name: Create the job to upgrade the cstor volume
-              shell: kubectl apply -f cstor-volume-upgrade-job-{{ item }}.yml
-              args:
-                executable: /bin/bash
-              with_items:
-                - "{{ pv_name.stdout_lines }}"
-
-            - name: Check if the upgrade jobs been completed
-              shell: kubectl get pods -n {{ operator_ns }} -l job-name={{ item }} -o custom-columns=:.status.phase --no-headers
-              register: job_status
-              until: "'Succeeded' in job_status.stdout"
-              delay: 10
-              retries: 60
-              with_items:
-                - "{{ pv_name.stdout_lines }}"
-
-            - name: Check the target is in Running state
-              shell: >
-                kubectl get pods -n {{ operator_ns }} -l openebs.io/persistent-volume={{ item }}
-                -o custom-columns=:.status.phase --no-headers
-              register: target_status
-              until: "((target_status.stdout_lines|unique)|length) == 1 and 'Running' in target_status.stdout"
-              retries: 30
-              delay: 10
-              with_items:
-                - "{{ pv_name.stdout_lines }}"
-
-            - name: Check if the target has been upgraded to latest version
-              shell: >
-                kubectl get pods -n {{ operator_ns }} -l openebs.io/persistent-volume={{ item }}
-                -o=jsonpath='{range .items[*]}{.metadata.labels.openebs\.io\/version}{"\n"}{end}'
-              register: target_version
-              failed_when: "target_version.stdout != new_version"
-              with_items:
-                - "{{ pv_name.stdout_lines }}"
-
-            - name: Check the CVRs are in Healthy state
-              shell: >
-                kubectl get cvr -n {{ operator_ns }} -l openebs.io/persistent-volume={{ item }}
-                -o custom-columns=:.status.phase --no-headers
-              register: cvr_status
-              until: "((cvr_status.stdout_lines|unique)|length) == 1 and 'Healthy' in cvr_status.stdout"
-              retries: 45
-              delay: 5
-              with_items:
-                - "{{ pv_name.stdout_lines }}"
-
-            - name: Obtain the CVR name to verify the current version
-              shell: >
-                kubectl get cvr -n {{ operator_ns }} -l openebs.io/persistent-volume={{ item }}
-                -o=jsonpath='{range .items[*]}{.metadata.name}{"\n"}{end}'
-              register: cvr_name
-              failed_when: 'cvr_name.stdout == ""'
-              with_items:
-                - "{{ pv_name.stdout_lines }}"
-
-            - name: Initialize an empty list to store cvr names
-              set_fact:
-                cvr_list: []
-
-            - name: Store name of all cvr in the list
-              set_fact:
-                cvr_list: "{{ cvr_list + item.stdout_lines }}"
-              with_items:
-                - "{{ cvr_name.results }}"
-
-            - name: Check if the CVRs are upgraded to newer version
-              shell: >
-                 kubectl get cvr -n {{ operator_ns }} {{ item }}
-                 -o custom-columns=:.versionDetails.status.current --no-headers
-              register: cvr_version
-              failed_when: "cvr_version.stdout != new_version"
-              with_items:
-                  - "{{ cvr_list }}"
+            - name: Upgrade cstor volumes
+              include_tasks: cstor_volume_upgrade.yml
+              with_items: "{{ pv_name.stdout_lines }}"
+              loop_control:
+                loop_var: outer_item
 
           when: upgrade_cstor == "true"
 
@@ -616,81 +515,11 @@
               register: jiva_pv_name
               failed_when: 'jiva_pv_name.stdout == ""'
 
-            - name: create job yaml spec for upgrade jiva volume
-              template:
-                src: ./jiva-volume-upgrade-job.j2
-                dest: ./jiva-volume-upgrade-job-{{ item }}.yml
-              with_items:
-                - "{{ jiva_pv_name.stdout_lines }}"
-
-            - name: Replacing the PV name in upgrade jiva volume job spec
-              replace:
-                path: ./jiva-volume-upgrade-job-{{ item }}.yml
-                regexp: "jiva_volume_name"
-                replace: "{{ item }}"
-              with_items:
-                - "{{ jiva_pv_name.stdout_lines }}"
-
-            - name: Replacing the service Account name in upgrade jiva volume job spec
-              replace:
-                path: ./jiva-volume-upgrade-job-{{ item }}.yml
-                regexp: "service_account"
-                replace: "{{ service_account.stdout }}"
-              with_items:
-                - "{{ jiva_pv_name.stdout_lines }}"
-
-            - name: Adding upgrade ci imgae tag in upgrade jiva volume job spec
-              lineinfile:
-                path: ./jiva-volume-upgrade-job-{{ item }}.yml
-                insertbefore: '--pv-name'
-                line: '        - "--to-version-image-tag={{ upgrade_to_ci }}"'
-              with_items:
-                - "{{ jiva_pv_name.stdout_lines }}"
-              when: upgrade_to_ci is defined
-
-            - name: Create the job to upgrade the jiva volume
-              shell: kubectl apply -f jiva-volume-upgrade-job-{{ item }}.yml
-              args:
-                executable: /bin/bash
-              with_items:
-                - "{{ jiva_pv_name.stdout_lines }}"
-
-            - name: Check if the upgrade jobs been completed
-              shell: kubectl get pods -n {{ operator_ns }} -l job-name={{ item }} -o custom-columns=:.status.phase --no-headers
-              register: job_status
-              until: "'Succeeded' in job_status.stdout"
-              delay: 10
-              retries: 60
-              with_items:
-                - "{{ jiva_pv_name.stdout_lines }}"
-
-            - name: Check the controler and replica is in Running state
-              shell: >
-                kubectl get pods --all-namespaces -l openebs.io/persistent-volume={{ item }} -o custom-columns=:.status.phase --no-headers
-              register: ctrl_status
-              until: "((ctrl_status.stdout_lines|unique)|length) == 1 and 'Running' in ctrl_status.stdout"
-              retries: 30
-              delay: 10
-              with_items:
-                - "{{ jiva_pv_name.stdout_lines }}"
-
-            - name: Check if the controller has been upgraded to latest version
-              shell: >
-                kubectl get deploy --all-namespaces -l openebs.io/persistent-volume={{ item }},openebs.io/controller=jiva-controller
-                -o=jsonpath='{range .items[*]}{.metadata.labels.openebs\.io\/version}{"\n"}{end}'
-              register: ctrl_version
-              failed_when: "ctrl_version.stdout != new_version"
-              with_items:
-                - "{{ jiva_pv_name.stdout_lines }}"
-
-            - name: Check if the replica has been upgraded to latest version
-              shell: >
-                kubectl get deploy --all-namespaces -l openebs.io/persistent-volume={{ item }},openebs.io/replica=jiva-replica
-                -o=jsonpath='{range .items[*]}{.metadata.labels.openebs\.io\/version}{"\n"}{end}'
-              register: rep_version
-              failed_when: "rep_version.stdout != new_version"
-              with_items:
-                - "{{ jiva_pv_name.stdout_lines }}"
+            - name: Upgrade JIVA volumes
+              include_tasks: jiva_volume_upgrade.yml
+              with_items: "{{ jiva_pv_name.stdout_lines }}"
+              loop_control:
+                loop_var: outer_item
 
           when: upgrade_jiva == "true"
 

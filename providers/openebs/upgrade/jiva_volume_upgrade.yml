@@ -1,0 +1,58 @@
+---
+            - name: create job yaml spec for upgrade jiva volume
+              template:
+                src: ./jiva-volume-upgrade-job.j2
+                dest: ./jiva-volume-upgrade-job-{{ outer_item }}.yml
+
+            - name: Replacing the PV name in upgrade jiva volume job spec
+              replace:
+                path: ./jiva-volume-upgrade-job-{{ outer_item }}.yml
+                regexp: "jiva_volume_name"
+                replace: "{{ outer_item }}"
+
+            - name: Replacing the service Account name in upgrade jiva volume job spec
+              replace:
+                path: ./jiva-volume-upgrade-job-{{ outer_item }}.yml
+                regexp: "service_account"
+                replace: "{{ service_account.stdout }}"
+
+            - name: Adding upgrade ci image tag in upgrade jiva volume job spec
+              lineinfile:
+                path: ./jiva-volume-upgrade-job-{{ outer_item }}.yml
+                insertbefore: '--pv-name'
+                line: '        - "--to-version-image-tag={{ upgrade_to_ci }}"'
+              when: upgrade_to_ci is defined
+
+            - name: Create the job to upgrade the jiva volume
+              shell: kubectl apply -f jiva-volume-upgrade-job-{{ outer_item }}.yml
+              args:
+                executable: /bin/bash
+
+            - name: Check if the upgrade jobs have been completed
+              shell: kubectl get pods -n {{ operator_ns }} -l job-name={{ outer_item }} -o custom-columns=:.status.phase --no-headers
+              register: job_status
+              until: "'Succeeded' in job_status.stdout"
+              delay: 10
+              retries: 60
+
+            - name: Check if the controler and replicas are in Running state
+              shell: >
+                kubectl get pods --all-namespaces -l openebs.io/persistent-volume={{ outer_item }} -o custom-columns=:.status.phase --no-headers
+              register: ctrl_status
+              until: "((ctrl_status.stdout_lines|unique)|length) == 1 and 'Running' in ctrl_status.stdout"
+              retries: 30
+              delay: 10
+
+            - name: Check if the controller has been upgraded to latest version
+              shell: >
+                kubectl get deploy --all-namespaces -l openebs.io/persistent-volume={{ outer_item }},openebs.io/controller=jiva-controller
+                -o=jsonpath='{range .items[*]}{.metadata.labels.openebs\.io\/version}{"\n"}{end}'
+              register: ctrl_version
+              failed_when: "ctrl_version.stdout != new_version"
+
+            - name: Check if the replica has been upgraded to latest version
+              shell: >
+                kubectl get deploy --all-namespaces -l openebs.io/persistent-volume={{ outer_item }},openebs.io/replica=jiva-replica
+                -o=jsonpath='{range .items[*]}{.metadata.labels.openebs\.io\/version}{"\n"}{end}'
+              register: rep_version
+              failed_when: "rep_version.stdout != new_version"
