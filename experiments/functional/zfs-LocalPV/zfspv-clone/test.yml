@@ -1,0 +1,202 @@
+- hosts: localhost
+  connection: local
+
+  vars_files:
+    - test_vars.yml
+    - /mnt/parameters.yml
+    
+  tasks:
+    - block:
+
+        ## Generating the testname for deployment
+        - include_tasks: /utils/fcm/create_testname.yml
+
+        ## RECORD START-OF-TEST IN LITMUS RESULT CR
+        - include_tasks: "/utils/fcm/update_litmus_result_resource.yml"
+          vars:
+            status: 'SOT'
+        
+        - block:
+
+            - block:
+              - name: Update the {{ app_name }} deployment yaml with test specific values
+                template:
+                  src: busybox.j2
+                  dest: busybox.yml
+
+              - name: Deploy the {{ app_name }} application using cloned PVC
+                shell: >
+                  kubectl create -f busybox.yml 
+                args:
+                  executable: /bin/bash
+              when: app_name == "busybox"
+
+            - block:
+              - name: Update the {{ app_name }} deployment yaml with test specific values
+                template:
+                  src: percona.j2
+                  dest: percona.yml
+
+              - name: Deploy the {{ app_name }} application using cloned PVC
+                shell: >
+                  kubectl create -f percona.yml 
+                args:
+                  executable: /bin/bash
+              when: app_name == "percona"
+
+            - name: Update the clone_pvc template with the test specific values to create clone
+              template:
+                src: clone_pvc.j2
+                dest: clone_pvc.yml
+            
+            - name: Create the clone
+              shell: >
+                kubectl create -f clone_pvc.yml
+              args:
+                executable: /bin/bash
+              register: status
+              failed_when: "status.rc != 0"
+           
+            - name: Check if the cloned PVC is bound
+              shell: >
+                kubectl get pvc {{ clone_pvc_name }} -n {{ app_ns }} 
+                --no-headers -o custom-columns=:.status.phase
+              args:
+                executable: /bin/bash
+              register: clone_pvc_status
+              until: "'Bound' in clone_pvc_status.stdout"
+              delay: 30
+              retries: 5
+
+            - name: Get {{ app_name }} application pod name
+              shell: >
+                kubectl get pods -n {{ app_ns }} -l app={{ app_label }} --no-headers
+                -o=custom-columns=NAME:".metadata.name"
+              args:
+                executable: /bin/bash
+              register: pod_name
+
+            - name: Record the {{ app_name }} application pod name
+              set_fact:
+                app_pod_name: "{{ pod_name.stdout }}"
+
+            - name: Checking {{ app_name }} application pod is in running state
+              shell: >
+                kubectl get pods {{app_pod_name}} -n {{ app_ns }} 
+                -o jsonpath='{.status.phase}'
+              register: pod_status
+              until: "'Running' in pod_status.stdout"
+              delay: 2
+              retries: 150
+        
+            - name: Get the container status of {{ app_name }} application pod
+              shell: >
+                kubectl get pods {{ app_pod_name }} -n {{ app_ns }} 
+                -o jsonpath='{.status.containerStatuses[].state}' | grep running
+              args:
+                executable: /bin/bash
+              register: containerStatus
+              until: "'running' in containerStatus.stdout"
+              delay: 2
+              retries: 150
+                        
+            - block:
+                - name: Verify the data persistency
+                  include_tasks: "/utils/scm/applications/mysql/mysql_data_persistence.yml"
+                  vars:
+                    status: 'VERIFY'
+                    ns: "{{ app_ns }}"
+                    label: app={{ app_label }}
+                    pod_name: "{{ app_pod_name }}"
+              when: data_persistence == 'mysql'
+
+            - block: 
+                - name: Verify the data persistency
+                  include_tasks: "/utils/scm/applications/busybox/busybox_data_persistence.yml"
+                  vars:
+                    status: 'VERIFY'
+                    ns: "{{ app_ns }}"
+                    label: app={{ app_label}}
+                    pod_name: "{{ app_pod_name }}"
+              when: data_persistence == 'busybox'
+
+          when: lookup('env','ACTION') == 'provision'    
+
+        - block:  
+            - name: Get the ZV name for the cloned PVC
+              shell: >
+                kubectl get pvc {{ clone_pvc_name }} -n {{ app_ns }} -o jsonpath='{.spec.voluemeName}'
+              args:
+                executable: /bin/bash
+              register: zv_name
+
+            - name: delete the {{ app_name }} application which is using cloned pvc
+              shell: >
+                kubectl delete -f busybox.yml 
+              args:
+                executable: /bin/bash
+              register: status
+              when: app_name == 'busybox'
+              failed_when: "status.rc != 0"
+
+            - name: delete the {{ app_name }} application which is using cloned pvc
+              shell: >
+                kubectl delete -f percona.yml 
+              args:
+                executable: /bin/bash
+              register: status
+              when: app_name == 'percona'
+              failed_when: "status.rc != 0"
+
+            - name: Check if the {{ app_name }} application pod which is using cloned pvc is deleted successfully
+              shell: >
+                kubectl get pods -n {{ app_ns }} 
+              args:
+                executable: /bin/bash
+              register: app_status
+              until: "{{ app_pod_name }} not in app_status.stdout"
+              delay: 30
+              retries: 15   
+
+            - name: Delete the cloned pvc
+              shell: >
+                kubectl delete pvc {{ clone_pvc_name }} -n {{ app_ns }} 
+              args:
+                 executable: /bin/bash
+              register: pvc_status
+              failed_when: "pvc_status.rc != 0"
+
+            - name: Check if the cloned pvc is deleted
+              shell: >
+                kubectl get pvc -n {{ app_ns }}
+              args:
+                executable: /bin/bash
+              register: clone_pvc_status
+              until: "clone_pvc_name not in clone_pvc_status.stdout"
+              delay: 5
+              retries: 30
+
+            - name: Check if the ZV for cloned pvc is deleted
+              shell: >
+                kubectl get zv -n {{ operator_ns }} 
+              args:
+                executable: /bin/bash
+              register: zv_status
+              until: "zv_name.stdout not in zv_status.stdout"
+              delay: 5
+              retries: 15
+
+          when: lookup('env','ACTION') == 'deprovision'
+            
+        - set_fact:
+            flag: "Pass"
+
+      rescue:
+        - set_fact:
+            flag: "Fail"
+
+      always:
+            ## RECORD END-OF-TEST IN LITMUS RESULT CR
+        - include_tasks: /utils/fcm/update_litmus_result_resource.yml
+          vars:
+            status: 'EOT'

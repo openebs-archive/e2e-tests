@@ -17,3 +17,5 @@ de_dup: "{{ lookup('env','DEDUP') }}"
 record_size: "{{ lookup('env','RECORDSIZE') }}"
 
 vol_block_size: "{{ lookup('env','VOLBLOCKSIZE') }}"
+
+snapshot_class: "{{ lookup('env','SNAPSHOT_CLASS') }}"
