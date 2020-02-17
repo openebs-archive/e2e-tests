@@ -1,0 +1,48 @@
+---
+apiVersion: batch/v1
+kind: Job
+metadata:
+  generateName: litmus-jiva-vol-resize-
+  namespace: litmus
+spec:
+  template:
+    metadata:
+      name: litmus
+      labels:
+        app: litmus-jiva-vol-resize
+
+    spec:
+      serviceAccountName: litmus
+      restartPolicy: Never
+      containers:
+      - name: ansibletest
+        image: openebs/ansible-runner:ci
+        imagePullPolicy: Always
+
+        env:
+          - name: ANSIBLE_STDOUT_CALLBACK
+            value: default
+
+            # Application namespace
+          - name: APP_NAMESPACE
+            value: ''
+
+            # Application pvc
+          - name: APP_PVC
+            value: '' 
+
+          - name: APP_LABEL
+            value: ''
+          
+          - name: PV_CAPACITY
+            value: 5G
+          
+          - name: NEW_CAPACITY
+            value: 8G
+
+            #Target namespace
+          - name: OPERATOR_NS
+            value: openebs
+
+        command: ["/bin/bash"]
+        args: ["-c", "ansible-playbook ./experiments/functional/jiva-volume-resize/test.yml -i /etc/ansible/hosts -vv; exit 0"]

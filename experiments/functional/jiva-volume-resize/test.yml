@@ -1,0 +1,328 @@
+---
+- hosts: localhost
+  connection: local
+
+  vars_files:
+    - test_vars.yml
+
+  tasks:
+    - block:
+
+          ## Generating the testname for deployment
+        - include_tasks: /utils/fcm/create_testname.yml
+
+          ## RECORD START-OF-TEST IN LITMUS RESULT CR
+        - include_tasks: /utils/fcm/update_litmus_result_resource.yml
+          vars:
+            status: 'SOT'
+        
+        - name: Update the DaemonSet template with the variables.
+          template:
+            src: daemonset.j2
+            dest: daemonset.yml
+
+        - name: Create the DaemonSet 
+          shell: kubectl apply -f daemonset.yml
+          args:
+            executable: /bin/bash
+          register: status
+          failed_when: "status.rc != 0"
+
+        - name: Obtain the application pod
+          shell: >
+            kubectl get po -n {{ app_ns }} -l {{ app_label }} 
+            --no-headers -o custom-columns=:.metadata.name
+          args:
+            executable: /bin/bash
+          register: app_pod
+          failed_when: "app_pod.rc != 0"
+
+        - name: Record the application pod name
+          set_fact: 
+            application_pod: "{{ app_pod.stdout }}"
+
+        - name: Verify if the application pod is running
+          shell: >
+            kubectl get po -n {{ app_ns }} -l {{ app_label }} 
+            --no-headers -o custom-columns=:.status.phase
+          args:
+            executable: /bin/bash
+          register: app_status
+          until: "'Running' in app_status.stdout"
+          delay: 15
+          retries: 60
+
+        - name: Obtain the node where application pod is scheduled
+          shell: >
+            kubectl get po "{{ app_pod.stdout }}" -n {{ app_ns }} 
+            --no-headers -o custom-columns=:.spec.nodeName
+          args:
+            executable: /bin/bash
+          register: app_node
+          failed_when: "app_node.rc != 0"
+
+        - name: Obtain the node IP where application pod is scheduled
+          shell: >
+            kubectl get node "{{ app_node.stdout }}" 
+            -o jsonpath='{.status.addresses[0].address}'
+          args:
+            executable: /bin/bash
+          register: node_ip
+          failed_when: "node_ip.rc != 0"
+
+        - name: Obtain the IP address of jiva controller pod
+          shell: >
+            kubectl get pod -n {{ app_ns }} -l openebs.io/controller=jiva-controller 
+            --no-headers -o custom-columns=:.status.podIP
+          args:
+            executable: /bin/bash
+          register: controller_ip
+          failed_when: "controller_ip.rc != 0"
+                  
+        - name: Getting PV name from the pvc
+          shell: >
+            kubectl get pvc {{ app_pvc }} -n {{ app_ns }} 
+            --no-headers -o custom-columns=:.spec.volumeName
+          args:
+            executable: /bin/bash
+          register: app_pv
+          failed_when: "app_pv.rc != 0"
+
+        - name: Obtain the ds pod corresponding to application pod
+          shell: >
+            kubectl get po -l app=jiva-resize -o wide --no-headers -o 
+            custom-columns=:.metadata.name,:.spec.nodeName | 
+            grep "{{ app_node.stdout }}" | awk '{print $1}'
+          args:
+            executable: /bin/bash
+          register: ds_pod
+          failed_when: "ds_pod.rc != 0"
+
+        - name: Verify if corresponding daemonset pod is Running
+          shell: >
+            kubectl get po "{{ ds_pod.stdout }}" 
+            --no-headers -o custom-columns=:.status.phase
+          args:
+            executable: /bin/bash
+          register: status
+          until: "'Running' in status.stdout"
+          delay: 5
+          retries: 60
+
+        - name: Obatin the Target Disk
+          shell: >
+            kubectl exec -ti "{{ ds_pod.stdout }}" -- bash 
+            -c "lsblk | grep '{{ app_pv.stdout }}'" | awk '{print $1}'
+          args:
+            executable: /bin/bash
+          register: target_disk
+          failed_when: "target_disk.rc != 0"
+
+        - name: Obtain the iSCSI target
+          shell: >
+            kubectl exec -ti "{{ ds_pod.stdout }}" -- bash -c 
+            "iscsiadm -m session" | grep "{{ app_pv.stdout }}" | awk '{print $4}'
+          args:
+            executable: /bin/bash
+          register: iscsi_target
+          failed_when: "iscsi_target.rc != 0"
+
+        - name: Obtain the mount path on disk "{{ target_disk.stdout }}"
+          shell: >
+            kubectl exec -ti "{{ ds_pod.stdout }}" -- bash -c "mount | 
+            grep /dev/'{{ target_disk.stdout }}'" | awk '{print $3}'
+          args:
+            executable: /bin/bash
+          register: mountpath
+          failed_when: "mountpath.rc != 0"
+
+        - name: Unmount the File System
+          shell: >
+            kubectl exec -ti "{{ ds_pod.stdout }}" -- bash -c 
+            "umount '{{ item }}'"
+          args:
+            executable: /bin/bash
+          with_items: "{{ mountpath.stdout_lines }}"
+          ignore_errors: yes
+
+        - name: Logout from the particular iSCSI target
+          shell: >
+            kubectl exec -ti "{{ ds_pod.stdout }}" -- bash 
+            -c "iscsiadm -m node -u -T '{{ iscsi_target.stdout }}'"
+          args:
+            executable: /bin/bash
+          register: status
+          failed_when: "status.rc != 0"
+
+        - name: Get the volume ID using curl
+          shell: >
+            curl http://"{{ controller_ip.stdout }}":9501/v1/volumes -s | jq -r '.data[0].id'
+          args:
+            executable: /bin/bash
+          register: vol_id
+          failed_when: "vol_id.rc != 0"
+          
+        - name: Expand the volume to desired size
+          shell: >
+            curl -H "Content-Type: application/json" -X POST -d '{"name":"'{{ app_pv.stdout }}'","size":"{{ desired_size }}"}' 
+            http://"{{ controller_ip.stdout }}":9501/v1/volumes/"{{ vol_id.stdout }}"?action=resize
+          args:
+            executable: /bin/bash
+          register: status
+          failed_when: "status.rc != 0"
+
+        - name: Obtain the replica pods of jiva volume
+          shell: >
+            kubectl get pods -n {{ app_ns }} -l openebs.io/replica=jiva-replica 
+            --no-headers -o custom-columns=:.metadata.name
+          args:
+            executable: /bin/bash
+          register: replica_pod
+          failed_when: "replica_pod.rc != 0"
+
+        - name: Delete all the replica pods of jiva volume
+          shell: >
+            kubectl delete pod "{{ item }}" -n {{ app_ns }}  
+          args:
+            executable: /bin/bash
+          with_items: "{{ replica_pod.stdout_lines }}"
+
+        - name: Obtain the iSCSI Target IP (controller service IP address)
+          shell: >
+            kubectl get svc -n {{ app_ns }} -l openebs.io/controller-service=jiva-controller-svc 
+            --no-headers -o custom-columns=:.spec.clusterIP
+          args:
+            executable: /bin/bash
+          register: target_IP
+          failed_when: "target_IP.rc != 0"
+
+        - name: Login to iSCSI Target
+          shell: >
+            kubectl exec -ti "{{ ds_pod.stdout }}" -- bash -c "iscsiadm -m discovery -t st -p "{{ target_IP.stdout }}":3260 -l"
+          args:
+            executable: /bin/bash
+          register: status
+          failed_when: "status.rc != 0"
+
+        - name: Obtain the remounted disk
+          shell: >
+            kubectl exec -ti "{{ ds_pod.stdout }}" -- bash -c "iscsiadm -m session -P3" | grep "{{ app_pv.stdout }}"  -A50 | egrep 'iqn|disk' | grep disk | awk {'print $4'}
+          args:
+            executable: /bin/bash
+          register: remount_disk
+          until: "remount_disk.stdout != ''"
+          delay: 2
+          retries: 30
+
+        - name: Check the file system consistency
+          shell: >
+            kubectl exec -ti "{{ ds_pod.stdout }}" 
+            -- bash -c "e2fsck -f /dev/'{{ remount_disk.stdout }}' -y"
+          args:
+            executable: /bin/bash
+          register: status
+          until: "status.rc == 0"
+          delay: 2
+          retries: 30
+          ignore_errors: yes
+
+        - name: Expand the file system
+          shell: >
+            kubectl exec -ti "{{ ds_pod.stdout }}" -- bash -c "resize2fs /dev/'{{ remount_disk.stdout }}'"
+          args:
+            executable: /bin/bash
+          register: status
+          failed_when: "status.rc != 0"
+
+        - name: Mount the file system
+          shell: >
+            kubectl exec -ti "{{ ds_pod.stdout }}" 
+            -- bash -c "mount /dev/'{{ remount_disk.stdout }}' '{{ item }}'"
+          args:
+            executable: /bin/bash
+          with_items: "{{ mountpath.stdout_lines }}"
+          ignore_errors: yes
+
+        - name: Delete the application pod
+          shell: kubectl delete pod "{{ application_pod }}" -n "{{ app_ns }}"
+          args:
+            executable: /bin/bash
+          register: status
+          failed_when: "status.rc != 0"
+
+        - name: Verify if the application pod is deleted
+          shell: >
+            kubectl get pods -n {{ app_ns }}
+          args:
+            executable: /bin/bash
+          register: podstatus
+          until: "'{{ application_pod }}' not in podstatus.stdout"
+          delay: 5
+          retries: 60
+          
+        - name: Obtain the new application pod name
+          shell: >
+            kubectl get pod -n {{ app_ns }} -l {{ app_label }} 
+            --no-headers -o custom-columns=:.metadata.name
+          args:
+            executable: /bin/bash
+          register: newpod_name
+          failed_when: "newpod_name.rc !=0"
+
+        - name: Verify if the new application pod is running
+          shell: >
+            kubectl get pod "{{ newpod_name.stdout }}" -n {{ app_ns }} 
+            --no-headers -o custom-columns=:.status.phase
+          register: status
+          until: "'Running' in status.stdout"
+          delay: 5
+          retries: 60
+
+        - name : Obatin the node where new pod is scheduled
+          shell: >
+            kubectl get pod "{{ newpod_name.stdout }}" -n {{ app_ns }} 
+            --no-headers -o custom-columns=:.spec.nodeName
+          args:
+            executable: /bin/bash
+          register: newapp_node
+          failed_when: "newapp_node.rc != 0"
+
+        - name: Obtain the ds pod corresponding to new application pod
+          shell: >
+            kubectl get pod -l app=jiva-resize -o wide --no-headers -o 
+            custom-columns=:.metadata.name,:.spec.nodeName | 
+            grep "{{ newapp_node.stdout }}" | awk '{print $1}'
+          args:
+            executable: /bin/bash
+          register: newds_pod
+          failed_when: "newds_pod.rc != 0"
+
+        - name: Verify the resized size of volume
+          shell: >
+            kubectl exec -ti "{{ newds_pod.stdout }}" 
+            -- bash -c "lsblk | grep '{{ remount_disk.stdout }}'" | awk '{print $4}'
+          args:
+            executable: /bin/bash
+          register: status
+          failed_when: "'{{ desired_size }}' != status.stdout"
+
+        - name: Delete the DaemonSet 
+          shell: kubectl delete -f daemonset.yml
+          args:
+            executable: /bin/bash
+          register: status
+          failed_when: "status.rc != 0"
+
+        - set_fact:
+            flag: "Pass"
+
+      rescue:
+        - name: Setting fail flag
+          set_fact:
+            flag: "Fail"
+
+      always:
+        ## RECORD END-OF-TEST IN LITMUS RESULT CR
+        - include_tasks: /utils/fcm/update_litmus_result_resource.yml
+          vars:
+            status: 'EOT'
