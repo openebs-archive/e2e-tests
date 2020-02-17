@@ -24,12 +24,12 @@ spec:
           - name: APP_NAMESPACE           ## Namespace in which application is deployed
             value: '' 
 
+          - name: OPERATOR_NAMESPACE      ## Namespace in which all the resources created by zfs driver will be present
+            value: ''                     ## for e.g. zfsvolume (zv) will be in this namespace
+
           - name: STORAGE_CLASS           ## Storage class name by which original volume was provisioned
             value: ''
             
-          - name: SNAPSHOT_CLASS          ## Name of zfspv volumesnapshotclass
-            value: ''
-
           - name: SNAPSHOT_NAME           ## Snapshot name from which clone has to be created
             value: ''
             

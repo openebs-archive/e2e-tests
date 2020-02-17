@@ -125,7 +125,7 @@
               register: ss_content
               failed_when: "snapshotcontent in ss_content.stdout"  
             
-          when: action == 'deprovisioin'
+          when: action == 'deprovision'
 
         - set_fact:
             flag: "Pass"

@@ -65,8 +65,8 @@
                 executable: /bin/bash
               register: clone_pvc_status
               until: "'Bound' in clone_pvc_status.stdout"
-              delay: 30
-              retries: 5
+              delay: 5
+              retries: 30
 
             - name: Get {{ app_name }} application pod name
               shell: >
@@ -86,8 +86,8 @@
                 -o jsonpath='{.status.phase}'
               register: pod_status
               until: "'Running' in pod_status.stdout"
-              delay: 2
-              retries: 150
+              delay: 5
+              retries: 50
         
             - name: Get the container status of {{ app_name }} application pod
               shell: >
@@ -98,7 +98,7 @@
               register: containerStatus
               until: "'running' in containerStatus.stdout"
               delay: 2
-              retries: 150
+              retries: 50
                         
             - block:
                 - name: Verify the data persistency
@@ -125,28 +125,48 @@
         - block:  
             - name: Get the ZV name for the cloned PVC
               shell: >
-                kubectl get pvc {{ clone_pvc_name }} -n {{ app_ns }} -o jsonpath='{.spec.voluemeName}'
+                kubectl get pvc {{ clone_pvc_name }} -n {{ app_ns }} -o jsonpath='{.spec.volumeName}'
               args:
                 executable: /bin/bash
               register: zv_name
 
-            - name: delete the {{ app_name }} application which is using cloned pvc
+            - name: Get {{ app_name }} application pod name which is using cloned pvc
               shell: >
-                kubectl delete -f busybox.yml 
+                kubectl get pods -n {{ app_ns }} -l app={{ app_label }} --no-headers
+                -o=custom-columns=NAME:".metadata.name"
               args:
                 executable: /bin/bash
-              register: status
-              when: app_name == 'busybox'
-              failed_when: "status.rc != 0"
+              register: pod_name
+            
+            - block:
+                - name: Update the {{ app_name }} deployment yaml with test specific values
+                  template:
+                    src: busybox.j2
+                    dest: busybox.yml
 
-            - name: delete the {{ app_name }} application which is using cloned pvc
-              shell: >
-                kubectl delete -f percona.yml 
-              args:
-                executable: /bin/bash
-              register: status
+                - name: delete the {{ app_name }} application which is using cloned pvc
+                  shell: >
+                    kubectl delete -f busybox.yml 
+                  args:
+                    executable: /bin/bash
+                  register: status
+                  failed_when: "status.rc != 0"
+              when: app_name == 'busybox'
+
+            - block:
+                - name: Update the {{ app_name }} deployment yaml with test specific values
+                  template:
+                    src: percona.j2
+                    dest: percona.yml
+
+                - name: delete the {{ app_name }} application which is using cloned pvc
+                  shell: >
+                    kubectl delete -f percona.yml 
+                  args:
+                    executable: /bin/bash
+                  register: status
+                  failed_when: "status.rc != 0"
               when: app_name == 'percona'
-              failed_when: "status.rc != 0"
 
             - name: Check if the {{ app_name }} application pod which is using cloned pvc is deleted successfully
               shell: >
@@ -154,9 +174,9 @@
               args:
                 executable: /bin/bash
               register: app_status
-              until: "{{ app_pod_name }} not in app_status.stdout"
-              delay: 30
-              retries: 15   
+              until: "pod_name.stdout not in app_status.stdout"
+              delay: 15
+              retries: 30   
 
             - name: Delete the cloned pvc
               shell: >
