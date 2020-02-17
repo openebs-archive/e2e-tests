@@ -2,7 +2,7 @@
 apiVersion: v1
 kind: ConfigMap
 metadata:
-  name: zfspv-snapshot
+  name: zfspv-snapshot-clone
   namespace: litmus
 data:
   parameters.yml: |
@@ -63,4 +63,4 @@ spec:
       volumes:
         - name: parameters
           configMap:
-            name: zfspv-snapshot
+            name: zfspv-snapshot-clone
