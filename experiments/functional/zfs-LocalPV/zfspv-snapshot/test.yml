@@ -57,6 +57,14 @@
                 src: snapshot.j2
                 dest: snapshot.yml
 
+            - name: Check if the volume snapshot class is present
+              shell: >
+                kubectl get volumesnapshotclass
+              args:
+                executable: /bin/bash
+              register: snapshot_class_status
+              failed_when: "{{ snapshot_class }} not in snapshot_class_status.stdout"
+
             - name: create snapshot   
               shell: >
                 kubectl create -f snapshot.yml
@@ -65,6 +73,17 @@
               register: status
               failed_when: "status.rc != 0"
 
+            - name: Get the uid of the snapshot taken
+              shell: >
+                kubectl get volumesnapshot.snapshot {{ snapshot_name }} -n {{ app_ns }} 
+                --no-headers -o custom-columns=:.metadata.uid
+              args:
+                executable: /bin/bash
+              register: snap_uid
+              
+            - set_fact:
+                snapshot_uid: "{{ snap_uid.stdout }}"
+                
             - name: Confirm that volumesnapshot {{ snapshot_name }} is ready to use
               shell: >
                 kubectl get volumesnapshot.snapshot {{ snapshot_name }} -n {{ app_ns }} 
@@ -78,7 +97,8 @@
 
             - name: Check the status for openebs resource for the created snapshot {{ snapshot_name }}
               shell: >
-                kubectl get zfssnap -n {{ operator_ns }} -o jsonpath='{.items[].status.state}'
+                kubectl get zfssnap -n {{ operator_ns }} 
+                -o jsonpath='{.items[?(@.metadata.uid=="{{ snapshot_uid }}")].status.state}'
               args:
                 executable: /bin/bash
               register: zfssnap_status

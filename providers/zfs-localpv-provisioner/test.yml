@@ -71,7 +71,7 @@
 
             when: fs_type == 'zfs'
 
-          - name: Update volume snapshost class template with the test specific variables.
+          - name: Update volume snapshot class template with the test specific variables.
             template:
               src: snapshot-class.j2
               dest: snapshot-class.yml
