@@ -17,8 +17,9 @@
             status: 'SOT'
 
         - name: Getting the compute node name
-          shell: kubectl get nodes --no-headers | grep -v master | awk {'print $1'}
+          shell: kubectl get nodes --no-headers | grep -v master | awk {'print $1'} | head -{{ pool_count }} 
           register: nodes
+          failed_when: "(nodes.stdout_lines|length) != pool_count|int"
 
         - name: Checking OpenEBS-CSPC-Operator is running
           shell: kubectl get pods -n {{ operator_ns }} -o jsonpath='{.items[?(@.metadata.labels.name=="cspc-operator")].status.phase}'
@@ -131,25 +132,26 @@
               delay: 5
               retries: 30
 
-            - name: Verify if cStor Pool are Running
+            - name: Verify if the cStor Pool pods are Running
               shell: >
                 kubectl get pods -n {{ operator_ns }} -l openebs.io/cstor-pool-instance={{ item }}
                 --no-headers -o custom-columns=:status.phase
               args:
                 executable: /bin/bash
-              register: pool_count
+              register: poolcount
               with_items: "{{ cspi_name.stdout_lines }}"
-              until: "((pool_count.stdout_lines|unique)|length) == 1 and 'Running' in pool_count.stdout"
+              until: "((poolcount.stdout_lines|unique)|length) == 1 and 'Running' in poolcount.stdout"
               retries: 30
               delay: 10
 
-            - name: Get cStor Pool names to verify the container statuses
+            - name: Get cStor Pool pod names to verify the container statuses and check the required number of pools created. 
               shell: >
                 kubectl get pods -n {{ operator_ns }} -l openebs.io/cstor-pool-cluster={{ pool_name }}
                 --no-headers -o=custom-columns=NAME:".metadata.name"
               args:
                 executable: /bin/bash
               register: cstor_pool_pod
+              failed_when: "(cstor_pool_pod.stdout_lines|length) != pool_count|int"
 
             - name: Get the runningStatus of pool pod
               shell: >
