@@ -17,6 +17,13 @@
             status: 'SOT'
         
         - block:
+            - name: Check if the snapshot is present to create clone
+              shell: >
+                kubectl get volumesnapshot.snapshot -n {{ app_ns }}
+              args:
+                executable: /bin/bash
+              register: snapshot_status
+              failed_when: snapshot_name not in snapshot_status.stdout
 
             - block:
               - name: Update the {{ app_name }} deployment yaml with test specific values
