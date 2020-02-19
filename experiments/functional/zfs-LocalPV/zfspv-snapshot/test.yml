@@ -102,7 +102,7 @@
                 kubectl delete pvc {{ items }} -n {{ app_ns }}
               args:
                 executable: /bin/bash
-              with_items: "{{ clone_pvc_list.stdout_line }}"
+              with_items: "{{ clone_pvc_list.stdout_lines }}"
               when: clone_pvc_list.stdout != ''
 
             - name: Obtain the SnapshotContent of the snapshot
