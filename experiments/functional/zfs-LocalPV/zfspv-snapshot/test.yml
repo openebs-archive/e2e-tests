@@ -98,7 +98,7 @@
             - name: Check the status for openebs resource for the created snapshot {{ snapshot_name }}
               shell: >
                 kubectl get zfssnap -n {{ operator_ns }} 
-                -o jsonpath='{.items[?(@.metadata.uid=="{{ snapshot_uid }}")].status.state}'
+                -o jsonpath='{.items[?(@.metadata.uid==snapshot-"{{ snapshot_uid }}")].status.state}'
               args:
                 executable: /bin/bash
               register: zfssnap_status
