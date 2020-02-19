@@ -63,7 +63,7 @@
               args:
                 executable: /bin/bash
               register: snapshot_class_status
-              failed_when: "{{ snapshot_class }} not in snapshot_class_status.stdout"
+              failed_when: "snapshot_class not in snapshot_class_status.stdout"
 
             - name: create snapshot   
               shell: >
