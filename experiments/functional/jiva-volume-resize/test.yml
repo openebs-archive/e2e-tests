@@ -28,22 +28,30 @@
           register: status
           failed_when: "status.rc != 0"
 
+        - name: Confirm that the daemonset pods are running on all nodes
+          shell: >
+            kubectl get pod -l app=jiva-resize 
+            --no-headers -o custom-columns=:status.phase
+            -n litmus | sort | uniq
+          args:
+            executable: /bin/bash
+          register: result
+          until: "result.stdout == 'Running'"
+          delay: 5
+          retries: 60
+
         - name: Obtain the application pod
           shell: >
-            kubectl get po -n {{ app_ns }} -l {{ app_label }} 
+            kubectl get pod -n {{ app_ns }} -l {{ app_label }} 
             --no-headers -o custom-columns=:.metadata.name
           args:
             executable: /bin/bash
           register: app_pod
           failed_when: "app_pod.rc != 0"
-
-        - name: Record the application pod name
-          set_fact: 
-            application_pod: "{{ app_pod.stdout }}"
-
+        
         - name: Verify if the application pod is running
           shell: >
-            kubectl get po -n {{ app_ns }} -l {{ app_label }} 
+            kubectl get pod -n {{ app_ns }} -l {{ app_label }} 
             --no-headers -o custom-columns=:.status.phase
           args:
             executable: /bin/bash
@@ -54,7 +62,7 @@
 
         - name: Obtain the node where application pod is scheduled
           shell: >
-            kubectl get po "{{ app_pod.stdout }}" -n {{ app_ns }} 
+            kubectl get pod "{{ app_pod.stdout }}" -n {{ app_ns }} 
             --no-headers -o custom-columns=:.spec.nodeName
           args:
             executable: /bin/bash
@@ -88,27 +96,16 @@
           register: app_pv
           failed_when: "app_pv.rc != 0"
 
-        - name: Obtain the ds pod corresponding to application pod
+        - name: Obtain the daemonset pod corresponding to application pod
           shell: >
-            kubectl get po -l app=jiva-resize -o wide --no-headers -o 
+            kubectl get pod -l app=jiva-resize -o wide --no-headers -o 
             custom-columns=:.metadata.name,:.spec.nodeName | 
             grep "{{ app_node.stdout }}" | awk '{print $1}'
           args:
             executable: /bin/bash
           register: ds_pod
           failed_when: "ds_pod.rc != 0"
-
-        - name: Verify if corresponding daemonset pod is Running
-          shell: >
-            kubectl get po "{{ ds_pod.stdout }}" 
-            --no-headers -o custom-columns=:.status.phase
-          args:
-            executable: /bin/bash
-          register: status
-          until: "'Running' in status.stdout"
-          delay: 5
-          retries: 60
-
+        
         - name: Obatin the Target Disk
           shell: >
             kubectl exec -ti "{{ ds_pod.stdout }}" -- bash 
@@ -180,12 +177,21 @@
           register: replica_pod
           failed_when: "replica_pod.rc != 0"
 
-        - name: Delete all the replica pods of jiva volume
+        - name: Restart all the replica pods of jiva volume
           shell: >
             kubectl delete pod "{{ item }}" -n {{ app_ns }}  
           args:
             executable: /bin/bash
           with_items: "{{ replica_pod.stdout_lines }}"
+
+        - name: Checking for all replicas to be in Running state
+          shell: >
+            kubectl get pod -n {{ app_ns }} -l openebs.io/replica=jiva-replica 
+            --no-headers -o custom-columns=:status.phase
+          register: running_rep_status
+          until: "((running_rep_status.stdout_lines|unique)|length) == 1 and 'Running' in running_rep_status.stdout"
+          delay: 10
+          retries: 30
 
         - name: Obtain the iSCSI Target IP (controller service IP address)
           shell: >
@@ -244,7 +250,7 @@
           ignore_errors: yes
 
         - name: Delete the application pod
-          shell: kubectl delete pod "{{ application_pod }}" -n "{{ app_ns }}"
+          shell: kubectl delete pod "{{ app_pod.stdout }}" -n "{{ app_ns }}"
           args:
             executable: /bin/bash
           register: status
@@ -256,7 +262,7 @@
           args:
             executable: /bin/bash
           register: podstatus
-          until: "'{{ application_pod }}' not in podstatus.stdout"
+          until: "app_pod.stdout not in podstatus.stdout"
           delay: 5
           retries: 60
           
@@ -287,7 +293,7 @@
           register: newapp_node
           failed_when: "newapp_node.rc != 0"
 
-        - name: Obtain the ds pod corresponding to new application pod
+        - name: Obtain the daemonset pod corresponding to new application pod
           shell: >
             kubectl get pod -l app=jiva-resize -o wide --no-headers -o 
             custom-columns=:.metadata.name,:.spec.nodeName | 

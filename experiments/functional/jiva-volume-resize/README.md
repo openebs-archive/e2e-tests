@@ -8,7 +8,7 @@
 
 - K8s nodes should be ready.
 - K8s nodes should have ubuntu 18.04 installed.
-- Application should be deployed using 'openebs jiva default' storage class.
+- Application should be deployed using 'jiva storage engine'.
 
 ## Exit-Criteria
 
