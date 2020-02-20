@@ -26,8 +26,6 @@ spec:
             cpu: 100m
             memory: 20M
         volumeMounts:
-          - name: bus
-            mountPath: /var/run
           - name: root
             mountPath: /node
           - name: disk-dir
@@ -76,9 +74,6 @@ spec:
         - name: diskmount
           hostPath:
             path: /var/lib/kubelet/plugins/kubernetes.io/iscsi/iface-default
-        - name: bus
-          hostPath:
-            path: /var/run
         - name: root
           hostPath:
             path: /

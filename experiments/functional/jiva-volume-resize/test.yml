@@ -106,7 +106,7 @@
           register: ds_pod
           failed_when: "ds_pod.rc != 0"
         
-        - name: Obatin the Target Disk
+        - name: Obtain the Target Disk
           shell: >
             kubectl exec -ti "{{ ds_pod.stdout }}" -- bash 
             -c "lsblk | grep '{{ app_pv.stdout }}'" | awk '{print $1}'
@@ -136,11 +136,10 @@
         - name: Unmount the File System
           shell: >
             kubectl exec -ti "{{ ds_pod.stdout }}" -- bash -c 
-            "umount '{{ item }}'"
+            "umount -l '{{ item }}'"
           args:
             executable: /bin/bash
           with_items: "{{ mountpath.stdout_lines }}"
-          ignore_errors: yes
 
         - name: Logout from the particular iSCSI target
           shell: >
@@ -167,22 +166,14 @@
             executable: /bin/bash
           register: status
           failed_when: "status.rc != 0"
-
-        - name: Obtain the replica pods of jiva volume
-          shell: >
-            kubectl get pods -n {{ app_ns }} -l openebs.io/replica=jiva-replica 
-            --no-headers -o custom-columns=:.metadata.name
-          args:
-            executable: /bin/bash
-          register: replica_pod
-          failed_when: "replica_pod.rc != 0"
-
+        
         - name: Restart all the replica pods of jiva volume
           shell: >
-            kubectl delete pod "{{ item }}" -n {{ app_ns }}  
+            kubectl delete pods -n "{{ app_ns }}" -l openebs.io/replica=jiva-replica  
           args:
             executable: /bin/bash
-          with_items: "{{ replica_pod.stdout_lines }}"
+          register: status
+          failed_when: "status.rc != 0"
 
         - name: Checking for all replicas to be in Running state
           shell: >

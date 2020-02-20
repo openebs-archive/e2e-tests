@@ -1,11 +1,6 @@
 FROM ubuntu:18.04
 RUN apt-get update
 RUN apt-get install systemd -y
-#RUN apt-get install open-iscsi -y
 RUN apt-get install sudo
-#RUN sudo systemctl enable iscsid
 RUN sudo apt install curl -y
-#RUN sudo systemctl restart iscsid
-#RUN /etc/init.d/open-iscsi restart
-#RUN service open-iscsi restart
 CMD ["bash"]

@@ -32,5 +32,3 @@
 | APP_LABEL     | Label of application pod                               |
 | PV_CAPACITY   | Current storage capacity of volume                     |
 | NEW_CAPACITY  | Desired storage capacity of volume                     |
-| OPERATOR_NS   | Namespace where OpenEBS is deployed                    |
-
