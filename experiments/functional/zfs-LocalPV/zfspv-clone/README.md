@@ -34,8 +34,7 @@
 | SNAPSHOT_NAME | Snapshot will be created with this name in application namespace  |
 | CLONED_PVC_NAME |Cloned pvc will be created by this name in the same namespace where spapshot is present |
 | CLONE_PVC_SIZE | clone PVC size should match the size of the snapshot  |
-
-| APP_NAME       | Provide the application name which will be deployed using cloned PVC. Supported values are: `busybox` and `percona`                     |
+| APP_NAME       | Provide the application name which will be deployed using cloned PVC. Supported values are: `busybox` and `percona` |
 | APP_LABEL     | Label name of the application                     |
 | DATA_PERSISTENCE | Data accessibility & integrity verification by dumping some test data into the application and verify if later. To check against busybox set value: "busybox" and for percona, set value: "mysql"|
 
