@@ -25,6 +25,19 @@
               register: snapshot_status
               failed_when: snapshot_name not in snapshot_status.stdout
 
+            - name: Update the clone_pvc template with the test specific values to create clone
+              template:
+                src: clone_pvc.j2
+                dest: clone_pvc.yml
+            
+            - name: Create the clone
+              shell: >
+                kubectl create -f clone_pvc.yml
+              args:
+                executable: /bin/bash
+              register: status
+              failed_when: "status.rc != 0"
+
             - block:
               - name: Update the {{ app_name }} deployment yaml with test specific values
                 template:
@@ -50,19 +63,6 @@
                 args:
                   executable: /bin/bash
               when: app_name == "percona"
-
-            - name: Update the clone_pvc template with the test specific values to create clone
-              template:
-                src: clone_pvc.j2
-                dest: clone_pvc.yml
-            
-            - name: Create the clone
-              shell: >
-                kubectl create -f clone_pvc.yml
-              args:
-                executable: /bin/bash
-              register: status
-              failed_when: "status.rc != 0"
            
             - name: Check if the cloned PVC is bound
               shell: >
