@@ -37,7 +37,7 @@
             register: ZFS_driver_components
             until: "ZFS_driver_components.stdout == 'Running'"
             delay: 5
-            retries: 10
+            retries: 30
 
           - block:
 
@@ -70,7 +70,19 @@
               failed_when: "sc_result.rc != 0"
 
             when: fs_type == 'zfs'
- 
+
+          - name: Update volume snapshot class template with the test specific variables.
+            template:
+              src: snapshot-class.j2
+              dest: snapshot-class.yml
+              
+          - name: Create VolumeSnapshotClass
+            shell: kubectl apply -f snapshot-class.yml
+            args:
+              executable: /bin/bash
+            register: volsc_result
+            failed_when: "volsc_result.rc != 0"
+             
          when: "'deprovision' not in action"
 
        - name: Destroy the ZPOOL
