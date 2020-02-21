@@ -31,12 +31,15 @@ spec:
           - name: APP_PVC
             value: '' 
 
+            # Application label
           - name: APP_LABEL
             value: ''
-          
+
+            # Current storage capacity of volume
           - name: PV_CAPACITY
             value: 5G
           
+            # Desired storage capacity of volume
           - name: NEW_CAPACITY
             value: 8G
 
