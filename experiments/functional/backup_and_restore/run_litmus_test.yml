@@ -55,6 +55,9 @@ spec:
           # supported values are: cstor, jiva, localpv
           - name: STORAGE_ENGINE
             value: "cstor"
+          # supported values are: true & false (Deprovision velero namespace after test completion)
+          - name: DEPROVISION_VELERO
+            value: "false"
 
         command: ["/bin/bash"]
         args: ["-c", "ansible-playbook ./experiments/functional/backup_and_restore/test.yml -i /etc/ansible/hosts -vv; exit 0"]
