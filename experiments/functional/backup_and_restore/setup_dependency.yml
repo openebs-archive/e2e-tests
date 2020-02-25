@@ -120,6 +120,14 @@
   shell: velero plugin add {{ velero_plugin_name }}
   when: storage_engine == "cstor"
 
+#After installing pugin velero a new velero pod comes up with the older one in Running state which later terminates.  
+- name: Waiting for new velero server pod to come up
+  shell: kubectl get pod -n velero -l component=velero | grep Running | wc -l 
+  register: velero_pod_run
+  until: "'1' in velero_pod_run.stdout"
+  delay: 5
+  retries: 20
+
 - name: Checking for velero server status
   shell: kubectl get pod -n velero -l component=velero -ojsonpath='{.items[0].status.phase}'
   register: velero_status_post_update
