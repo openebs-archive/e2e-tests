@@ -1,0 +1,6 @@
+FROM ubuntu:18.04
+RUN apt-get update
+RUN apt-get install systemd -y
+RUN apt-get install sudo
+RUN sudo apt install curl -y
+CMD ["bash"]
