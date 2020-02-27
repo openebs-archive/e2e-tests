@@ -18,47 +18,96 @@
   register: velero
   failed_when: "velero_version not in velero.stdout"
 
-- name: Installing minio s3-bucket
-  shell: kubectl apply -f velero-{{ velero_version }}-linux-amd64/examples/minio/00-minio-deployment.yaml
+- block:
 
-- name: Checking for minio pod status
-  shell: kubectl get pod -n velero -l component=minio -ojsonpath='{.items[0].status.phase}'
-  register: minio_status
-  until: "'Running' in minio_status.stdout"
-  delay: 5
-  retries: 15
+   - name: Installing minio s3-bucket
+     shell: kubectl apply -f velero-{{ velero_version }}-linux-amd64/examples/minio/00-minio-deployment.yaml
 
-- name: Waiting for minio job to create bucket
-  shell: kubectl get pod -n velero -l job-name=minio-setup -o jsonpath='{.items[*].status.phase}'
-  register: minio_job_status
-  until: "'Succeeded' in minio_job_status.stdout"
-  delay: 5
-  retries: 10
+   - name: Checking for minio pod status
+     shell: kubectl get pod -n velero -l component=minio -ojsonpath='{.items[0].status.phase}'
+     register: minio_status
+     until: "'Running' in minio_status.stdout"
+     delay: 5
+     retries: 15
+   
+   - name: Waiting for minio job to create bucket
+     shell: kubectl get pod -n velero -l job-name=minio-setup -o jsonpath='{.items[*].status.phase}'
+     register: minio_job_status
+     until: "'Succeeded' in minio_job_status.stdout"
+     delay: 5
+     retries: 10
+
+  when: bucket_type == "minio"
 
 - block:
 
-   - name: Installing velero server inside cluster
-     shell: >
-        velero install \
-          --provider aws \
-          --bucket velero \
-          --secret-file ./credentials-velero \
-          --use-volume-snapshots=false \
-          --use-restic \
-          --backup-location-config region=minio,s3ForcePathStyle="true",s3Url=http://minio.velero.svc:9000
-     when: velero_version == "v1.1.0"
+   - name: Fetching service account key.json from configmap
+     shell: kubectl get cm gcp-key -n litmus -o jsonpath='{.data.key\.json}' > ./key.json
+        
+   - name: Authenticating using gcp service account
+     shell: gcloud auth activate-service-account --key-file key.json
 
-   - name: Installing velero server inside cluster
-     shell: >
-        velero install \
-          --provider aws \
-          --bucket velero \
-          --secret-file ./credentials-velero \
-          --plugins velero/velero-plugin-for-aws:v1.0.0 \
-          --use-volume-snapshots=false \
-          --use-restic \
-          --backup-location-config region=minio,s3ForcePathStyle="true",s3Url=http://minio.velero.svc:9000
-     when: velero_version == "v1.2.0"
+   - name: Setting up the project ID
+     shell: gcloud config set project {{ gcp_project_id }} 
+
+   - name: Creating gcp bucket
+     shell: gsutil mb gs://e2e-gcp-bucket/
+
+  when: bucket_type == "GCP"
+
+- block:
+
+   - block:
+
+      - name: Installing velero server inside cluster
+        shell: >
+           velero install \
+             --provider aws \
+             --bucket velero \
+             --secret-file ./credentials-velero \
+             --use-volume-snapshots=false \
+             --use-restic \
+             --backup-location-config region=minio,s3ForcePathStyle="true",s3Url=http://minio.velero.svc:9000
+        when: velero_version == "v1.1.0"
+   
+      - name: Installing velero server inside cluster
+        shell: >
+           velero install \
+             --provider aws \
+             --bucket velero \
+             --secret-file ./credentials-velero \
+             --plugins velero/velero-plugin-for-aws:v1.0.0 \
+             --use-volume-snapshots=false \
+             --use-restic \
+             --backup-location-config region=minio,s3ForcePathStyle="true",s3Url=http://minio.velero.svc:9000
+        when: velero_version == "v1.2.0"
+
+     when: "bucket_type == 'minio'"
+
+   - block: 
+      
+      - name: Installing velero server inside cluster
+        shell: >
+          velero install \
+            --provider gcp \
+            --bucket e2e-gcp-bucket \
+            --use-restic \
+            --use-volume-snapshots=false \
+            --secret-file ./key.json
+        when: velero_version == "v1.1.0"
+
+      - name: Installing velero server inside cluster
+        shell: >
+          velero install \
+            --provider gcp \
+            --plugins velero/velero-plugin-for-gcp:v1.0.0 \
+            --bucket e2e-gcp-bucket \
+            --use-restic \
+            --use-volume-snapshots=false \
+            --secret-file ./key.json 
+        when: velero_version == "v1.2.0"
+
+     when: bucket_type == "GCP"
 
    - name: Patching restic demonset for privileged access
      shell: kubectl patch ds restic -n velero --patch "$(cat patch.yml)"
@@ -76,30 +125,57 @@
      delay: 5
      retries: 60
 
-  when: "storage_engine == 'jiva' or storage_engine == 'localpv'"  
+  when: "storage_engine == 'jiva' or storage_engine == 'localpv'" 
 
 - block:
+ 
+   - block:
 
-   - name: Installing velero server inside cluster
-     shell: >
-       velero install \
-         --provider aws \
-         --bucket velero \
-         --secret-file ./credentials-velero \
-         --use-volume-snapshots=false \
-         --backup-location-config region=minio,s3ForcePathStyle="true",s3Url=http://minio.velero.svc:9000
-     when: velero_version == "v1.1.0"
+      - name: Installing velero server inside cluster
+        shell: >
+          velero install \
+            --provider aws \
+            --bucket velero \
+            --secret-file ./credentials-velero \
+            --use-volume-snapshots=false \
+            --backup-location-config region=minio,s3ForcePathStyle="true",s3Url=http://minio.velero.svc:9000
+        when: velero_version == "v1.1.0"
+   
+      - name: Installing velero server inside cluster
+        shell: >
+          velero install \
+            --provider aws \
+            --bucket velero \
+            --secret-file ./credentials-velero \
+            --use-volume-snapshots=false \
+            --plugins velero/velero-plugin-for-aws:v1.0.0 \
+            --backup-location-config region=minio,s3ForcePathStyle="true",s3Url=http://minio.velero.svc:9000
+        when: velero_version == "v1.2.0"
 
-   - name: Installing velero server inside cluster
-     shell: >
-       velero install \
-         --provider aws \
-         --bucket velero \
-         --secret-file ./credentials-velero \
-         --use-volume-snapshots=false \
-         --plugins velero/velero-plugin-for-aws:v1.0.0 \
-         --backup-location-config region=minio,s3ForcePathStyle="true",s3Url=http://minio.velero.svc:9000
-     when: velero_version == "v1.2.0"
+     when: bucket_type == "minio"
+
+   - block:
+
+      - name: Installing velero server inside cluster
+        shell: >
+          velero install \
+            --provider gcp \
+            --bucket e2e-gcp-bucket \
+            --use-volume-snapshots=false \
+            --secret-file ./key.json
+        when: velero_version == "v1.1.0"
+
+      - name: Installing velero server inside cluster
+        shell: >
+          velero install \
+            --provider gcp \
+            --plugins velero/velero-plugin-for-gcp:v1.0.0 \
+            --bucket e2e-gcp-bucket \
+            --use-volume-snapshots=false \
+            --secret-file ./key.json
+        when: velero_version == "v1.2.0"
+
+     when: bucket_type == "GCP"
 
   when: storage_engine == "cstor"  
 
@@ -110,23 +186,32 @@
   delay: 5
   retries: 20
 
-- name: Creating volume snapshot location
-  shell: kubectl apply -f volume-snapshot-location.yml
-  register: volume_snapshot_location
-  failed_when: "'created' not in volume_snapshot_location.stdout"
-  when: storage_engine == "cstor"
+- block:
 
-- name: Installing development image of OpenEBS velero-plugin
-  shell: velero plugin add {{ velero_plugin_name }}
-  when: storage_engine == "cstor"
+    - name: Creating volume snapshot location
+      shell: kubectl apply -f minio-volume-snapshot-location.yml
+      register: volume_snapshot_location
+      failed_when: "'created' not in volume_snapshot_location.stdout"
+      when: bucket_type == 'minio'
+
+    - name: Creating volume snapshot location
+      shell: kubectl apply -f gcp-volume-snapshot-location.yml
+      register: volume_snapshot_location
+      failed_when: "'created' not in volume_snapshot_location.stdout"
+      when: bucket_type == 'GCP'
+
+    - name: Installing development image of OpenEBS velero-plugin
+      shell: velero plugin add {{ velero_plugin_name }}
 
 #After installing pugin velero a new velero pod comes up with the older one in Running state which later terminates.  
-- name: Waiting for new velero server pod to come up
-  shell: kubectl get pod -n velero -l component=velero | grep Running | wc -l 
-  register: velero_pod_run
-  until: "'1' in velero_pod_run.stdout"
-  delay: 5
-  retries: 20
+    - name: Waiting for new velero server pod to come up
+      shell: kubectl get pod -n velero --no-headers -l deploy=velero | wc -l 
+      register: velero_pod_run
+      until: "'1' in velero_pod_run.stdout"
+      delay: 5
+      retries: 20
+    
+  when: storage_engine == 'cstor'
 
 - name: Checking for velero server status
   shell: kubectl get pod -n velero -l component=velero -ojsonpath='{.items[0].status.phase}'
