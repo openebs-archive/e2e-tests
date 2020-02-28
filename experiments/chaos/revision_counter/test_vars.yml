@@ -1,0 +1,15 @@
+---
+
+# Test specific parameters
+
+app_label: "{{ lookup('env','APP_LABEL') }}"
+
+app_ns: "{{ lookup('env','APP_NAMESPACE') }}"
+
+block_size: "{{ lookup('env','BLOCK_SIZE') }}"
+
+block_count: "{{ lookup('env','BLOCK_COUNT') }}"
+
+file_name: "{{ lookup('env','FILE_NAME') }}"
+
+test_name: "jiva-revision-counter"
