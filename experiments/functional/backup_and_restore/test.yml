@@ -36,6 +36,18 @@
             dbname: "backup"
 
         - block:
+
+           - name: Getting the application mount point
+             shell: kubectl get pod {{ app_pod.stdout }} -n {{ app_ns }} -o jsonpath='{.spec.containers[0].volumeMounts[0].mountPath}'
+             register: app_mount_path
+
+             #Writing approx 1.6G of data at mount point
+           - name: Writing data on application mount point
+             shell: kubectl exec -it {{ app_pod.stdout }} -n {{ app_ns }} -- sh -c "cd {{ app_mount_path.stdout }} && dd if=/dev/urandom of=test.txt bs=4k count=400024"
+
+          when: "storage_engine == 'cstor' and lookup('env','COMPONENT_FAILURE') != ''"
+
+        - block:
             
            - name: Getting the application deployment name
              shell: kubectl get deploy -n {{ app_ns }} -l {{ app_label }} -o jsonpath='{.items[0].metadata.name}'
@@ -44,6 +56,7 @@
            - name: Fetching the volume name of application
              shell: kubectl get deploy {{ app_deploy_name.stdout }} -n {{ app_ns }} -o jsonpath='{.spec.template.spec.volumes[0].name}'
              register: app_vol_name
+
            # annotation is limited to one volume only
            - name: Annotating the application pod
              shell: kubectl -n {{ app_ns }} annotate pod/{{ app_pod.stdout }} backup.velero.io/backup-volumes={{ app_vol_name.stdout }}
@@ -54,6 +67,49 @@
           include_tasks: "./backup-restore.yml"
           vars:
             action: 'BACKUP'
+            velero_backup_name: "{{ backup_name }}"
+          when: lookup('env','COMPONENT_FAILURE') == ''
+
+        - block: 
+
+           - include_tasks: "./backup-restore.yml"
+             vars:
+               action: 'SCHEDULE'
+
+           - name: Getting the backup name
+             shell: kubectl get backup -n velero -o jsonpath='{.items[0].metadata.name}'
+             register: backup_name_initial
+
+           - name: Getting the state of backup
+             shell: kubectl get backup {{ backup_name_initial.stdout }} -n velero -o jsonpath='{.status.phase}'
+             register: backup_state
+             until: "'InProgress' in backup_state.stdout"
+             delay: 5
+             retries: 60 
+            
+           - include_tasks: "./induce_failure.yml"
+             vars:
+               action: 'POOL_FAIL'
+
+           - name: Waiting for completed backup
+             shell: velero backup get | grep Completed
+             register: completed_backup
+             until: "completed_backup.stdout != ''"
+             delay: 5
+             retries: 100
+
+           - name: Getting the base backup name
+             shell: velero backup get | grep Completed | tail -1 | awk '{print $1}'
+             register: basebackup_name 
+
+          when: "storage_engine == 'cstor' and lookup('env','COMPONENT_FAILURE') == 'pool'"
+
+        - name: Getting state of backup
+          include_tasks: "./backup-restore.yml"
+          vars:
+            action: 'BACKUP_STATE'
+            velero_backup_name: "{{ backup_name }}"
+          when: lookup('env','COMPONENT_FAILURE') == ''
 
         - name: Deleting Application
           shell: |
@@ -72,11 +128,38 @@
           delay: 5
           retries: 15
 
-        - name: Restoring Application
-          include_tasks: "./backup-restore.yml"
-          vars:
-            action: 'RESTORE'
+        - block: 
 
+           - name: Restoring Application
+             include_tasks: "./backup-restore.yml"
+             vars:
+               action: 'RESTORE'
+               velero_backup_name: "{{ backup_name }}"
+            
+           - name: Getting state of restore
+             include_tasks: "./backup-restore.yml"
+             vars:
+               action: 'RESTORE_STATE'
+               velero_backup_name: "{{ backup_name }}"
+
+          when: lookup('env','COMPONENT_FAILURE') == ''
+
+        - block:
+
+           - name: Restoring Application
+             include_tasks: "./backup-restore.yml"
+             vars:
+               action: 'RESTORE'
+               velero_backup_name: "{{ basebackup_name.stdout }}"
+            
+           - name: Getting state of restore
+             include_tasks: "./backup-restore.yml"
+             vars:
+               action: 'RESTORE_STATE'
+               velero_backup_name: "{{ basebackup_name.stdout }}"
+            
+          when: lookup('env','COMPONENT_FAILURE') == 'pool'
+        
         - block:
 
            - name: Getting the volume name
@@ -84,33 +167,29 @@
              register: volume_name
    
            - name: Getting the target IP
-             shell: kubectl get pod -n openebs -l openebs.io/persistent-volume={{ volume_name.stdout }} -o jsonpath='{.items[0].status.podIP}'
+             shell: kubectl get pod -n {{ operator_ns }} -l openebs.io/persistent-volume={{ volume_name.stdout }} -o jsonpath='{.items[0].status.podIP}'
              register: target_ip
              until: 'target_ip.stdout != ""'
              delay: 5
              retries: 10
-   
-           - name: Getting the volume name
-             shell: kubectl get pvc {{ app_pvc }} -n {{ app_ns }} -o jsonpath='{.spec.volumeName}'
-             register: volume_name
     
            - name: Getting the CVR name from the corresponding PV
-             shell:  kubectl get cvr -n openebs -l openebs.io/persistent-volume={{ volume_name.stdout }} -o jsonpath='{range.items[*]}{.metadata.labels.cstorpool\.openebs\.io/name}{"\n"}{end}'
+             shell:  kubectl get cvr -n {{ operator_ns }} -l openebs.io/persistent-volume={{ volume_name.stdout }} -o jsonpath='{range.items[*]}{.metadata.labels.cstorpool\.openebs\.io/name}{"\n"}{end}'
              register: cvr_name
    
            - name: Geting the CSP name corresponding to CVR
-             shell: kubectl get csp {{item}} -n openebs -o jsonpath='{.metadata.name}'
+             shell: kubectl get csp {{item}} -n {{ operator_ns }} -o jsonpath='{.metadata.name}'
              register: csp_pod
              with_items: "{{ cvr_name.stdout_lines }}"     
    
            - name: Getting the pool pod name
-             shell: kubectl get pod -n openebs | grep {{item}} | awk '{print $1}'
+             shell: kubectl get pod -n {{ operator_ns }} | grep {{item}} | awk '{print $1}'
              register: pool_pod
              with_items: "{{ cvr_name.stdout_lines }}" 
    
            - name: Getting the volume name inside cstor pool
              shell: |
-               echo $(kubectl exec -it {{item.stdout}} -n openebs -c cstor-pool -- zfs list | grep {{ volume_name.stdout }} | awk '{print $1}') >> cstor-vol
+               echo $(kubectl exec -it {{item.stdout}} -n {{ operator_ns }} -c cstor-pool -- zfs list | grep {{ volume_name.stdout }} | awk '{print $1}') >> cstor-vol
              with_items: "{{ pool_pod.results }}"
      
            - name: Assigning the cstor-pool volume name to variable
@@ -118,7 +197,7 @@
              register: pool_volume_name
            
            - name: Setting target IP for volume inside cstor pool
-             shell: kubectl exec -it {{item.0.stdout}} -n openebs -- zfs set io.openebs:targetip={{ target_ip.stdout }} {{item.1}}
+             shell: kubectl exec -it {{item.0.stdout}} -n {{ operator_ns }} -- zfs set io.openebs:targetip={{ target_ip.stdout }} {{item.1}}
              with_together:
                - "{{ pool_pod.results }}"  
                - "{{ pool_volume_name.stdout_lines }}" 
@@ -154,6 +233,10 @@
         - include_tasks: /utils/fcm/update_litmus_result_resource.yml
           vars:
             status: 'EOT'    
+
+        - name: Deleting GCP bucket
+          shell: gsutil rm -r gs://e2e-gcp-bucket
+          when: "bucket_type == 'GCP'"
 
         - name: Deprovisioning Velero server
           shell: kubectl delete namespace velero 
