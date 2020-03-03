@@ -46,6 +46,9 @@ spec:
           - name: BACKUP_NAME
             value: percona-backup
 
+          - name: OPERATOR_NAMESPACE
+            value: "openebs"
+
           - name: VELERO_PLUGIN_NAME
             value: "openebs/velero-plugin:ci"
 
