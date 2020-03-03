@@ -7,11 +7,11 @@
 ## Entry-Criteria
 
 - CSPC pool with specified three replicas should be created.
-- CSI based cStor volumes should be created on CSPC pool.
+- CSI based cStor volumes should be created on CSPC pool, thus PDB would be created.
 
 ## Exit-Criteria
 
-- The pool pod should not be evicted when there are more than allowed disruptions set in PDB.
+- The pool pod should not be evicted when there are more than allowed disruptions happened in the cluster.
 
 ## Procedure
 
@@ -19,7 +19,7 @@
 
 - Check it the corresponding pool pod is evicted.
 
-- Drain another node where CSPC pool pod is created. Now, the pool pod should not be evicted because of pod disruption budget created.
+- Drain another node where CSPC pool pod is scheduled. Pool pod should not be evicted because of pod disruption budget created.
 
 - Pod disruption budget will be created during cStor volume provisioning. It will look similar to following snippet.
 
