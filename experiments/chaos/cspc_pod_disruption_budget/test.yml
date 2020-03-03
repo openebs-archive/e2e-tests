@@ -1,0 +1,118 @@
+---
+- hosts: localhost
+  connection: local
+
+  vars_files:
+    - test_vars.yml
+
+  tasks:
+    - block:
+
+        ## RECORD START-OF-TEST IN LITMUS RESULT CR
+        
+        - include_tasks: /utils/fcm/create_testname.yml
+
+        - include_tasks: /utils/fcm/update_litmus_result_resource.yml
+          vars:
+            status: 'SOT'
+            chaostype: "drain-two-node"
+
+        - name: Check if the cspc pool exists
+          shell: kubectl get cspc -n {{ openebs_ns }} --no-headers -o custom-columns=:metadata.name
+          args:
+            executable: /bin/bash
+          register: cspc_list
+          failed_when: cspc_name not in cspc_list.stdout
+
+        - name: Obtain the number of cspi from CSPC pool config
+          shell: >
+            kubectl get cspc {{ cspc_name }} -n {{ openebs_ns }} 
+            --no-headers -o yaml | grep 'poolConfig:' |wc -l
+          args:
+            executable: /bin/bash
+          register: cspi_count
+
+        - name: Check if the desired number of pool pods are running
+          shell: >
+            kubectl get pods -n {{ openebs_ns }} -l openebs.io/cstor-pool-cluster={{ cspc_name }} 
+            --no-headers | wc -l
+          args:
+            executable: /bin/bash
+          register: pod_count
+          failed_when: cspi_count.stdout != pod_count.stdout
+
+        - name: Obtain the list of pool pods
+          shell: >
+            kubectl get pods -n {{ openebs_ns }} -l openebs.io/cstor-pool-cluster={{ cspc_name }} 
+            --no-headers -o custom-columns=:.metadata.name
+          args:
+            executable: /bin/bash
+          register: pool_pods
+
+        - name: Obtain the node list where the pools are scheduled
+          shell: >
+            kubectl get pods -n {{ openebs_ns }} -l openebs.io/cstor-pool-cluster={{ cspc_name }} 
+            --no-headers -o custom-columns=:spec.nodeName
+          args:
+            executable: /bin/bash
+          register: node_list
+
+        - include_tasks: /chaoslib/kubectl/cordon_drain_node.yaml
+          vars:
+            action: "drain"      
+            app_ns: "{{ openebs_ns }}"
+            app: "{{ pool_pods.stdout_lines[0] }}"
+
+        - name: Check if the corresponding pool pod is evicted
+          shell: >
+            kubectl get pods -n {{ openebs_ns }} -l openebs.io/cstor-pool-cluster={{ cspc_name }}
+            --no-headers -o custom-columns=:status.phase | grep Running | wc -l
+          args:
+            executable: /bin/bash
+          register: pool_count
+          until: pool_count.stdout|int == (cspi_count.stdout|int-1)
+          delay: 10
+          retries: 30
+
+        - include_tasks: /chaoslib/kubectl/cordon_drain_node.yaml
+          vars:
+            action: "drain"
+            app_ns: "{{ openebs_ns }}"
+            app: "{{ pool_pods.stdout_lines[1] }}"
+
+        - name: Confirm that the pod disruption budget is honored
+          shell: >
+            kubectl get pods -n {{ openebs_ns }} -l openebs.io/cstor-pool-cluster={{ cspc_name }}
+            --no-headers -o custom-columns=:status.phase | grep Running|wc -l
+          args:
+            executable: /bin/bash
+          register: pod_count
+          until: pod_count.stdout|int == (cspi_count.stdout|int-1)
+          delay: 10
+          retries: 30
+
+        - set_fact:
+            flag: "Pass"
+
+      rescue: 
+        - set_fact: 
+            flag: "Fail"
+
+      always: 
+
+        ## RECORD END-OF-TEST IN LITMUS RESULT CR
+
+        - name: Uncordon the application node
+          shell: >
+            kubectl uncordon {{ node_list.stdout_lines[0] }} {{ node_list.stdout_lines[1] }}
+          args:
+            executable: /bin/bash
+          register: result
+          until: "'uncordoned' in result.stdout"
+          delay: 20
+          retries: 12 
+
+        - include_tasks: /utils/fcm/update_litmus_result_resource.yml
+          vars:
+            status: 'EOT'
+            chaostype: "drain-two-node"
