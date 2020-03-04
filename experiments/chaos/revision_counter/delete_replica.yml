@@ -1,7 +1,7 @@
-- name: Obtain the replica pod of one node
+- name: Obtain the jiva replica pod scheduled on one node
   shell: >
     kubectl get pod -n {{ app_ns }} -l openebs.io/replica=jiva-replica 
-    -o jsonpath='{.items[?(@.spec.nodeName=="e2e2-dev-node1")].metadata.name}'
+    -o jsonpath='{.items[?(@.spec.nodeName=="'{{ delete_rep_node }}'")].metadata.name}'
   args:
     executable: /bin/bash
   register: replica_pod
@@ -27,7 +27,7 @@
 - name: Obtain one replica pod to check the revision counter value
   shell: >
     kubectl get pod -n {{ app_ns }} -l openebs.io/replica=jiva-replica 
-    -o jsonpath='{.items[?(@.spec.nodeName=="e2e2-dev-node2")].metadata.name}'
+    -o jsonpath='{.items[?(@.spec.nodeName=="'{{ test_rep_node }}'")].metadata.name}'
   args:
     executable: /bin/bash
   register: replica_pod

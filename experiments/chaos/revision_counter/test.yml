@@ -43,10 +43,24 @@
           delay: 10
           retries: 30
 
+        - name: Obtain the nodes on which jiva replica pods are scheduled 
+          shell: >
+            kubectl get pods -n {{ app_ns }} -l openebs.io/replica=jiva-replica
+            --no-headers -o custom-columns=:.spec.nodeName
+          args:
+            executable: /bin/bash
+          register: replica_nodes
+          failed_when: "replica_nodes.rc != 0"
+
+        - name: Store the nodes on which jiva replica pods are scheduled
+          set_fact: 
+            delete_rep_node: "{{ replica_nodes.stdout_lines[0] }}"
+            test_rep_node: "{{ replica_nodes.stdout_lines[1] }}"
+
         - name: Load some data to perform chaos with dd
           shell: >
             kubectl exec -ti "{{ app_pod.stdout }}" -n "{{ app_ns }}" -- bash 
-            -c "cd /var/lib/mysql && dd if=/dev/urandom of={{ file_name }} bs={{ block_size }} count={{ block_count }}" &
+            -c "dd if=/dev/urandom of={{ mount_path }}/{{ file_name }} bs={{ block_size }} count={{ block_count }}" &
           args:
             executable: /bin/bash
           register: status
@@ -74,7 +88,7 @@
         - name: Obtain one replica pod to verify consumed storage
           shell: >
             kubectl get pod -n {{ app_ns }} -l openebs.io/replica=jiva-replica 
-            -o jsonpath='{.items[?(@.spec.nodeName=="e2e2-dev-node2")].metadata.name}'
+            -o jsonpath='{.items[?(@.spec.nodeName=="'{{ test_rep_node }}'")].metadata.name}'
           args:
             executable: /bin/bash
           register: replica_pod
@@ -90,7 +104,7 @@
         - name: Obtain the replica pod which was being deleted
           shell: >
             kubectl get pod -n {{ app_ns }} -l openebs.io/replica=jiva-replica 
-            -o jsonpath='{.items[?(@.spec.nodeName=="e2e2-dev-node1")].metadata.name}'
+            -o jsonpath='{.items[?(@.spec.nodeName=="'{{ delete_rep_node }}'")].metadata.name}'
           args:
             executable: /bin/bash
           register: replica_pod_chaos

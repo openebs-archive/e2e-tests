@@ -12,4 +12,6 @@ block_count: "{{ lookup('env','BLOCK_COUNT') }}"
 
 file_name: "{{ lookup('env','FILE_NAME') }}"
 
+mount_path: "{{ lookup('env','MOUNT_PATH') }}"
+
 test_name: "jiva-revision-counter"
