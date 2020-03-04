@@ -1,0 +1,6 @@
+---
+test_name: cspc-pod-disruption-budget
+
+openebs_ns: "{{ lookup('env','OPENEBS_NAMESPACE') }}"
+
+cspc_name: "{{ lookup('env','CSPC_NAME') }}"
