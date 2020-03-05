@@ -15,7 +15,7 @@ Chaos |Inject n/w delay on cStor storage pools| OpenEBS    | Percona MySQL   | A
 - Application services are accessible & pods are healthy
 - Data written prior to chaos is successfully retrieved/read
 - Database consistency is maintained as per db integrity check utils
-- Storage pool pods are healthy and the volume should be accessible
+- Storage pool pods are healthy and the volume should be remounted automatically and be accessible
 
 ## Notes
 
@@ -35,13 +35,7 @@ Parameter     | Description
 APP_NAMESPACE | Namespace in which application pods are deployed
 APP_LABEL     | Unique Labels in `key=value` format of application deployment
 APP_PVC       | Name of persistent volume claim used for app's volume mounts 
-
-### Chaos 
-
-Parameter     | Description
---------------|-------------
-NETWORK_DELAY | Egress delay (in msec) on the target pod
-CHAOS_DURATION| Period (in sec)for which induced delay is maintained
+CSPC_NAME     | Name of CSPC 
 
 ### Health Checks 
 
@@ -49,14 +43,12 @@ Parameter             | Description
 ----------------------|------------
 LIVENESS_APP_NAMESPACE| Namespace in which external liveness pods are deployed, if any
 LIVENESS_APP_LABEL    | Unique Labels in `key=value` format for external liveness pod, if any
-DATA_PERSISTENCY      | Data accessibility & integrity verification post recovery (enabled, disabled)
+DATA_PERSISTENCE      | Data accessibility & integrity verification post recovery (enabled, disabled)
 
 
 ### Procedure
 
-This scenario validates the behaviour of application and OpenEBS persistent volumes in the amidst of chaos induced on OpenEBS data plane and control plane components.
-
-After injecting the chaos into the component specified via environmental variable, litmus experiment observes the behaviour of corresponding OpenEBS PV and the application which consumes the volume.
+After injecting the chaos into the cstor pool pods, litmus experiment observes the behaviour of corresponding OpenEBS PV and the application which consumes the volume.
 
 Based on the value of env DATA_PERSISTENCE, the corresponding data consistency util will be executed. At present only busybox and percona-mysql are supported. Along with specifying env in the litmus experiment, user needs to pass name for configmap and the data consistency specific parameters required via configmap in the format as follows:
 
