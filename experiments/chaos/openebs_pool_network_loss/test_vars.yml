@@ -1,0 +1,22 @@
+test_name: openebs-pool-network-loss
+
+namespace: "{{ lookup('env','APP_NAMESPACE') }}"
+
+label: "{{ lookup('env','APP_LABEL') }}"
+
+pvc: "{{ lookup('env','APP_PVC') }}"
+
+chaos_util_path: openebs/inject_packet_loss_tc.yml
+
+openebs_ns: "{{ lookup('env','OPERATOR_NAMESPACE') }}"
+
+liveness_label: "{{ lookup('env','LIVENESS_APP_LABEL') }}"
+
+liveness_namespace: "{{ lookup('env','LIVENESS_APP_NAMESPACE') }}"
+
+data_persistence: "{{ lookup('env','DATA_PERSISTENCE') }}"
+
+cri: "{{ lookup('env','CONTAINER_RUNTIME') }}"
+
+cspc_name: "{{ lookup('env','CSPC_NAME') }}"
+
