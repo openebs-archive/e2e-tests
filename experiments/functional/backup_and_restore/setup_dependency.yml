@@ -50,6 +50,12 @@
    - name: Setting up the project ID
      shell: gcloud config set project {{ gcp_project_id }} 
 
+   - name: Deleting GCP bucket if exist
+     shell: gsutil rm -r gs://e2e-gcp-bucket
+     args:
+       executable: /bin/bash
+     ignore_errors: true
+
    - name: Creating gcp bucket
      shell: gsutil mb gs://e2e-gcp-bucket/
 
