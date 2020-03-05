@@ -7,7 +7,7 @@
         kubectl get blockdevice -n {{ operator_ns }} -l kubernetes.io/hostname={{ outer_item }} 
         -o jsonpath='{.items[?(@.status.claimState=="Unclaimed")].metadata.name}' | tr " " "\n" | grep -v sparse | head -n "{{ disk_count }}"
       register: blockDevice
-      until: "((blockDevice.stdout_lines|unique)|length) == disk_count"
+      until: "((blockDevice.stdout_lines|unique)|length) == (disk_count)|int"
       delay: 5
       retries: 10
      
