@@ -106,14 +106,14 @@
           with_items:
             - "{{ pool_pods.stdout_lines[0] }}"
             - "{{ pool_pods.stdout_lines[1] }}"
-          when:
-            - cri == 'docker'
 
         - name: Kill the application pod
           shell: >
             kubectl delete pod {{ app_pod_name.stdout }} -n {{ namespace }}
           args:
             executable: /bin/bash
+          register: pod_state
+          failed_when: pod_state.rc != 0
 
         - name: Verify if the application pod is deleted
           shell: >
@@ -122,8 +122,8 @@
             executable: /bin/bash
           register: podstatus
           until: '"{{ app_pod_name.stdout }}" not in podstatus.stdout'
-          retries: 2
-          delay: 150
+          retries: 5
+          delay: 100
 
         - include: "/chaoslib/{{ chaos_util_path }}"
           vars:
@@ -134,8 +134,6 @@
           with_items:
             - "{{ pool_pods.stdout_lines[0] }}"
             - "{{ pool_pods.stdout_lines[1] }}"
-          when:
-            - cri == 'docker'
 
         ## POST-CHAOS APPLICATION LIVENESS CHECK
 
@@ -150,10 +148,12 @@
 
             - name: Checking application pod not in running state
               shell: kubectl get pods -n {{ namespace }} -o jsonpath='{.items[?(@.metadata.name=="{{ newpod_name.stdout }}")].status.containerStatuses[*].state}'
+              args:
+                executable: /bin/bash
               register: result
               until: "'running' not in result.stdout"
-              delay: 2
-              retries: 150
+              delay: 5
+              retries: 100
           when: stg_prov == 'openebs.io/provisioner-iscsi'
 
         - block:

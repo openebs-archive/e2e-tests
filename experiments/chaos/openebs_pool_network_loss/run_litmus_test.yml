@@ -54,9 +54,6 @@ spec:
           - name: DATA_PERSISTENCE
             value: ""
           
-          - name: CONTAINER_RUNTIME
-            value: docker
-            
         command: ["/bin/bash"]
         args: ["-c", "ansible-playbook ./experiments/chaos/openebs_pool_network_loss/test.yml -i /etc/ansible/hosts -vv; exit 0"]
 
