@@ -41,8 +41,8 @@
           delay: 5
           retries: 30
 
-        - name: Obtain the names of the all nodes
-          shell: kubectl get nodes --no-headers -o custom-columns=:.metadata.name
+        - name: Obtain the names of all worker nodes
+          shell: kubectl get nodes --no-headers -o custom-columns=:.metadata.name | grep -v master
           args:
             executable: /bin/bash
           register: node_name
