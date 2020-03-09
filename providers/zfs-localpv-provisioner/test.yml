@@ -20,10 +20,21 @@
 
           - include_tasks: /utils/zpool_creation/create_zpool.yml
         
-          - name: Install OpenEBS ZFS driver components
-            shell: >
-              kubectl apply -f https://raw.githubusercontent.com/openebs/zfs-localpv/master/deploy/zfs-operator.yaml
-            args: 
+          - name: Download OpenEBS ZFS driver file
+            shell: 
+              wget -O zfs_operator.yml https://raw.githubusercontent.com/openebs/zfs-localpv/master/deploy/zfs-operator.yaml
+              
+          - name: Update the openebs zfs-driver tag
+            replace:
+              path: zfs_operator.yml
+              regexp: quay.io/openebs/zfs-driver:ci
+              replace: quay.io/openebs/zfs-driver:{{ lookup('env','ZFS_DRIVER_TAG') }}
+            when: lookup('env','ZFS_DRIVER_TAG') | length > 0
+
+          - name: Apply the zfs_operator file to deploy zfs-driver components
+            shell: 
+              kubectl apply -f zfs_operator.yml
+            args:
               executable: /bin/bash
 
             ## Verify the ZFS driver components are installed and running

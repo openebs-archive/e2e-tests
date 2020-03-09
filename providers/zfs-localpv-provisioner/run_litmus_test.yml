@@ -22,6 +22,9 @@ spec:
             #value: log_plays
             value: default
 
+          - name: ZFS_DRIVER_TAG
+            value:
+
             ## Storage class will be created with the name provided here
           - name: STORAGE_CLASS  
             value: ''
