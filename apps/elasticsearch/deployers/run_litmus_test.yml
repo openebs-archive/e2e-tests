@@ -18,7 +18,7 @@ spec:
 
       - name: ansibletest
         image: openebs/ansible-runner:ci
-        imagePullPolicy: Always
+        imagePullPolicy: IfNotPresent
 
         env:
           - name: ANSIBLE_STDOUT_CALLBACK

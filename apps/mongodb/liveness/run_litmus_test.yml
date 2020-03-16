@@ -33,7 +33,7 @@ spec:
       containers:
       - name: ansibletest
         image: openebs/ansible-runner:ci
-        imagePullPolicy: Always
+        imagePullPolicy: IfNotPresent
         env: 
           - name: ANSIBLE_STDOUT_CALLBACK
             value: default
@@ -48,7 +48,7 @@ spec:
 
       - name: mongodb-liveness  
         image: openebs/tests-mongo-client
-        imagePullPolicy: Always
+        imagePullPolicy: IfNotPresent
 
         env:
 

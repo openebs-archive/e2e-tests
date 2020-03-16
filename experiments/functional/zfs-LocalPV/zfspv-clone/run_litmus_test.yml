@@ -15,7 +15,7 @@ spec:
       containers:
       - name: ansibletest
         image: openebs/ansible-runner:ci
-        imagePullPolicy: Always
+        imagePullPolicy: IfNotPresent
         env:
           - name: ANSIBLE_STDOUT_CALLBACK
             #value: log_plays  #value: actionable
