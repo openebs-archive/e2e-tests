@@ -56,23 +56,13 @@
             delay: 5
             retries: 30
 
-          - name: Update the storage class template with the variables for zfs file system.
+          - name: Update the storage class template with the variables.
             template:
-              src: ./zfspv-storageClass/openebs-zfspv-sc-zfs.j2
-              dest: ./zfspv-storageClass/openebs-zfspv-sc-zfs.yml
-
-          - name: Update the storage class template with the variables for xfs file system.
-            template:
-              src: ./zfspv-storageClass/openebs-zfspv-sc-xfs.j2
-              dest: ./zfspv-storageClass/openebs-zfspv-sc-xfs.yml
-
-          - name: Update the storage class template with the variables for ext4 file system.
-            template:
-              src: ./zfspv-storageClass/openebs-zfspv-sc-ext4.j2
-              dest: ./zfspv-storageClass/openebs-zfspv-sc-ext4.yml
+              src: openebs-zfspv-sc.j2
+              dest: openebs-zfspv-sc.yml
 
           - name: Create Storageclasses
-            shell: kubectl apply -f ./zfspv-storageClass
+            shell: kubectl apply -f openebs-zfspv-sc.yml
             args:
               executable: /bin/bash
             register: sc_result
