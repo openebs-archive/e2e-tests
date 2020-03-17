@@ -56,37 +56,27 @@
             delay: 5
             retries: 30
 
-          - block:
+          - name: Update the storage class template with the variables for zfs file system.
+            template:
+              src: ./zfspv-storageClass/openebs-zfspv-sc-zfs.j2
+              dest: ./zfspv-storageClass/openebs-zfspv-sc-zfs.yml
 
-             - name: Update the storage class template with the variables.
-               template:
-                 src: openebs-zfspv-sc.j2
-                 dest: openebs-zfspv-sc.yml
+          - name: Update the storage class template with the variables for xfs file system.
+            template:
+              src: ./zfspv-storageClass/openebs-zfspv-sc-xfs.j2
+              dest: ./zfspv-storageClass/openebs-zfspv-sc-xfs.yml
 
-             - name: Create Storageclass
-               shell: kubectl apply -f openebs-zfspv-sc.yml
-               args:
-                 executable: /bin/bash
-               register: sc_result
-               failed_when: "sc_result.rc != 0"
+          - name: Update the storage class template with the variables for ext4 file system.
+            template:
+              src: ./zfspv-storageClass/openebs-zfspv-sc-ext4.j2
+              dest: ./zfspv-storageClass/openebs-zfspv-sc-ext4.yml
 
-            when: fs_type == 'ext2' or fs_type == 'ext3' or fs_type == 'ext4' or fs_type == 'xfs'
-
-          - block:
-
-            - name: Update the storage class template with the variables.
-              template:
-                src: openebs-zfspv-sc-zfs.j2
-                dest: openebs-zfspv-sc-zfs.yml
-
-            - name: Create Storageclass
-              shell: kubectl apply -f openebs-zfspv-sc-zfs.yml
-              args:
-                executable: /bin/bash
-              register: sc_result
-              failed_when: "sc_result.rc != 0"
-
-            when: fs_type == 'zfs'
+          - name: Create Storageclasses
+            shell: kubectl apply -f ./zfspv-storageClass
+            args:
+              executable: /bin/bash
+            register: sc_result
+            failed_when: "sc_result.rc != 0"
 
           - name: Update volume snapshot class template with the test specific variables.
             template:

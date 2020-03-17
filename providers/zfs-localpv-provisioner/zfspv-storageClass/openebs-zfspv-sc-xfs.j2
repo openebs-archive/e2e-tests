@@ -1,13 +1,13 @@
 apiVersion: storage.k8s.io/v1
 kind: StorageClass
 metadata:
-  name: "{{ storage_class }}"
+  name: "{{ storage_class }}-xfs"
 allowVolumeExpansion: true
 parameters:
   volblocksize: "{{ vol_block_size }}"
   compression: "{{ compress }}" 
   dedup: "{{ de_dup }}"
-  fstype: "{{ fs_type }}"
+  fstype: "xfs"
   poolname: "{{ pool_name }}"
 provisioner: zfs.csi.openebs.io
 volumeBindingMode: WaitForFirstConsumer

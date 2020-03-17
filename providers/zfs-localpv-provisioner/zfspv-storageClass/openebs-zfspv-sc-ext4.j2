@@ -1,13 +1,13 @@
 apiVersion: storage.k8s.io/v1
 kind: StorageClass
 metadata:
-  name: "{{ storage_class }}"
+  name: "{{ storage_class }}-ext4"
 allowVolumeExpansion: true
 parameters:
   recordsize: "{{ record_size }}"
   compression: "{{ compress }}" 
   dedup: "{{ de_dup }}"
-  fstype: "{{ fs_type }}"
+  fstype: "ext4"
   poolname: "{{ pool_name }}"
 provisioner: zfs.csi.openebs.io
 volumeBindingMode: WaitForFirstConsumer
