@@ -6,8 +6,6 @@ storage_class: "{{ lookup('env','STORAGE_CLASS') }}"
 
 pool_type: "{{ lookup('env','POOL_TYPE') }}"
 
-fs_type: "{{ lookup('env','FILE_SYSTEM') }}"
-
 action: "{{ lookup('env','ACTION') }}"
 
 compress: "{{ lookup('env','COMPRESSION') }}"

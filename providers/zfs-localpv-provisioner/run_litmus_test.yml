@@ -34,9 +34,6 @@ spec:
           - name: POOL_NAME
             value: ''
 
-          - name: FILE_SYSTEM ## (e.g. zfs,xfs,ext2/3/4)
-            value: ''
-
           - name: POOL_TYPE  ## (striped or mirrored)
             value: ''
 
