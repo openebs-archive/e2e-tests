@@ -19,4 +19,4 @@ allowVolumeExpansion: true
 parameters:
   cas-type: cstor
   cstorPoolCluster: pool-name
-  replicaCount: "3"
+  replicaCount: "replica-count"
