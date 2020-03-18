@@ -69,11 +69,17 @@
               with_items:
                 - "{{ nodes.stdout_lines }}"
 
-            - name: Replacing the pool group id in CSPC spec
+            - name: Replacing the pool name in CSPC spec
               replace:
                 path: ./cspc.yml
                 regexp: "pool-name"
                 replace: "{{ pool_name }}"
+
+            - name: Update replica count matching pool count in storage class spec
+              replace:
+                path: ./cspc.yml
+                regexp: "replica-count"
+                replace: "{{ pool_count }}"
 
             - name: Replacing the storage class name in CSPC spec
               replace:
