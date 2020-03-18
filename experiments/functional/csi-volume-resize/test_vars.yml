@@ -1,13 +1,9 @@
 ---
-test_name: cstor-volume-resize
-
-operator_ns: "{{ lookup('env','OPERATOR_NS') }}"
+test_name: csi-volume-resize
 
 app_ns: "{{ lookup('env','APP_NAMESPACE') }}"
 
 app_label: "{{ lookup('env','APP_LABEL') }}"
-
-application_name: "mysql"
 
 app_pvc: "{{ lookup('env','APP_PVC') }}"
 

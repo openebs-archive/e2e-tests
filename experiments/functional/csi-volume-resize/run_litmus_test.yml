@@ -2,14 +2,14 @@
 apiVersion: batch/v1
 kind: Job
 metadata:
-  generateName: litmus-cstor-vol-resize-
+  generateName: csi-vol-resize-
   namespace: litmus
 spec:
   template:
     metadata:
       name: litmus
       labels:
-        app: litmus-cstor-vol-resize
+        app: csi-vol-resize
 
     spec:
       serviceAccountName: litmus
@@ -25,27 +25,23 @@ spec:
 
             # Application namespace
           - name: APP_NAMESPACE
-            value: app-percona-ns
+            value: ''
 
             # Application pvc
           - name: APP_PVC
-            value: percona-mysql-claim 
+            value: '' 
 
           - name: APP_LABEL
-            value: 'name=percona'
+            value: ''
 
           - name: STORAGE_CLASS
             value: ''
 
           - name: PV_CAPACITY
-            value: 5Gi
+            value: ''
           
           - name: NEW_CAPACITY
-            value: 10Gi
-
-            #Target namespace
-          - name: OPERATOR_NS
-            value: openebs
+            value: ''
 
         command: ["/bin/bash"]
         args: ["-c", "ansible-playbook ./experiments/functional/cstor-volume-resize/test.yml -i /etc/ansible/hosts -vv; exit 0"]
