@@ -1,5 +1,5 @@
 ---
-#Description: Validate if cstor volume can be resized.
+#Description: Validate if csi volume can be resized.
 #
 ########################################################################################
 #Steps:                                                                                #
