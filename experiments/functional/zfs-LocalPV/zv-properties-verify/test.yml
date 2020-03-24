@@ -75,7 +75,7 @@
             register: result
             failed_when: dedup_parameter.stdout != result.stdout
 
-          - name: Get the file system type from the storage class on top of which application is deployed
+          - name: Get the file system type to be created on application mount from the storage class
             shell: >
               kubectl get sc {{ sc_name }} --no-headers
               -o custom-columns=:.parameters.fstype
