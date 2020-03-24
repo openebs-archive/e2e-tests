@@ -163,7 +163,7 @@
                 | grep {{ pv.stdout }} 
               args:
                 executable: /bin/bash
-              register: controller_pod
+              register: ctrl_pod
 
             - name: Check for the jiva controller container status
               shell: >
@@ -217,13 +217,12 @@
         - include: "{{ chaos_util_path }}"
           vars:
             status: "induce"
-            target_pod: "{{ controller_pod.stdout }}"
+            target_pod: "{{ ctrl_pod.stdout }}"
             operator_namespace: "{{ operator_ns }}"
             containername: "jiva-controller"
           when:   
             - stg_engine == 'jiva'
             - stg_prov == 'jiva.csi.openebs.io'
-
 
         - name: Wait for 240s post fault injection 
           wait_for:
@@ -254,7 +253,7 @@
         - include: "{{ chaos_util_path }}"
           vars:
             status: "remove"
-            target_pod: "{{ controller_pod.stdout }}"
+            target_pod: "{{ ctrl_pod.stdout }}"
             operator_namespace: "{{ operator_ns }}"
             containername: "jiva-controller"
           when:   
