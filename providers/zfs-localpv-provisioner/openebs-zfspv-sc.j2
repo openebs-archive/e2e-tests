@@ -5,7 +5,7 @@ metadata:
   name: "{{ storage_class }}-ext4"
 allowVolumeExpansion: true
 parameters:
-  recordsize: "{{ record_size }}"
+  volblocksize: "{{ record_size }}"
   compression: "{{ compress }}" 
   dedup: "{{ de_dup }}"
   fstype: "ext4"
