@@ -7,6 +7,14 @@
         executable: /bin/bash
       register: node_name
 
+    - name: Check if the pool that are going to scaledown is contains volume 
+      shell: >
+        kubectl get cvr -n {{ operator_ns }} -l cstorpoolinstance.openebs.io/name={{ targeted_cspi }}
+        -o custom-columns=:.metadata.name --no-headers
+      args:
+        executable: /bin/bash
+      register: volume
+       
     - name: Getting the used block-device by CSPI
       shell: >
         kubectl get cspi -n {{ operator_ns }} {{ targeted_cspi }} 
@@ -31,15 +39,37 @@
       register: patch_cspc
       failed_when: "'patched' not in patch_cspc.stdout"
 
-    - name: Check if the Blockdevice is in UnClaimed state
-      shell: >
-        kubectl get blockdevice -n {{ operator_ns }} {{ item }}
-        --no-headers -o custom-columns=:.status.claimState
-      args:
-        executable: /bin/bash
-      register: bd_state
-      with_items:
-        - "{{ blockDevice.stdout_lines }}"
-      until: "'Unclaimed' in bd_state.stdout"
-      delay: 5
-      retries: 60
+    - block:
+
+        - name: Check if the Blockdevice is in UnClaimed state
+          shell: >
+            kubectl get blockdevice -n {{ operator_ns }} {{ item }}
+            --no-headers -o custom-columns=:.status.claimState
+          args:
+            executable: /bin/bash
+          register: bd_state
+          with_items:
+            - "{{ blockDevice.stdout_lines }}"
+          until: "'Unclaimed' in bd_state.stdout"
+          delay: 5
+          retries: 60
+      when: volume.stdout == ''
+
+    - block:
+        
+        # wait 5 minutes
+        - name: Wait for the blockdevices going to unclaimed state
+          wait_for:
+            timeout: 300
+
+        - name: Check if the Blockdevice is in UnClaimed state
+          shell: >
+            kubectl get blockdevice -n {{ operator_ns }} {{ item }}
+            --no-headers -o custom-columns=:.status.claimState
+          args:
+            executable: /bin/bash
+          register: bd_state
+          with_items:
+            - "{{ blockDevice.stdout_lines }}"
+          failed_when: "'Unclaimed' in bd_state.stdout"
+      when: volume.stdout != ''
