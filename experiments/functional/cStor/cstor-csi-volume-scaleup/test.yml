@@ -152,7 +152,7 @@
           failed_when: "current_replica.stdout == updated_replica.stdout"
 
         - name: Delete the application pod
-          shell: kubectl delete pod "{{ app_pod_name.stdout }}" -n "{{ namespace }}
+          shell: kubectl delete pod "{{ app_pod_name.stdout }}" -n "{{ namespace }}"
           args:
             executable: /bin/bash
           register: result
