@@ -174,7 +174,9 @@
           args:
             executable: /bin/bash
           register: pod_status
-          failed_when: "'Running' not in pod_status.stdout"
+          until: "'Running' in pod_status.stdout"
+          delay: 10
+          retries: 30
 
         - name: Verify application data persistence
           include: "{{ data_consistency_util_path }}"
