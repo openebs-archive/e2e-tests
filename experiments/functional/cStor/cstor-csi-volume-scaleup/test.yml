@@ -124,7 +124,7 @@
         - name: Get the cspi where replica is not created
           shell: >
             kubectl get cspi -n "{{ openebs_ns }}" -l openebs.io/cstor-pool-cluster="{{ cspc.stdout }}"
-            --no-headers -o custom-columns=:metadata.name| grep -v "{{cspi.stdout}}" | awk '{print $1}'
+            --no-headers -o custom-columns=:metadata.name| grep -v "{{cspi.stdout}}" | awk '{print $1}' | awk 'NR==1{print $1}'
           args:
             executable: /bin/bash
           register: target_cspi
@@ -149,7 +149,9 @@
           args:
             executable: /bin/bash
           register: updated_replica
-          failed_when: "current_replica.stdout == updated_replica.stdout"
+          until: "current_replica.stdout < updated_replica.stdout"
+          delay: 10
+          retries: 20
 
         - name: Delete the application pod
           shell: kubectl delete pod "{{ app_pod_name.stdout }}" -n "{{ namespace }}"
@@ -167,7 +169,8 @@
 
         - name: Check if the application pod is in running state
           shell: >
-            kubectl get pods "{{ resheduled_pod }}" -n "{{ namespace }}" --no-headers -o custom-columns=:.status.phase
+            kubectl get pods "{{ resheduled_pod_name.stdout }}" -n "{{ namespace }}" 
+            --no-headers -o custom-columns=:.status.phase
           args:
             executable: /bin/bash
           register: pod_status
