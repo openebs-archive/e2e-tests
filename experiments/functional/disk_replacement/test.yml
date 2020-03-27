@@ -57,6 +57,14 @@
           retries: 30
           delay: 10
 
+        - name: Obtain the name of CStorPoolInstance
+          shell: >
+            kubectl get cspi -n {{ operator_ns }} -l openebs.io/cstor-pool-cluster={{ pool_name }}
+            -o custom-columns=:.metadata.name --no-headers
+          args:
+            executable: /bin/bash
+          register: cspi_name
+
         - name: Get cStor Disk Pool names to verify the container statuses
           shell: >
             kubectl get pods -n {{ operator_ns }} -l openebs.io/cstor-pool-cluster={{ pool_name }}
@@ -127,23 +135,24 @@
           delay: 5
           retries: 60
 
-        - name: Obtain the node names where the CVR's are scheduled
+        - name: Select random cspi from the list of cspi as target cspi to perform disk replacement
+          set_fact:
+            target_cspi: "{{ item }}"
+          with_random_choice: "{{ cspi_name.stdout_lines }}"
+
+        - name: Obtain the node name of the targeted cspi
           shell: >
-             kubectl get cvr -n {{ operator_ns }} -l openebs.io/persistent-volume={{ pv.stdout }}
-             -o=jsonpath='{range .items[*]}{.metadata.annotations.cstorpoolinstance\.openebs\.io\/hostname}{"\n"}'
+            kubectl get cspi -n {{ operator_ns }} {{ target_cspi }}
+            -o custom-columns=:.spec.hostName --no-headers
           args:
             executable: /bin/bash
-          register: node_name
-
-        - name: Select random cvr node from the list of nodes as target node to perform disk replacement
-          set_fact:
-            target_node: "{{ item }}"
-          with_random_choice: "{{ node_name.stdout_lines }}"
+          register: cspi_node_name
+          failed_when: 'cspi_node_name.stdout == ""'
 
         - name: Obtain the Claimed block device from the targeted node
           shell: >
-            kubectl get blockdevice -n openebs -l kubernetes.io/hostname={{ target_node }}
-            -o jsonpath='{.items[?(@.status.claimState=="Claimed")].metadata.name}' | tr " " "\n" | grep -v sparse
+            kubectl get cspi -n {{ operator_ns }} {{ target_cspi }}
+            -o custom-columns=:.spec.raidGroup[*].blockDevices[*].blockDeviceName --no-headers
           args:
             executable: /bin/bash
           register: claimed_bd
@@ -156,7 +165,7 @@
 
         - name: Obtain the Unclaimed block device from the targeted node to perform disk replacement
           shell: >
-            kubectl get blockdevice -n openebs -l kubernetes.io/hostname={{ target_node }}
+            kubectl get blockdevice -n openebs -l kubernetes.io/hostname={{ cspi_node_name.stdout }}
             -o jsonpath='{.items[?(@.status.claimState=="Unclaimed")].metadata.name}' | tr " " "\n" | grep -v sparse
           args:
             executable: /bin/bash
