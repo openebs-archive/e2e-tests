@@ -169,7 +169,7 @@
 
         - name: Check if the application pod is in running state
           shell: >
-            kubectl get pods "{{ resheduled_pod_name.stdout }}" -n "{{ namespace }}" 
+            kubectl get pods "{{ rescheduled_pod_name.stdout }}" -n "{{ namespace }}" 
             --no-headers -o custom-columns=:.status.phase
           args:
             executable: /bin/bash
