@@ -55,7 +55,7 @@
 
         - name: Derive PV name from PVC.
           shell: >
-            kubectl get pvc "{{ pvc }}" -n "{{ namespace }}"
+            kubectl get pvc "{{ pvc_name }}" -n "{{ namespace }}"
             --no-headers -o custom-columns=:spec.volumeName
           args:
             executable: /bin/bash
@@ -91,7 +91,7 @@
             
         - name: Obtaining the pools where CVRs are mounted
           shell: >
-            kubectl get cvr {{ item }} -n {{ openebs_ns }} --no-headers 
+            kubectl get cvr {{ cvr.stdout }} -n {{ openebs_ns }} --no-headers 
             -o jsonpath='{.metadata.labels.cstorpoolinstance\.openebs\.io/name}{"\n"}'
           args:
             executable: /bin/bash
