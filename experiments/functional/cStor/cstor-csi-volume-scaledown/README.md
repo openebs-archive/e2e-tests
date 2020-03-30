@@ -8,6 +8,7 @@
 
 - K8s nodes should be ready.
 - cStor CSPC should be created.
+- Openebs CSI provisioner should be running.
 - Application should be deployed using with volume provisioned through CSI provisioner with multiple replicas.
 
 ## Exit-Criteria
@@ -18,7 +19,8 @@
 
 - This functional test checks if the csi volume replicas can be scaled down.
 - This litmusbook accepts the parameters in form of job environmental variables.
-- This job patches the respective CVC by removing the pool name and thereby scaling down the replicas 
+- This job patches the respective CVC by removing couple of pool instances from the manifest and checks if the scale down process is failing. Openebs admission server should restrict the scale down process here as it allows only one replica to be scaled down at once.
+- This job verifies if the volume replicas can be scaled down one at a time.
 
 ## Litmusbook Environment Variables
 
