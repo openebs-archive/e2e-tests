@@ -4,7 +4,7 @@
   vars_files:
     - test_vars.yml
     - /mnt/parameters.yml
-    
+
   tasks:
 
     - block:
@@ -29,7 +29,7 @@
           set_fact:
             data_consistency_util_path: "{{ consistencyutil }}"
           when: data_persistence != ''
-        
+
         - name: Get the application pod name
           shell: >
             kubectl get pod -n {{ namespace }} --no-headers -o custom-columns=:.metadata.name
@@ -75,7 +75,7 @@
 
         - name: Get the current replica count
           shell: >
-            kubectl get cstorvolume "{{ cvc_name }}" -n "{{ openebs_ns }}" --no-headers 
+            kubectl get cstorvolume "{{ cvc_name }}" -n "{{ openebs_ns }}" --no-headers
             -o custom-columns=:spec.replicationFactor
           args:
             executable: /bin/bash
@@ -87,7 +87,7 @@
             executable: /bin/bash
 
         ## openebs admission server should block the scale down process because only one replica should be aloowed to delete.
-      
+
         - name: Try to scale down couple of replicas by applying above manifest
           shell: kubectl apply -f cvc2.yml
           args:
@@ -99,7 +99,7 @@
           shell: sed -i '/replicaPoolInfo:/{N;s/\n.*//;}' cvc1.yml
           args:
             executable: /bin/bash
-          
+
         - name: Scale down the replicas by configuring cvc
           shell: kubectl apply -f cvc1.yml
           args:
@@ -134,7 +134,7 @@
 
         - name: Check if the application pod is in running state
           shell: >
-            kubectl get pods "{{ rescheduled_pod_name.stdout }}" -n "{{ namespace }}" 
+            kubectl get pods "{{ rescheduled_pod_name.stdout }}" -n "{{ namespace }}"
             --no-headers -o custom-columns=:.status.phase
           args:
             executable: /bin/bash
@@ -163,4 +163,4 @@
         - include_tasks: /utils/fcm/update_litmus_result_resource.yml
           vars:
             status: 'EOT'
-    
+
