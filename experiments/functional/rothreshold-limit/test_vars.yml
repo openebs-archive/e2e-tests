@@ -1,0 +1,11 @@
+# Test-specific parameters
+application_deployment: busybox_deployment.yml
+rothreshold_limit: "{{ lookup('env','ROTHRESHOLD_LIMIT') }}"
+operator_ns: "{{ lookup('env','OPERATOR_NS') }}"
+test_name: cstor-rothreshold-limit
+pool_name: "{{ lookup('env','POOL_NAME') }}"
+pool_type: "{{ lookup('env','POOL_TYPE') }}"
+storage_class: "{{ lookup('env','PROVIDER_STORAGE_CLASS') }}"
+app_ns: "{{ lookup('env','APP_NAMESPACE') }}"
+app_label: "{{ lookup('env','APP_LABEL') }}"
+app_pvc: "{{ lookup('env','APP_PVC') }}"

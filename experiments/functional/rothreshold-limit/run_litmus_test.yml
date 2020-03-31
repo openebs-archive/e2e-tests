@@ -1,0 +1,66 @@
+---
+apiVersion: batch/v1
+kind: Job
+metadata:
+  generateName: cstor-rothreshold-limit-
+  namespace: litmus
+spec:
+  template:
+    metadata:
+      name: litmus
+      labels:
+        app: cstor-rothreshold-limit
+    spec:
+      serviceAccountName: litmus
+      restartPolicy: Never
+      containers:
+      - name: ansibletest
+        image: openebs/ansible-runner:ci
+        imagePullPolicy: IfNotPresent
+
+        env:
+          - name: ANSIBLE_STDOUT_CALLBACK
+            #value: log_plays, actionable, default
+            value: default
+
+            # Provide name POOL_NAME for the cstor-pool
+          - name: POOL_NAME
+            value: cstor-rothreshold-limit-pool
+
+           # Provide the value for POOL_TYPE 
+           # Supported values: striped, mirrored, raidz ,raidz2
+          - name: POOL_TYPE
+            value: striped
+            
+           # Provide the name of PROVIDER_STORAGE_CLASS
+          - name: PROVIDER_STORAGE_CLASS
+            value: openebs-cstor-rothreshold-limit
+
+          - name: OPERATOR_NS
+            value: openebs
+
+          - name: ROTHRESHOLD_LIMIT
+            value: "20"
+
+            # Application pvc
+          - name: APP_PVC
+            value: openebs-busybox
+
+            # Application label
+          - name: APP_LABEL
+            value: 'app=busybox-limit'
+
+            # Application namespace
+          - name: APP_NAMESPACE
+            value: rothreshold-limit
+
+            #Persistent Volume storage capacity
+          - name: PV_CAPACITY
+            value: 20Gi
+
+          - name: THICK_PROVISIONING
+            value: "false"
+        
+        command: ["/bin/bash"]
+        args: ["-c", "ansible-playbook ./experiments/functional/rothreshold-limit/test.yml -i /etc/ansible/hosts -v; exit 0"]
+
