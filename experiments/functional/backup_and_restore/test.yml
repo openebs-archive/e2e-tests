@@ -90,7 +90,7 @@
            - include_tasks: "./additional_verification.yml"
              vars:
                back_up_name: "{{ backup_name_initial.stdout }}"
-               action: 'POOL_FAIL'
+               action: "{{ failure_type }}"
 
            - name: Waiting for completed backup
              shell: velero backup get | grep Completed
@@ -103,7 +103,7 @@
              shell: velero backup get | grep Completed | tail -1 | awk '{print $1}'
              register: basebackup_name 
 
-          when: "storage_engine == 'cstor' and lookup('env','COMPONENT_FAILURE') == 'pool'"
+          when: "storage_engine == 'cstor' and lookup('env','COMPONENT_FAILURE') != ''"
 
         - name: Getting state of backup
           include_tasks: "./backup-restore.yml"
@@ -166,7 +166,7 @@
                action: 'RESTORE_STATE'
                velero_backup_name: "{{ basebackup_name.stdout }}"
             
-          when: lookup('env','COMPONENT_FAILURE') == 'pool'
+          when: lookup('env','COMPONENT_FAILURE') != ''
         
         - block:
 

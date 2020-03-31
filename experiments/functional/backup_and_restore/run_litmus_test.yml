@@ -62,7 +62,7 @@ spec:
           - name: GCP_PROJECT_ID
             value: "openebs-ci"
 
-          #Supported values are {"pool"}
+          #Supported values are {"pool", "maya"}
           # Will have no impact if variable is undefined i.e; will not induce any failure
           - name: COMPONENT_FAILURE
             value: ''
