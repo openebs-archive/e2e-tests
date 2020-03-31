@@ -107,7 +107,7 @@
           register: result
           failed_when: result.rc != 0
 
-        - name: Check the replica count
+        - name: Check the replica count in cvc
           shell: >
             kubectl get cvc "{{ cvc_name }}" -n "{{ openebs_ns }}" --no-headers
             -o custom-columns=:status.poolInfo | wc -l
@@ -118,6 +118,17 @@
           delay: 10
           retries: 20
 
+        - name: check the replica count in cStorvolume
+          shell: >
+            kubectl get cstorvolume "{{ cvc_name }}" -n "{{ openebs_ns }}" --no-headers
+            -o custom-columns=:spec.replicationFactor
+          args:
+            executable: /bin/bash
+          register: rep_count
+          until: "current_replica.stdout > rep_count.stdout"
+          delay: 10
+          retries: 20
+        
         - name: Delete the application pod
           shell: kubectl delete pod "{{ app_pod_name.stdout }}" -n "{{ namespace }}"
           args:
