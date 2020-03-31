@@ -198,13 +198,19 @@
       shell: kubectl apply -f minio-volume-snapshot-location.yml
       register: volume_snapshot_location
       failed_when: "'created' not in volume_snapshot_location.stdout"
-      when: bucket_type == 'minio'
+      when: bucket_type == "minio" and lookup('env','LOCAL_SNAPSHOT') == "false"
 
     - name: Creating volume snapshot location
       shell: kubectl apply -f gcp-volume-snapshot-location.yml
       register: volume_snapshot_location
       failed_when: "'created' not in volume_snapshot_location.stdout"
-      when: bucket_type == 'GCP'
+      when: bucket_type == "GCP" and lookup('env','LOCAL_SNAPSHOT') == "false"
+
+    - name: Creating volume snapshot location
+      shell: kubectl apply -f local-volume-snapshot-location.yml
+      register: volume_snapshot_location
+      failed_when: "'created' not in volume_snapshot_location.stdout"
+      when: lookup('env','LOCAL_SNAPSHOT') == "true"
 
     - name: Installing development image of OpenEBS velero-plugin
       shell: velero plugin add {{ velero_plugin_name }}
