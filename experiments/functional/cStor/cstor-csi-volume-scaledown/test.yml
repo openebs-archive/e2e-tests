@@ -76,7 +76,7 @@
         - name: Get the current replica count
           shell: >
             kubectl get cvc "{{ cvc_name }}" -n "{{ openebs_ns }}" --no-headers
-            -o custom-columns=:status.poolInfo | wc -l
+            -o custom-columns=:status.poolInfo | awk '{print NF}' 
           args:
             executable: /bin/bash
           register: current_replica
@@ -110,7 +110,7 @@
         - name: Check the replica count in cvc
           shell: >
             kubectl get cvc "{{ cvc_name }}" -n "{{ openebs_ns }}" --no-headers
-            -o custom-columns=:status.poolInfo | wc -l
+            -o custom-columns=:status.poolInfo | awk '{print NF}' 
           args:
             executable: /bin/bash
           register: updated_replica
