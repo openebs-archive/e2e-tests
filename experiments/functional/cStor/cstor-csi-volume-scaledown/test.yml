@@ -75,8 +75,8 @@
 
         - name: Get the current replica count
           shell: >
-            kubectl get cstorvolume "{{ cvc_name }}" -n "{{ openebs_ns }}" --no-headers
-            -o custom-columns=:spec.replicationFactor
+            kubectl get cvc "{{ cvc_name }}" -n "{{ openebs_ns }}" --no-headers
+            -o custom-columns=:status.poolInfo | wc -l
           args:
             executable: /bin/bash
           register: current_replica
@@ -109,8 +109,8 @@
 
         - name: Check the replica count
           shell: >
-            kubectl get cstorvolume "{{ cvc_name }}" -n "{{ openebs_ns }}" --no-headers
-            -o custom-columns=:spec.replicationFactor
+            kubectl get cvc "{{ cvc_name }}" -n "{{ openebs_ns }}" --no-headers
+            -o custom-columns=:status.poolInfo | wc -l
           args:
             executable: /bin/bash
           register: updated_replica
