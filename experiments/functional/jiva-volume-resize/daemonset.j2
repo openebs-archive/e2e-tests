@@ -41,7 +41,7 @@ spec:
           - name: iscsid-bin
             mountPath: /usr/sbin/iscsid
           - name: iscsiadm-bin
-            mountPath: /usr/bin/iscsiadm
+            mountPath: /usr/sbin/iscsiadm
           - name: iscsiadm-lib-isns-nocrypto
             mountPath: /lib/x86_64-linux-gnu/libisns-nocrypto.so.0
         securityContext:
@@ -62,12 +62,12 @@ spec:
             type: File
         - name: iscsiadm-bin
           hostPath:
-            path: /usr/bin/iscsiadm
-            type: File
+            path: /usr/sbin/iscsiadm
+            type: ""
         - name: iscsiadm-lib-isns-nocrypto
           hostPath:
             path: /lib/x86_64-linux-gnu/libisns-nocrypto.so.0
-            type: File
+            type: ""
         - name: podmount
           hostPath:
             path: /var/lib/kubelet/pods

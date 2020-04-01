@@ -169,7 +169,7 @@
         
         - name: Restart all the replica pods of jiva volume
           shell: >
-            kubectl delete pods -n "{{ app_ns }}" -l openebs.io/replica=jiva-replica  
+            kubectl delete pods -n "{{ app_ns }}" -l openebs.io/replica=jiva-replica --force --grace-period=0 
           args:
             executable: /bin/bash
           register: status
@@ -241,7 +241,7 @@
           ignore_errors: yes
 
         - name: Delete the application pod
-          shell: kubectl delete pod "{{ app_pod.stdout }}" -n "{{ app_ns }}"
+          shell: kubectl delete pod "{{ app_pod.stdout }}" -n "{{ app_ns }}" --force --grace-period=0 
           args:
             executable: /bin/bash
           register: status
