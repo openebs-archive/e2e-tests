@@ -1,0 +1,159 @@
+- hosts: localhost
+  connection: local
+
+  vars_files:
+    - test_vars.yml
+    
+  tasks:
+    - block:
+
+        ## Generating the testname for deployment
+        - include_tasks: /utils/fcm/create_testname.yml
+
+        ## RECORD START-OF-TEST IN LITMUS RESULT CR
+        - include_tasks: "/utils/fcm/update_litmus_result_resource.yml"
+          vars:
+            status: 'SOT'
+        
+        - block:
+          - name: Create a daemonset with privileged access to verify zvol properties at node level
+            shell: >
+              kubectl create -f ./zv_property_ds.yml
+            args: 
+              executable: /bin/bash
+
+          - name: Confirm that the ds pods are running on all nodes
+            shell: >
+              kubectl get pod -l app=zv-property-modify
+              --no-headers -o custom-columns=:status.phase | sort | uniq
+            args: 
+              executable: /bin/bash
+            register: result
+            until: "result.stdout == 'Running'"
+            delay: 5
+            retries: 20
+
+          - name: Get the node name on which application is scheduled
+            shell: >
+              kubectl get pod -n {{ app_ns }} -l {{ app_label }} --no-headers
+              -o custom-columns=:.spec.nodeName
+            args:
+              executable: /bin/bash
+            register: app_node_name
+
+          - name: Get the daemonset pod name which is scheduled on the same node as of application node
+            shell: >
+              kubectl get pod -l app=zv-property-modify --no-headers
+              -o jsonpath='{.items[?(@.spec.nodeName=="{{ app_node_name.stdout }}")].metadata.name}' 
+            args: 
+              executable: /bin/bash
+            register: ds_pod_name
+
+          - name: Record the daemonset pod name scheduled on the same node with application pod
+            set_fact:
+              ds_pod: "{{ ds_pod_name.stdout }}"
+
+          - name: Get the zvolume name
+            shell: >
+              kubectl get pvc {{ pvc_name }} -n {{ app_ns }} --no-headers
+              -o custom-columns=:.spec.volumeName
+            args: 
+              executable: /bin/bash
+            register: zvol_name
+
+          - name: Record the zvolume name
+            set_fact:
+              zv_name: "{{ zvol_name.stdout }}"
+
+          - name: Get the compression parameter value from the zvolume
+            shell: >
+              kubectl get zv {{ zv_name }} -n {{ operator_ns }} --no-headers
+              -o custom-columns=:.spec.compression
+            args: 
+              executable: /bin/bash
+            register: compress_val
+
+          - name: Get the Dedup parameter value from the zvolume
+            shell: >
+              kubectl get zv {{ zv_name }} -n {{ operator_ns }} --no-headers
+              -o custom-columns=:.spec.dedup
+            args: 
+              executable: /bin/bash
+            register: dedup_val
+
+          - name: Get the yaml file for zvolume
+            shell: >
+              kubectl get zv {{ zv_name }} -n {{ operator_ns }} -o yaml > zv.yml
+            args: 
+              executable: /bin/bash
+
+          - name: Modify the compression parameter value
+            replace: 
+              path: zv.yml
+              regexp: 'compression: "{{ compress_val.stdout }}"'
+              replace: 'compression: "{{ new_compress_val }}"'
+
+          - name: Modify the dedup parameter value
+            replace: 
+              path: zv.yml
+              regexp: 'dedup: "{{ dedup_val.stdout }}"'
+              replace: 'dedup: "{{ new_dedup_val }}"'
+
+          - name: Apply the modified yaml to update the new value of zvolume parameters
+            shell: >
+              kubectl apply -f zv.yml
+            args:
+              executable: /bin/bash
+            register: result
+            failed_when: "result.rc != 0"
+  
+          - name: Verify that compression parameter value is modified in zvolume
+            shell: >
+              kubectl get zv {{ zv_name }} -n {{ operator_ns }} --no-headers
+              -o custom-columns=:.spec.compression
+            args:
+              executable: /bin/bash
+            register: modified_compress_val
+            until: modified_compress_val.stdout == "{{ new_compress_val }}"
+            delay: 2
+            retries: 20
+
+          - name: Verify that compression parameter value is modified in dataset/zvolume on node
+            shell: >
+              kubectl exec -ti {{ ds_pod }} -- bash -c 'zfs get all {{ zpool_name }}/{{ zv_name }} | grep compression'
+            args: 
+              executable: /bin/bash
+            register: modified_compress_val
+            failed_when: "new_compress_val not in modified_compress_val.stdout"  
+                          
+          - name: Verify that dedup parameter value is modified in zvolume
+            shell: >
+              kubectl get zv {{ zv_name }} -n {{ operator_ns }} --no-headers
+              -o custom-columns=:.spec.dedup
+            args:
+              executable: /bin/bash
+            register: modified_dedup_val
+            until: modified_dedup_val.stdout == "{{ new_dedup_val }}"
+            delay: 2
+            retries: 20
+
+          - name: Verify that compression parameter value is modified in dataset/zvolume on node
+            shell: >
+              kubectl exec -ti {{ ds_pod }} -- bash -c 'zfs get all {{ zpool_name }}/{{ zv_name }} | grep dedup'
+            args: 
+              executable: /bin/bash
+            register: modified_dedup_val
+            failed_when: "new_dedup_val not in modified_dedup_val.stdout"
+                
+          - set_fact:
+              flag: "Pass"
+          
+      rescue:
+      - set_fact:
+          flag: "Fail"
+          
+      always:
+      ## RECORD END-OF-TEST IN LITMUS RESULT CR
+        - include_tasks: /utils/fcm/update_litmus_result_resource.yml
+          vars:
+            status: 'EOT'
