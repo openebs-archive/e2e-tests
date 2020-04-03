@@ -41,9 +41,9 @@
              shell: kubectl get pod {{ app_pod.stdout }} -n {{ app_ns }} -o jsonpath='{.spec.containers[0].volumeMounts[0].mountPath}'
              register: app_mount_path
 
-             #Writing approx 1.6G of data at mount point
+             #Writing approx 2.5G of data at mount point
            - name: Writing data on application mount point
-             shell: kubectl exec -it {{ app_pod.stdout }} -n {{ app_ns }} -- sh -c "cd {{ app_mount_path.stdout }} && dd if=/dev/urandom of=test.txt bs=4k count=400024"
+             shell: kubectl exec -it {{ app_pod.stdout }} -n {{ app_ns }} -- sh -c "cd {{ app_mount_path.stdout }} && dd if=/dev/urandom of=test.txt bs=4k count=655360"
 
           when: "storage_engine == 'cstor' and lookup('env','COMPONENT_FAILURE') != ''"
 
@@ -87,9 +87,10 @@
              delay: 5
              retries: 60 
             
-           - include_tasks: "./induce_failure.yml"
+           - include_tasks: "./additional_verification.yml"
              vars:
-               action: 'POOL_FAIL'
+               back_up_name: "{{ backup_name_initial.stdout }}"
+               action: "{{ failure_type }}"
 
            - name: Waiting for completed backup
              shell: velero backup get | grep Completed
@@ -102,7 +103,7 @@
              shell: velero backup get | grep Completed | tail -1 | awk '{print $1}'
              register: basebackup_name 
 
-          when: "storage_engine == 'cstor' and lookup('env','COMPONENT_FAILURE') == 'pool'"
+          when: "storage_engine == 'cstor' and lookup('env','COMPONENT_FAILURE') != ''"
 
         - name: Getting state of backup
           include_tasks: "./backup-restore.yml"
@@ -110,6 +111,13 @@
             action: 'BACKUP_STATE'
             velero_backup_name: "{{ backup_name }}"
           when: lookup('env','COMPONENT_FAILURE') == ''
+
+        - name: Verifying for local snaphot deletion
+          include_tasks: "./additional_verification.yml"
+          vars:
+            back_up_name: "{{ backup_name }}"
+            action: 'SNAPSHOT_DELETE'
+          when: "storage_engine == 'cstor' and lookup('env','COMPONENT_FAILURE') == ''"
 
         - name: Deleting Application
           shell: |
@@ -158,7 +166,7 @@
                action: 'RESTORE_STATE'
                velero_backup_name: "{{ basebackup_name.stdout }}"
             
-          when: lookup('env','COMPONENT_FAILURE') == 'pool'
+          when: lookup('env','COMPONENT_FAILURE') != ''
         
         - block:
 
