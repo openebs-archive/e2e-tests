@@ -5,3 +5,4 @@ test_name: memleak-test
 memleak_yml: memleak.yml
 app_ns: "{{ lookup('env','APP_NAMESPACE') }}"
 memory_bm: "{{ lookup('env','MEMORY_BM') }}"
+operator_ns: 'openebs'

@@ -8,7 +8,7 @@
 # The above parameters should be obtained as environmental variables from the litmus-book.
 
 - name: Obtaining the application pod name.
-  shell: kubectl get {{ deploy_type }} -n {{ app_ns }} --no-headers -l {{ app_label }} -o custom-columns=:metadata.name
+  shell: kubectl get {{ deploy_type }} -n {{ operator_namespace }} --no-headers -l {{ app_label }} -o custom-columns=:metadata.name
   args:
     executable: /bin/bash
   register: result
@@ -18,14 +18,14 @@
     app_name: "{{ result.stdout }}"
 
 - name: scaling up the replicas.
-  shell: kubectl scale {{ deploy_type}} {{ app_name }} --replicas={{ app_replica_count }} -n {{ app_ns }}
+  shell: kubectl scale {{ deploy_type}} {{ app_name }} --replicas={{ app_replica_count }} -n {{ operator_namespace }}
   args:
     executable: /bin/bash
   register: result
   failed_when: "'scaled' not in result.stdout"
 
 - name: Check if all the application replicas are running.
-  shell: kubectl get {{ deploy_type }} -n {{ app_ns }} --no-headers -l {{ app_label }} -o custom-columns=:..readyReplicas
+  shell: kubectl get {{ deploy_type }} -n {{ operator_namespace }} --no-headers -l {{ app_label }} -o custom-columns=:..readyReplicas
   args:
     executable: /bin/bash
   register: running_replicas

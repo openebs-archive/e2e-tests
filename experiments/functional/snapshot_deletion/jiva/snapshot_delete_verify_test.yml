@@ -1,13 +1,13 @@
 - name: Get the name of controller pod
   shell: >
-    kubectl get pods -l openebs.io/controller=jiva-controller,openebs.io/persistent-volume={{ pv_name }} -n {{ app_ns }} -o jsonpath='{range .items[*]}{.metadata.name}{"\n"}{end}'
+    kubectl get pods -l openebs.io/controller=jiva-controller,openebs.io/persistent-volume={{ pv_name }} -n {{ operator_ns }} -o jsonpath='{range .items[*]}{.metadata.name}{"\n"}{end}'
   args:
     executable: /bin/bash
   register: controller_pod
 
 - name: Getting number of snapshots
   shell: >
-    kubectl exec -it {{ controller_pod.stdout }} -n {{ app_ns }} -- jivactl snapshot ls | grep -v ID | wc -l
+    kubectl exec -it {{ controller_pod.stdout }} -n {{ operator_ns }} -- jivactl snapshot ls | grep -v ID | wc -l
   args:
     executable: /bin/bash
   register: snapshot_number

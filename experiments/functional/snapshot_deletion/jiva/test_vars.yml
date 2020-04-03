@@ -10,3 +10,4 @@ app_ns: "{{ lookup('env','FIO_NAMESPACE') }}"
 data_check: "{{ lookup('env','DATA_CHECK') }}"
 pvc_yml: pvc.yml
 storage_class: "{{ lookup('env','PROVIDER_STORAGE_CLASS') }}"
+operator_ns: 'openebs'

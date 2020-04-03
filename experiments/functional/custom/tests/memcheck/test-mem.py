@@ -9,7 +9,8 @@ import time, os, sys
 list = []
 namespace = sys.argv[1]
 benchmark = sys.argv[2]
-cmd_cntrl_name = "kubectl get pod -n %s -l openebs.io/controller=jiva-controller --no-headers | awk '{print $1}'" %(namespace)
+pvname = sys.argv[3]
+cmd_cntrl_name = "kubectl get pod -n %s -l openebs.io/controller=jiva-controller,openebs.io/persistent-volume=%s --no-headers | awk '{print $1}'" %(namespace,pvname)
 print cmd_cntrl_name
 out = subprocess.Popen(cmd_cntrl_name,stdout=subprocess.PIPE,shell=True)
 cntrl_name = out.communicate()

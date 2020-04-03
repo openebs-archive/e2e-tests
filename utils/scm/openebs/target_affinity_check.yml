@@ -33,7 +33,7 @@
   with_items: "{{ stg_engine.resources }}"
   
 - set_fact: 
-    target_ns: "{{ app_ns }}"
+    target_ns: "{{ operator_ns }}"
     target_label: "openebs.io/controller=jiva-controller"
   when: stg_engine.resources.0.metadata.annotations['openebs.io/cas-type'] == 'jiva'
 

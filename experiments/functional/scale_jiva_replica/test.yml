@@ -48,20 +48,29 @@
          set_fact:
             node_count: "{{node_out.stdout}}"
         
+       - name: Get the volume name
+         shell: >
+           kubectl get pvc -n {{ namespace }} --no-headers -o custom-columns=:.spec.volumeName
+         args:
+           executable: /bin/bash
+         register: pv_name
+
        - name: Get the replica deployment name
-         shell: kubectl get deployments -n {{ namespace }} -l openebs.io/replica=jiva-replica -o jsonpath='{.items[0].metadata.name}'
+         shell: >
+           kubectl get deployments -n {{ operator_namespace }} -l openebs.io/persistent-volume="{{ pv_name.stdout }}",openebs.io/replica=jiva-replica 
+           --no-headers -o jsonpath='{.items[0].metadata.name}'
          args:
            executable: /bin/bash
          register: rep_deployment_name
         
        - name: Get the controller deployment name 
-         shell: kubectl get deployment -n {{ namespace }} -l openebs.io/controller=jiva-controller -o jsonpath='{.items[0].metadata.name}'
+         shell: kubectl get deployment -n {{ operator_namespace }} -l openebs.io/controller=jiva-controller,openebs.io/persistent-volume="{{ pv_name.stdout }}" -o jsonpath='{.items[0].metadata.name}'
          args:
            executable: /bin/bash
          register: ctrl_deploy
 
        - name: Getting the node name on which replica is scheduled
-         shell: kubectl get deploy {{ rep_deployment_name.stdout }} -n {{ namespace }} -o jsonpath='{.spec.template.spec.affinity.nodeAffinity.requiredDuringSchedulingIgnoredDuringExecution.nodeSelectorTerms[0].matchExpressions[0].values[0]}' 
+         shell: kubectl get deploy {{ rep_deployment_name.stdout }} -n {{ operator_namespace }} -o jsonpath='{.spec.template.spec.affinity.nodeAffinity.requiredDuringSchedulingIgnoredDuringExecution.nodeSelectorTerms[0].matchExpressions[0].values[0]}' 
          register: replica_node_name
 
        - name: Getting the node name where replica is not scheduled
@@ -82,16 +91,16 @@
          with_items: "{{ node_name.stdout_lines }}"
 
        - name: Patching replica deployment
-         shell: kubectl patch deployment {{ rep_deployment_name.stdout }} -n {{ namespace }} --patch "$(cat rep_patch.yml)"
+         shell: kubectl patch deployment {{ rep_deployment_name.stdout }} -n {{ operator_namespace }} --patch "$(cat rep_patch.yml)"
          register: status
          failed_when: "'patched' not in status.stdout"
 
        - name: Obtaining the current replication factor
-         shell: kubectl get deployments {{ ctrl_deploy.stdout }} -n {{ namespace }} -o jsonpath='{.spec.template.spec.containers[0].env[0].value}'    
+         shell: kubectl get deployments {{ ctrl_deploy.stdout }} -n {{ operator_namespace }} -o jsonpath='{.spec.template.spec.containers[0].env[0].value}'    
          register: replication_factor
 
        - name: Update Controller deployment
-         shell: kubectl set env deployment/{{ ctrl_deploy.stdout }} -n {{ namespace }}  REPLICATION_FACTOR="{{ node_count }}" 
+         shell: kubectl set env deployment/{{ ctrl_deploy.stdout }} -n {{ operator_namespace }}  REPLICATION_FACTOR="{{ node_count }}" 
          register: update_ctrl 
          until: "'env updated' in update_ctrl.stdout"
          retries: 5
@@ -106,7 +115,7 @@
              app_ns: "{{ namespace }}"
              deploy_type: "deployment"
              app_name: "{{ rep_deployment_name.stdout }}"   
-             app_label: "openebs.io/replica=jiva-replica"  
+             app_label: "openebs.io/replica=jiva-replica,openebs.io/persistent-volume={{ pv_name.stdout }}" 
              app_replica_count: "{{ node_count }}"
 
 
@@ -132,23 +141,23 @@
        - block:
            
            - name: Getting the Controller pod name
-             shell: kubectl get pod -n {{ namespace }} -l openebs.io/controller=jiva-controller -o jsonpath='{.items[0].metadata.name}'
+             shell: kubectl get pod -n {{ operator_namespace }} -l openebs.io/controller=jiva-controller,openebs.io/persistent-volume="{{ pv_name.stdout }}" -o jsonpath='{.items[0].metadata.name}'
              register: ctrl_pod_name
              
            - name: Restarting controller
-             shell: kubectl delete pod {{ ctrl_pod_name.stdout }} -n {{ namespace }}
+             shell: kubectl delete pod {{ ctrl_pod_name.stdout }} -n {{ operator_namespace }}
              register: ctrl_delete
              failed_when: "'deleted' not in ctrl_delete.stdout"
 
            - name: Verifying successful deletion of controller
-             shell: kubectl get pod -n {{ namespace }} -l openebs.io/controller=jiva-controller -o jsonpath='{.items[0].metadata.name}'
+             shell: kubectl get pod -n {{ operator_namespace }} -l openebs.io/controller=jiva-controller,openebs.io/persistent-volume="{{ pv_name.stdout }}" -o jsonpath='{.items[0].metadata.name}'
              register: ctrl_del_status
              until: "'{{ ctrl_pod_name.stdout }}' not in ctrl_del_status.stdout"
              delay: 10
              retries: 100
 
            - name: Waiting for new controller to be in running state
-             shell: kubectl get pod -n {{ namespace }} -l openebs.io/controller=jiva-controller -o jsonpath='{.items[0].status.phase}'
+             shell: kubectl get pod -n {{ operator_namespace }} -l openebs.io/controller=jiva-controller,openebs.io/persistent-volume="{{ pv_name.stdout }}" -o jsonpath='{.items[0].status.phase}'
              register: new_ctrl_state
              until: "'Running' in new_ctrl_state.stdout"
              delay: 10
@@ -159,23 +168,23 @@
        - block:
           
            - name: Getting the replica pod name
-             shell: kubectl get pod -n {{ namespace }} -l openebs.io/replica=jiva-replica -o jsonpath='{.items[0].metadata.name}'
+             shell: kubectl get pod -n {{ operator_namespace }} -l openebs.io/replica=jiva-replica,openebs.io/persistent-volume="{{ pv_name.stdout }}" -o jsonpath='{.items[0].metadata.name}'
              register: rep_pod_name
 
            - name: Restarting replica
-             shell: kubectl delete pod {{ rep_pod_name.stdout }} -n {{ namespace }}
+             shell: kubectl delete pod {{ rep_pod_name.stdout }} -n {{ operator_namespace }}
              register: replica_delete
              failed_when: "'deleted' not in replica_delete.stdout"
 
            - name: Verifying successful deletion of replica
-             shell: kubectl get pod -n {{ namespace }} -l openebs.io/replica=jiva-replica -o jsonpath='{.items[0].metadata.name}'
+             shell: kubectl get pod -n {{ operator_namespace }} -l openebs.io/replica=jiva-replica,openebs.io/persistent-volume="{{ pv_name.stdout }}" -o jsonpath='{.items[0].metadata.name}'
              register: replica_del_status
              until: "'{{ rep_pod_name.stdout }}' not in replica_del_status.stdout"
              delay: 10
              retries: 100
 
            - name: Checking for all replicas to be in Running state
-             shell: kubectl get pod -n {{ namespace }} -l openebs.io/replica=jiva-replica --no-headers -o custom-columns=:status.phase
+             shell: kubectl get pod -n {{ operator_namespace }} -l openebs.io/replica=jiva-replica,openebs.io/persistent-volume="{{ pv_name.stdout }}" --no-headers -o custom-columns=:status.phase
              register: running_rep_status
              until: "((running_rep_status|unique)|length) == 1 and 'Running' in running_rep_status.stdout"
              delay: 10

@@ -60,8 +60,15 @@
          delay: 30
          retries: 10
 
+       - name: Obtain the volume name
+         shell: >
+           kubectl get pvc -n {{ app_ns }} --no-headers -o custom-columns=:.spec.volumeName
+         args:
+           executable: /bin/bash
+         register: pv_name
+
        - name: Run python script for memory usage validation it takes couple of minutes
-         shell: python test-mem.py {{ app_ns }} {{ memory_bm }}
+         shell: python test-mem.py {{ operator_ns }} {{ memory_bm }} {{ pv_name.stdout }}
          args:
            executable: /bin/bash
          register: result
