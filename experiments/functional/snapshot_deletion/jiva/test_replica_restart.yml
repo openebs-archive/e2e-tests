@@ -1,6 +1,6 @@
 - name: Get the name of replica pods
   shell: >
-    kubectl get pods -l openebs.io/replica=jiva-replica,openebs.io/persistent-volume={{ pv_name }} -n {{ app_ns }} --sort-by=.metadata.creationTimestamp -o jsonpath='{range .items[*]}{.metadata.name}{"\n"}{end}}'
+    kubectl get pods -l openebs.io/replica=jiva-replica,openebs.io/persistent-volume={{ pv_name }} -n {{ operator_ns }} --sort-by=.metadata.creationTimestamp -o jsonpath='{range .items[*]}{.metadata.name}{"\n"}{end}}'
   args:
     executable: /bin/bash
   register: replica_pod
@@ -11,7 +11,7 @@
 
 - name: Delete replica with latest creation timestamp
   shell: >
-    kubectl delete pod {{ replica_name }} -n {{ app_ns }}
+    kubectl delete pod {{ replica_name }} -n {{ operator_ns }}
   args:
     executable: /bin/bash
 
