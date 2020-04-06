@@ -1,0 +1,422 @@
+---
+- hosts: localhost
+  connection: local
+
+  vars_files:
+    - test_vars.yml
+
+  tasks:
+    - block:
+
+      ## Generating the testname for deployment
+        - include_tasks: /utils/fcm/create_testname.yml
+
+         ## RECORD START-OF-TEST IN LITMUS RESULT CR
+        - include_tasks: "/utils/fcm/update_litmus_result_resource.yml"
+          vars:
+            status: 'SOT'
+        
+        - name: Getting the compute node name
+          shell: kubectl get nodes --no-headers | grep -v master | awk {'print $1'}
+          register: nodes
+
+        - name: Replacing the pool type in SPC spec
+          replace:
+            path: ./spc.yml
+            regexp: "pool-type"
+            replace: "{{ pool_type }}"
+
+        - name: Replacing the rothreshold limit value in SPC spec
+          replace:
+            path: ./spc.yml
+            regexp: "threshold-value"
+            replace: "{{ rothreshold_limit }}"
+
+        - name: Replacing the over provisioning spec if it has to be disabled
+          replace:
+            path: ./spc.yml
+            regexp: "thickProvisioning: false"
+            replace: "thickProvisioning: true"
+          when: "{{ lookup('env', 'THICK_PROVISIONING') }} == true"
+        
+        - block:
+
+          - name: Getting the Unclaimed block-device from each node when pool type is STRIPE
+            shell: >
+              kubectl get blockdevice -n {{ operator_ns }} -l kubernetes.io/hostname={{ item }} 
+              -o jsonpath='{.items[?(@.status.claimState=="Unclaimed")].metadata.name}' | tr " " "\n" | grep -v sparse | head -n 1
+            register: blockDevice
+            with_items: "{{ nodes.stdout_lines }}"
+
+          - name: Initialize an empty list to store block device names
+            set_fact:
+              bd_names: []
+
+          - name: Store name of all block devices in the list 
+            set_fact:
+              bd_names: "{{ bd_names + item.stdout_lines }}"
+            with_items:
+              - "{{ blockDevice.results }}"
+              
+          - name: Adding discovered block device into SPC spec
+            lineinfile:
+              path: "./spc.yml"
+              insertafter: 'blockDeviceList:'
+              line: '    - {{ item }}'
+            with_items: "{{ bd_names }}"
+
+          when: pool_type == "striped" 
+
+        - block:
+
+          - name: Getting the Unclaimed block-devices from each node when pool type is MIRROR 
+            shell: >
+              kubectl get blockdevice -n openebs -l kubernetes.io/hostname={{ item }} 
+              -o jsonpath='{.items[?(@.status.claimState=="Unclaimed")].metadata.name}' | tr " " "\n" | grep -v sparse | head -n 2
+            register: blockDevice
+            with_items: "{{ nodes.stdout_lines }}" 
+          
+          - name: Initialize an empty list to store block device names
+            set_fact:
+              bd_names: []
+
+          - name: Store name of all block devices in the list 
+            set_fact:
+              bd_names: "{{ bd_names + item.stdout_lines }}"
+            with_items:
+              - "{{ blockDevice.results }}"
+          
+          - name: Adding discovered block devices into SPC spec
+            lineinfile:
+              path: "./spc.yml"
+              insertafter: 'blockDeviceList:'
+              line: '    - {{ item }}'
+            with_items: "{{ bd_names }}"
+
+          when: pool_type == "mirrored"
+
+        - block:
+
+          - name: Getting the Unclaimed block-devices from each node when pool type is RAIDZ1
+            shell: >
+              kubectl get blockdevice -n openebs -l kubernetes.io/hostname={{ item }} 
+              -o jsonpath='{.items[?(@.status.claimState=="Unclaimed")].metadata.name}' | tr " " "\n" | grep -v sparse | head -n 3
+            register: blockDevice
+            with_items: "{{ nodes.stdout_lines }}"
+
+          - name: Initialize an empty list to store block device names
+            set_fact:
+              bd_names: []
+
+          - name: Store name of all block devices in the list
+            set_fact:
+              bd_names: "{{ bd_names + item.stdout_lines }}"
+            with_items:
+              - "{{ blockDevice.results }}"
+
+          - name: Adding discovered block device into SPC spec
+            lineinfile:
+              path: "./spc.yml"
+              insertafter: 'blockDeviceList:'
+              line: '    - {{ item }}'
+            with_items: "{{ bd_names }}"
+
+          when: pool_type == "raidz"
+
+        - block:
+
+          - name: Getting the Unclaimed block-device from each node when pool type is RAIDZ2
+            shell: > 
+              kubectl get blockdevice -n openebs -l kubernetes.io/hostname={{ item }} 
+              -o jsonpath='{.items[?(@.status.claimState=="Unclaimed")].metadata.name}' | tr " " "\n" | grep -v sparse | head -n 6
+            register: blockDevice
+            with_items: "{{ nodes.stdout_lines }}"
+
+          - name: Initialize an empty list to store block device names
+            set_fact:
+              bd_names: []
+
+          - name: Store name of all block devices in the list
+            set_fact:
+              bd_names: "{{ bd_names + item.stdout_lines }}"
+            with_items:
+              - "{{ blockDevice.results }}"
+            
+          - name: Adding discovered block device into SPC spec
+            lineinfile:
+              path: "./spc.yml"
+              insertafter: 'blockDeviceList:'
+              line: '    - {{ item }}'
+            with_items: "{{ bd_names }}" 
+          
+          when: pool_type == "raidz2"  
+
+        - set_fact:
+            device_count: "{{ blockDevice|length}}"  
+
+        - name: Replacing the pool name in SPC spec
+          replace:
+            path: ./spc.yml
+            regexp: "pool-name"
+            replace: "{{ pool_name }}"
+
+        - name: Replacing the storage class name in SPC spec
+          replace:
+            path: ./spc.yml
+            regexp: "sc-name"
+            replace: "{{ storage_class }}"
+
+        - name: Display spc.yml for verification 
+          debug: var=item
+          with_file:
+          - "spc.yml"
+
+        - name: Create cstor disk pool
+          shell: kubectl apply -f spc.yml
+          args:
+            executable: /bin/bash
+
+        - name: Verify if cStor Disk Pool are Running
+          shell: >
+            kubectl get pods -n {{ operator_ns }} -l openebs.io/storage-pool-claim={{ pool_name }}
+            --no-headers -o custom-columns=:status.phase
+          args:
+            executable: /bin/bash
+          register: pool_count
+          until: "((pool_count.stdout_lines|unique)|length) == 1 and 'Running' in pool_count.stdout"
+          retries: 30
+          delay: 10
+
+        - name: Get cStor Disk Pool names to verify the container statuses
+          shell: >
+            kubectl get pods -n {{ operator_ns }} -l openebs.io/storage-pool-claim={{ pool_name }}
+            --no-headers -o=custom-columns=NAME:".metadata.name"
+          args:
+            executable: /bin/bash
+          register: cstor_pool_pod
+
+        - name: Get the runningStatus of pool pod
+          shell: >
+            kubectl get pod {{ item }} -n {{ operator_ns }}
+            -o=jsonpath='{range .status.containerStatuses[*]}{.state}{"\n"}{end}' |
+            grep -w running | wc -l
+          args:
+            executable: /bin/bash
+          register: runningStatusCount
+          with_items: "{{ cstor_pool_pod.stdout_lines }}"
+          until: "runningStatusCount.stdout == device_count"
+          delay: 30
+          retries: 10
+
+        - name: Obtain the CSP name to verify the status
+          shell: >
+            kubectl get csp -l openebs.io/storage-pool-claim={{ pool_name }}
+            -o custom-columns=:.metadata.name --no-headers
+          args:
+            executable: /bin/bash
+          register: csp_name
+
+        - name: Verify the status of CSP
+          shell: >
+            kubectl get csp -o jsonpath='{.items[?(@.metadata.name=="{{ item }}")].status.phase}'
+          args:
+            executable: /bin/bash
+          register: csp_status
+          with_items: "{{ csp_name.stdout_lines }}"
+          until: "'Healthy' in csp_status.stdout"
+          delay: 5
+          retries: 30
+
+        ## Creating namespaces and making the application for deployment
+        - include_tasks: /utils/k8s/pre_create_app_deploy.yml
+
+        - name: Replace the volume capcity placeholder with provider
+          replace:
+            path: "{{ application_deployment }}"
+            regexp: "teststorage"
+            replace: "{{ lookup('env','PV_CAPACITY') }}"
+
+            ## Deploying the application
+        - include_tasks: /utils/k8s/deploy_single_app.yml
+          vars:
+            check_app_pod: 'yes'
+            delay: 10
+            retries: 20
+
+        - name: Obtain the PV name
+          shell: kubectl get pvc {{ app_pvc }} -n {{ app_ns }}  -o custom-columns=:.spec.volumeName --no-headers
+          args:
+            executable: /bin/bash
+          register: pv_name
+
+        - name: Obtaining the pool deployments from cvr
+          shell: >
+            kubectl get cvr -n {{ operator_ns }}
+            -l openebs.io/persistent-volume={{ pv_name.stdout }} --no-headers
+            -o=jsonpath='{range .items[*]}{.metadata.labels.cstorpool\.openebs\.io\/name}{"\n"}{end}'
+          args:
+            executable: /bin/bash
+          register: pool_deployment              
+
+        - name: Verify the readOnly status of CSP
+          shell: >
+            kubectl get csp -o jsonpath='{.items[?(@.metadata.name=="{{ item }}")].status.readOnly}'
+          args:
+            executable: /bin/bash
+          register: csp_status
+          with_items: "{{ pool_deployment.stdout_lines }}"
+          until: "'false' in csp_status.stdout"
+          delay: 5
+          retries: 30              
+
+        - name: Getting the pod name of Application
+          shell: kubectl get pod -n {{ app_ns }} -l {{ app_label }} -o jsonpath='{.items[0].metadata.name}'
+          args:
+            executable: /bin/bash           
+          register: app_pod_name
+
+        - name: Getting the application mount point
+          shell: kubectl get pod {{ app_pod_name.stdout }} -n {{ app_ns }} -o jsonpath='{.spec.containers[0].volumeMounts[0].mountPath}'
+          args:
+            executable: /bin/bash               
+          register: app_mount_path
+
+        - name: Create some test data to verify the data persistence
+          include_tasks: "/utils/scm/applications/busybox/busybox_data_persistence.yml"
+          vars:
+            status: 'LOAD'
+            ns: "{{ app_ns }}"
+            pod_name: "{{ app_pod_name.stdout }}"
+            blocksize: 4k
+            blockcount: 1024
+            testfile: rothreshold                
+              
+        - name: Writing data on application mount point
+          shell: >
+            kubectl exec -it {{ app_pod_name.stdout }} -n {{ app_ns }} 
+            -- sh -c "cd {{ app_mount_path.stdout }} && dd if=/dev/urandom of=test.txt bs=4k count=3932160"
+          args:
+            executable: /bin/bash
+
+        - name: Verify the readOnly status of CSP after reached the threshold limit
+          shell: >
+            kubectl get csp -o jsonpath='{.items[?(@.metadata.name=="{{ item }}")].status.readOnly}'
+          args:
+            executable: /bin/bash
+          register: aft_csp_status
+          with_items: "{{ pool_deployment.stdout_lines }}"
+          until: "'true' in aft_csp_status.stdout"
+          delay: 5
+          retries: 30
+
+        - name: Patch the csp to change the threshold value
+          shell: >
+            kubectl patch csp {{ item }} --type='json' -p='[{"op":"replace", "path":"/spec/poolSpec/roThresholdLimit", "value":85}]'
+          args:
+            executable: /bin/bash
+          register: patch_csp_status
+          with_items: "{{ pool_deployment.stdout_lines }}"
+          failed_when: "'patched' not in patch_csp_status.stdout"
+
+        - name: Verify the readOnly status of CSP after changed it to default
+          shell: >
+            kubectl get csp -o jsonpath='{.items[?(@.metadata.name=="{{ item }}")].status.readOnly}'
+          args:
+            executable: /bin/bash
+          register: csp_status
+          with_items: "{{ pool_deployment.stdout_lines }}"
+          until: "'false' in csp_status.stdout"
+          delay: 5
+          retries: 30
+
+        - name: Create some test data to verify the data persistence
+          include_tasks: "/utils/scm/applications/busybox/busybox_data_persistence.yml"
+          vars:
+            status: 'VERIFY'
+            ns: "{{ app_ns }}"
+            label: "{{ app_label }}"
+            pod_name: "{{ app_pod_name.stdout }}"
+            blocksize: 4k
+            blockcount: 1024
+            testfile: rothreshold              
+                                                    
+        - set_fact:
+            flag: "Pass"
+    
+      rescue:
+          - set_fact:
+              flag: "Fail"
+  
+      always:
+
+          - name: Deprovisioning the Application
+            include_tasks: "/utils/k8s/deprovision_deployment.yml"
+            vars:
+              app_deployer: "{{ application_deployment }}"
+              
+          - name: Obtain the claimed blockDevice list from bdc
+            shell: >
+              kubectl get bdc -n {{ operator_ns }} -l openebs.io/storage-pool-claim={{ pool_name }}
+              -o custom-columns=:.spec.blockDeviceName --no-headers
+            args:
+              executable: /bin/bash
+            register: blockdevice_name
+
+          - name: Remove the SPC
+            shell: kubectl delete spc {{ pool_name }}
+            args:
+              executable: /bin/bash
+            
+          - name: Verify if the SPC is deleted
+            shell: kubectl get spc
+            args:
+              executable: /bin/bash
+            register: spc_status
+            until: '"{{ pool_name }}" not in spc_status.stdout'
+            retries: 30
+            delay: 10
+
+          - name: Verify if the CSP is getting removed
+            shell: kubectl get csp -n {{ operator_ns }} -l openebs.io/cstor-pool-cluster={{ pool_name }}
+            args:
+              executable: /bin/bash
+            register: csp_status
+            until: "'No resources found.' in csp_status.stderr"
+            retries: 30
+            delay: 10
+
+          - name: Verify if the cStor pool pods are deleted
+            shell: kubectl get pods -n {{ operator_ns }} -l openebs.io/storage-pool-claim={{ pool_name }}
+            args:
+              executable: /bin/bash
+            register: pool_status
+            until: "'No resources found.' in pool_status.stderr"
+            retries: 30
+            delay: 10
+
+          - name: Verify if the BDC are deleted
+            shell: kubectl get bdc -n {{ operator_ns }} -l openebs.io/storage-pool-claim={{ pool_name }}
+            args:
+              executable: /bin/bash
+            register: bdc_status
+            until: "'No resources found.' in bdc_status.stderr"
+            retries: 30
+            delay: 10
+
+          - name: Verify if the blockDevices are unclaimed
+            shell: >
+              kubectl get blockdevices -n {{ operator_ns }} 
+              -o jsonpath='{.items[?(@.metadata.name=="{{ item }}")].status.claimState}'
+            args:
+              executable: /bin/bash
+            register: bd_status
+            with_items: "{{ blockdevice_name.stdout_lines }}"
+            until: "'Unclaimed' in bd_status.stdout"
+            retries: 30
+            delay: 10 
+
+              ## RECORD END-OF-TEST IN LITMUS RESULT CR
+          - include_tasks: /utils/fcm/update_litmus_result_resource.yml
+            vars:
+              status: 'EOT'  
+        

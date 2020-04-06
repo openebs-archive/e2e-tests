@@ -1,0 +1,27 @@
+apiVersion: openebs.io/v1alpha1
+kind: StoragePoolClaim
+metadata:
+  name: pool-name
+spec:
+  name: pool-name
+  type: disk
+  poolSpec:
+    poolType: pool-type
+    thickProvisioning: true
+    roThresholdLimit: threshold-value
+  blockDevices:
+    blockDeviceList:
+
+---
+apiVersion: storage.k8s.io/v1
+kind: StorageClass
+metadata:
+  name: sc-name
+  annotations:
+    openebs.io/cas-type: cstor
+    cas.openebs.io/config: |
+      - name: StoragePoolClaim
+        value: pool-name
+      - name: ReplicaCount
+        value: "3"
+provisioner: openebs.io/provisioner-iscsi
