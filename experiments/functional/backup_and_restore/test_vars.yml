@@ -1,5 +1,6 @@
 test_name: "velero-backup-restore"
 app_ns: "{{ lookup('env','APP_NAMESPACE') }}"
+app_ns_new: "{{ lookup('env','APP_NAMESPACE') }}-local"
 app_label: "{{ lookup('env','APP_LABEL') }}"
 app_pvc: "{{ lookup('env','APP_PVC') }}"
 operator_ns: "{{ lookup('env','OPERATOR_NAMESPACE') }}"

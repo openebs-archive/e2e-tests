@@ -8,14 +8,21 @@
           velero backup create {{ velero_backup_name }} --include-namespaces={{ app_ns }} --snapshot-volumes --volume-snapshot-locations=minio
         args:
           executable: /bin/bash
-        when: bucket_type == "minio"
+        when: bucket_type == "minio" and lookup('env','LOCAL_SNAPSHOT') == "false"
 
       - name: Creating Backup using GCP bucket
         shell: >
           velero backup create {{ velero_backup_name }} --include-namespaces={{ app_ns }} --snapshot-volumes --volume-snapshot-locations=gcp-bucket
         args:
           executable: /bin/bash
-        when: bucket_type == "GCP"
+        when: bucket_type == "GCP" and lookup('env','LOCAL_SNAPSHOT') == "false"
+
+      - name: Creating Backup using GCP bucket
+        shell: >
+          velero backup create {{ velero_backup_name }} --include-namespaces={{ app_ns }} --snapshot-volumes --volume-snapshot-locations=local
+        args:
+          executable: /bin/bash
+        when: lookup('env','LOCAL_SNAPSHOT') == "true"
 
      when: storage_engine == "cstor" 
 
@@ -67,17 +74,31 @@
    
 - block:
 
-   - name: Creating application namespace
-     shell: kubectl create ns {{ app_ns }}
-     register: volume_snapshot_location
-     failed_when: "'created' not in volume_snapshot_location.stdout"
-     when: storage_engine == "cstor"
+   - block: 
+      
+      - name: Creating application namespace
+        shell: kubectl create ns {{ app_ns }}
+        register: app_ns_create_status
+        failed_when: "'created' not in app_ns_create_status.stdout"
+        when: storage_engine == "cstor"
 
-   - name: Restoring application 
-     shell: >
-       velero restore create --from-backup {{ velero_backup_name }} --restore-volumes=true
-     args:
-       executable: /bin/bash
+      - name: Restoring application 
+        shell: >
+          velero restore create --from-backup {{ velero_backup_name }} --restore-volumes=true
+        args:
+          executable: /bin/bash
+   
+     when: lookup('env','LOCAL_SNAPSHOT') == "false"
+
+   - block:
+
+      - name: Restoring application 
+        shell: >
+          velero restore create --from-backup {{ velero_backup_name }} --restore-volumes=true --namespace-mappings {{ app_ns }}:{{ app_ns_new }}
+        args:
+          executable: /bin/bash
+   
+     when: lookup('env','LOCAL_SNAPSHOT') == "true"  
 
   when: action == "RESTORE"
 

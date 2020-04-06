@@ -58,6 +58,9 @@ spec:
           #Supported values are {'minio', 'GCP'}
           - name: STORAGE_BUCKET
             value: "minio"
+          #Supported values ae {'true', false}, can be set true only with cstor volumes
+          - name: LOCAL_SNAPSHOT
+            value: "false"
 
           - name: GCP_PROJECT_ID
             value: "openebs-ci"
