@@ -27,6 +27,8 @@
           # Including the scaleup_replicas utility from litmus funclib that handles scaling up the replicas.
 
         - include: /funclib/kubectl/scale_replicas.yml
+          vars:
+            operator_namespace: "{{ app_ns }}"
 
         - name: Forming one of the replicas name statefulset application name.
           set_fact:

@@ -78,15 +78,6 @@
           register: node_ip
           failed_when: "node_ip.rc != 0"
 
-        - name: Obtain the IP address of jiva controller pod
-          shell: >
-            kubectl get pod -n {{ app_ns }} -l openebs.io/controller=jiva-controller 
-            --no-headers -o custom-columns=:.status.podIP
-          args:
-            executable: /bin/bash
-          register: controller_ip
-          failed_when: "controller_ip.rc != 0"
-                  
         - name: Getting PV name from the pvc
           shell: >
             kubectl get pvc {{ app_pvc }} -n {{ app_ns }} 
@@ -96,6 +87,15 @@
           register: app_pv
           failed_when: "app_pv.rc != 0"
 
+        - name: Obtain the IP address of jiva controller pod
+          shell: >
+            kubectl get pod -n {{ operator_ns }} -l openebs.io/controller=jiva-controller,openebs.io/persistent-volume="{{ app_pv.stdout }}" 
+            --no-headers -o custom-columns=:.status.podIP
+          args:
+            executable: /bin/bash
+          register: controller_ip
+          failed_when: "controller_ip.rc != 0"
+         
         - name: Obtain the daemonset pod corresponding to application pod
           shell: >
             kubectl get pod -l app=jiva-resize -o wide --no-headers -o 
@@ -169,7 +169,7 @@
         
         - name: Restart all the replica pods of jiva volume
           shell: >
-            kubectl delete pods -n "{{ app_ns }}" -l openebs.io/replica=jiva-replica --force --grace-period=0 
+            kubectl delete pods -n "{{ operator_ns }}" -l openebs.io/replica=jiva-replica,openebs.io/persistent-volume="{{ app_pv.stdout }}" --force --grace-period=0 
           args:
             executable: /bin/bash
           register: status
@@ -177,7 +177,7 @@
 
         - name: Checking for all replicas to be in Running state
           shell: >
-            kubectl get pod -n {{ app_ns }} -l openebs.io/replica=jiva-replica 
+            kubectl get pod -n {{ operator_ns }} -l openebs.io/replica=jiva-replica,openebs.io/persistent-volume="{{ app_pv.stdout }}" 
             --no-headers -o custom-columns=:status.phase
           register: running_rep_status
           until: "((running_rep_status.stdout_lines|unique)|length) == 1 and 'Running' in running_rep_status.stdout"
@@ -186,7 +186,7 @@
 
         - name: Obtain the iSCSI Target IP (controller service IP address)
           shell: >
-            kubectl get svc -n {{ app_ns }} -l openebs.io/controller-service=jiva-controller-svc 
+            kubectl get svc -n {{ operator_ns }} -l openebs.io/controller-service=jiva-controller-svc,openebs.io/persistent-volume="{{ app_pv.stdout }}" 
             --no-headers -o custom-columns=:.spec.clusterIP
           args:
             executable: /bin/bash
