@@ -23,7 +23,7 @@
 
     - name: Identify the node where application pod is running
       shell: >
-        kubectl get pod {{ app_pod }} -n {{ namespace }}
+        kubectl get pod {{ app_pod }} -n {{ target_ns }}
         --no-headers -o custom-columns=:spec.nodeName
       args:
         executable: /bin/bash

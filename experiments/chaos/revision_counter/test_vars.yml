@@ -14,4 +14,6 @@ file_name: "{{ lookup('env','FILE_NAME') }}"
 
 mount_path: "{{ lookup('env','MOUNT_PATH') }}"
 
+operator_ns: 'openebs'
+
 test_name: "jiva-revision-counter"

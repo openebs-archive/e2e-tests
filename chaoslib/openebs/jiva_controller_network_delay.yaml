@@ -30,7 +30,7 @@
 - name: Identify the jiva controller pod belonging to the PV
   shell: > 
     kubectl get pods -l openebs.io/controller=jiva-controller
-    -n {{ app_ns }} --no-headers | grep {{ pv.stdout }} 
+    -n {{ operator_ns }} --no-headers | grep {{ pv.stdout }} 
     | awk '{print $1}'
   args:
     executable: /bin/bash
@@ -43,7 +43,7 @@
 
 - name: Get the node on which the jiva controller is scheduled
   shell: >
-    kubectl get pod {{ jiva_controller_pod.stdout }} -n {{ app_ns }}
+    kubectl get pod {{ jiva_controller_pod.stdout }} -n {{ operator_ns }}
     --no-headers -o custom-columns=:spec.nodeName
   args:
     executable: /bin/bash
@@ -51,8 +51,8 @@
 
 - name: Get controller svc
   shell: >
-    kubectl get svc -l openebs.io/controller-service=jiva-controller-svc 
-    -n {{ app_ns }} -o=jsonpath='{.items[0].spec.clusterIP}'
+    kubectl get svc -l openebs.io/controller-service=jiva-controller-svc,openebs.io/persistent-volume="{{ pv.stdout }}" 
+    -n {{ operator_ns }} -o=jsonpath='{.items[0].spec.clusterIP}'
   args:
     executable: /bin/bash
   register: controller_svc
@@ -60,14 +60,14 @@
 
 - name: Install jq package inside a controller container
   shell: >
-    kubectl exec -it {{ jiva_controller_pod.stdout }} -n {{ app_ns }} -c {{ jiva_controller_name }} 
+    kubectl exec -it {{ jiva_controller_pod.stdout }} -n {{ operator_ns }} -c {{ jiva_controller_name }} 
     -- bash -c "apt-get update && apt-get install -y jq && apt-get install -y iproute2"
   args:
     executable: /bin/bash
 
 - name: Getting the ReplicaCount before injecting delay
   shell: >
-   kubectl exec -it {{ jiva_controller_pod.stdout }} -n {{ app_ns }} 
+   kubectl exec -it {{ jiva_controller_pod.stdout }} -n {{ operator_ns }} 
    -c {{ jiva_controller_name }} curl http://"{{controller_svc.stdout}}":9501/v1/volumes | jq -r '.data[].replicaCount'
   args:
     executable: /bin/bash
@@ -91,7 +91,7 @@
 
 - name: Verifying the Replica getting disconnected
   shell: >
-   kubectl exec -it {{ jiva_controller_pod.stdout }} -n {{ app_ns }} 
+   kubectl exec -it {{ jiva_controller_pod.stdout }} -n {{ operator_ns }} 
    -c {{ jiva_controller_name }} curl http://"{{controller_svc.stdout}}":9501/v1/volumes | jq -r '.data[].replicaCount'
   args:
     executable: /bin/bash
@@ -118,7 +118,7 @@
 
 - name: Verifying the replicas post network recovery
   shell: >
-   kubectl exec -it {{ jiva_controller_pod.stdout }} -n {{ app_ns }} 
+   kubectl exec -it {{ jiva_controller_pod.stdout }} -n {{ operator_ns }} 
    -c {{ jiva_controller_name }} curl http://"{{controller_svc.stdout}}":9501/v1/volumes | jq -r '.data[].replicaCount'
   args:
     executable: /bin/bash

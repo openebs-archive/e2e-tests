@@ -19,7 +19,7 @@
 
 - name: Get the resourceVersion of the target deploy before fault injection
   shell: >
-    kubectl get deploy {{ jiva_controller_deploy }} -n {{ app_ns }} 
+    kubectl get deploy {{ jiva_controller_deploy }} -n {{ target_ns }} 
     -o=custom-columns=NAME:".metadata.resourceVersion" --no-headers
   args:
     executable: /bin/bash
@@ -27,7 +27,7 @@
 
 - name: Get jiva controller pod belonging to the PV
   shell: > 
-    kubectl get pods --no-headers -l openebs.io/controller=jiva-controller -n {{ app_ns }}
+    kubectl get pods --no-headers -l openebs.io/controller=jiva-controller -n {{ target_ns }}
     -o jsonpath="{.items[?(@.metadata.labels.openebs\\.io/persistent-volume==\"{{pv.stdout}}\")].metadata.name}" 
   args:
     executable: /bin/bash
@@ -35,8 +35,8 @@
 
 - name: Get controller svc
   shell: >
-    kubectl get svc -l openebs.io/controller-service=jiva-controller-svc 
-    -n {{ app_ns }} -o=jsonpath='{.items[0].spec.clusterIP}'
+    kubectl get svc -l openebs.io/controller-service=jiva-controller-svc,openebs.io/persistent-volume="{{ pv.stdout }}" 
+    -n {{ target_ns }} -o=jsonpath='{.items[0].spec.clusterIP}'
   args:
     executable: /bin/bash
   register: controller_svc
@@ -44,14 +44,14 @@
 
 - name: Install jq package inside a controller container
   shell: >
-    kubectl exec -it {{ jiva_controller_pod.stdout }} -n {{ app_ns }} -c {{ jiva_controller_name }} 
+    kubectl exec -it {{ jiva_controller_pod.stdout }} -n {{ target_ns }} -c {{ jiva_controller_name }} 
     -- bash -c "apt-get update && apt-get install -y jq"
   args:
     executable: /bin/bash
 
 - name: Getting the Replicastatus before killing controller
   shell: >
-   kubectl exec -it {{ jiva_controller_pod.stdout }} -n {{ app_ns }} 
+   kubectl exec -it {{ jiva_controller_pod.stdout }} -n {{ target_ns }} 
    -c {{ jiva_controller_name }} curl http://"{{controller_svc.stdout}}":9501/v1/replicas | jq -r '.data[].mode'
   args:
     executable: /bin/bash
@@ -59,13 +59,13 @@
 
 - name: Kill the jiva controller pod 
   shell: >
-    kubectl delete pod {{ jiva_controller_pod.stdout }} -n {{ app_ns }}
+    kubectl delete pod {{ jiva_controller_pod.stdout }} -n {{ target_ns }}
   args:
     executable: /bin/bash
 
 - name: Get jiva controller pod belonging to the PV
   shell: >
-    kubectl get pods --no-headers -l openebs.io/controller=jiva-controller -n {{ app_ns }}
+    kubectl get pods --no-headers -l openebs.io/controller=jiva-controller -n {{ target_ns }}
     -o jsonpath="{.items[?(@.metadata.labels.openebs\\.io/persistent-volume==\"{{pv.stdout}}\")].metadata.name}"
   args:
     executable: /bin/bash
@@ -73,7 +73,7 @@
 
 - name: Check jiva controller container status
   shell: >
-    kubectl get pods {{ jctrl_pod_after.stdout }} -n {{ app_ns }} 
+    kubectl get pods {{ jctrl_pod_after.stdout }} -n {{ target_ns }} 
     -o jsonpath='{.status.containerStatuses[?(@.name=="{{ pv.stdout}}-ctrl-con")].state}' | grep running
   args:
     executable: /bin/bash
@@ -84,14 +84,14 @@
 
 - name: Install jq package inside a controller container
   shell: >
-    kubectl exec -it {{ jctrl_pod_after.stdout }} -n {{ app_ns }} -c {{ jiva_controller_name }}
+    kubectl exec -it {{ jctrl_pod_after.stdout }} -n {{ target_ns }} -c {{ jiva_controller_name }}
     -- bash -c "apt-get update && apt-get install -y jq"
   args:
     executable: /bin/bash
 
 - name: Getting the Replicastatus after killing the controller
   shell: >
-   kubectl exec -it {{ jctrl_pod_after.stdout }} -n {{ app_ns }}
+   kubectl exec -it {{ jctrl_pod_after.stdout }} -n {{ target_ns }}
    -c {{ jiva_controller_name }} curl http://"{{controller_svc.stdout}}":9501/v1/replicas | jq -r '.data[].mode'
   args:
     executable: /bin/bash
@@ -102,7 +102,7 @@
 
 - name: Get the resourceVersion of the target deploy after fault injection
   shell: >
-    kubectl get deploy {{ jiva_controller_deploy }} -n {{ app_ns }}
+    kubectl get deploy {{ jiva_controller_deploy }} -n {{ target_ns }}
     -o=custom-columns=NAME:".metadata.resourceVersion" --no-headers 
   args:
     executable: /bin/bash
