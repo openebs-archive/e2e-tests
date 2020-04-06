@@ -16,39 +16,52 @@
           vars:
             status: 'SOT'
 
+        - name: Obtain the volume name
+          shell: > 
+            kubectl get pvc {{ pvc_name }} -n {{ namespace }} --no-headers -o custom-columns=:.spec.volumeName
+          args:
+            executable: /bin/bash
+          register: pv_name
+
         - name: Getting replica-pod name
           shell: >
-            kubectl get pod -n {{ namespace }} -l openebs.io/replica=jiva-replica 
+            kubectl get pod -n {{ operator_ns }} -l openebs.io/replica=jiva-replica,openebs.io/persistent-volume="{{ pv_name.stdout }}" 
             -o jsonpath='{.items[0].metadata.name}'
+          args:
+            executable: /bin/bash
           register: rep_pod
 
         - name: Checking the status of replica pod
-          shell: kubectl get pod {{ rep_pod.stdout }} -n {{ namespace }} -o jsonpath='{.status.phase}'
+          shell: kubectl get pod {{ rep_pod.stdout }} -n {{ operator_ns }} -o jsonpath='{.status.phase}'
           register: status
           until: "'Running' in status.stdout"
           delay: 30
           retries: 10
  
         - name: Getting the Node name on which replica-pod is scheduled
-          shell: kubectl get pod {{ rep_pod.stdout }} -n {{ namespace }} -o jsonpath='{.spec.nodeName}' 
+          shell: kubectl get pod {{ rep_pod.stdout }} -n {{ operator_ns }} -o jsonpath='{.spec.nodeName}' 
+          args:
+            executable: /bin/bash
           register: node
 
         - name: Obtaining the deployment name for the replica pod
           shell: >
-             kubectl get deployments -n {{ namespace }} -l openebs.io/replica=jiva-replica 
+             kubectl get deployments -n {{ operator_ns }} -l openebs.io/replica=jiva-replica,openebs.io/persistent-volume="{{ pv_name.stdout }}" 
              -o jsonpath='{.items[0].metadata.name}' 
+          args:
+            executable: /bin/bash
           register: deployment_name
     
         - name: Checking the node affinity for replica-pod
           include_tasks: "/funclib/kubectl/pod_node_affinity.yml"
           vars:
-              ns: "{{ namespace }}"
+              ns: "{{ operator_ns }}"
               pod_name: "{{ rep_pod.stdout }}"
-              pod_label: "openebs.io/replica=jiva-replica"
+              pod_label: "openebs.io/replica=jiva-replica,openebs.io/persistent-volume={{ pv_name.stdout }}"
 
         - name: Checking the status of replica-pod
           shell: >
-             kubectl get pod {{ new_pod_name.stdout }} -n {{ namespace }} -o jsonpath='{.status.phase}'
+             kubectl get pod {{ new_pod_name.stdout }} -n {{ operator_ns }} -o jsonpath='{.status.phase}'
           until: "'Running' in status.stdout"
           delay: 30
           retries: 10      

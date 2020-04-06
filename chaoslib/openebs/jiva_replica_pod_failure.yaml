@@ -7,14 +7,23 @@
     executable: /bin/bash
   register: pv
 
+- name: Randomly pick a jiva replica deployment belonging to the PV
+  shell: > 
+    kubectl get deployment -l openebs.io/replica=jiva-replica
+    -n {{ operator_ns }} --no-headers | grep {{ pv.stdout }} 
+    | shuf -n1 | awk '{print $1}'
+  args:
+    executable: /bin/bash
+  register: jiva_replica_deployment
+
 - name: Record the jiva replica deployment of the PV
   set_fact: 
     # Depends on the naming convention in maya-apiserver (<pv-id>-rep)  
-    jiva_replica_deploy: "{{ pv.stdout }}-rep"
+    jiva_replica_deploy: "{{ jiva_replica_deployment.stdout }}"
 
 - name: Obtain the number of replicas in the deployment
   shell: >
-    kubectl get deployment {{ jiva_replica_deploy }} -n {{ app_ns }}
+    kubectl get deployment {{ jiva_replica_deploy }} -n {{ operator_ns }}
     --no-headers -o custom-columns=:spec.replicas
   args:
     executable: /bin/bash
@@ -22,7 +31,7 @@
 
 - name: Get the resourceVersion of the replica deploy before fault injection
   shell: >
-    kubectl get deploy {{ jiva_replica_deploy }} -n {{ app_ns }} 
+    kubectl get deploy {{ jiva_replica_deploy }} -n {{ operator_ns }} 
     --no-headers -o custom-columns=:metadata.resourceVersion
   args:
     executable: /bin/bash
@@ -31,7 +40,7 @@
 - name: Randomly pick a jiva replica pod belonging to the PV
   shell: > 
     kubectl get pods -l openebs.io/replica=jiva-replica
-    -n {{ app_ns }} --no-headers | grep {{ pv.stdout }} 
+    -n {{ operator_ns }} --no-headers | grep {{ jiva_replica_deploy }} 
     | shuf -n1 | awk '{print $1}'
   args:
     executable: /bin/bash
@@ -39,13 +48,13 @@
 
 - name: Kill the jiva replica pod 
   shell: >
-    kubectl delete pod {{ jiva_replica_pod.stdout }} -n {{ app_ns }}
+    kubectl delete pod {{ jiva_replica_pod.stdout }} -n {{ operator_ns }}
   args:
     executable: /bin/bash
 
 - name: Check if the replica pod is scheduled back.
   shell: >
-    kubectl get deployment {{ jiva_replica_deploy }} -n {{ app_ns }}
+    kubectl get deployment {{ jiva_replica_deploy }} -n {{ operator_ns }}
     --no-headers -o custom-columns=:..readyReplicas
   args:
     executable: /bin/bash
@@ -56,7 +65,7 @@
 
 - name: Get the resourceVersion of the replica deploy after fault injection
   shell: >
-    kubectl get deploy {{ jiva_replica_deploy }} -n {{ app_ns }} 
+    kubectl get deploy {{ jiva_replica_deploy }} -n {{ operator_ns }} 
     --no-headers -o custom-columns=:metadata.resourceVersion
   args:
     executable: /bin/bash
