@@ -130,6 +130,11 @@
             executable: /bin/bash
           register: csp_name
 
+        - name: Select random csp from the list of csp as target csp
+          set_fact:
+            target_csp: "{{ item }}"
+          with_random_choice: "{{ csp_name.stdout_lines }}"
+
         - name: Getting the target IP from cvr
           shell: kubectl get cvr -n {{ operator_ns }} -l cstorvolume.openebs.io/name={{ pv.stdout }} -o jsonpath='{.items[0].spec.targetIP}'
           register: target_ip
@@ -205,7 +210,7 @@
           shell: kubectl apply -f cvr.yml
 
         - name: Getting the uid of newly created cvr
-          shell: kubectl get cvr -n {{ operator_ns }} -l cstorpool.openebs.io/name={{ csp_name.stdout_lines[0] }},cstorvolume.openebs.io/name={{ pv.stdout }} -o jsonpath='{.items[0].metadata.uid}'
+          shell: kubectl get cvr -n {{ operator_ns }} -l cstorpool.openebs.io/name={{ target_csp }},cstorvolume.openebs.io/name={{ pv.stdout }} -o jsonpath='{.items[0].metadata.uid}'
           register: new_uid
 
         - name: Creating MD5SUM of new-uid
@@ -219,12 +224,12 @@
             replace: "{{ md5sum.stdout }}"
 
         - name: Patching the cvr's replica id with md5sum
-          shell: kubectl patch cvr {{ pv.stdout }}-{{ csp_name.stdout_lines[0] }} -n {{ operator_ns }} --type merge --patch "$(cat patch_cvr.yml)"
+          shell: kubectl patch cvr {{ pv.stdout }}-{{ target_csp }} -n {{ operator_ns }} --type merge --patch "$(cat patch_cvr.yml)"
           register: patch_cvr_result
           failed_when: "'patched' not in patch_cvr_result.stdout"
     
         - name: Getting the cstor pool pod name
-          shell: kubectl get pod -n {{ operator_ns }} -l app=cstor-pool,openebs.io/cstor-pool={{ csp_name.stdout_lines[0] }} -o jsonpath='{.items[0].metadata.name}'
+          shell: kubectl get pod -n {{ operator_ns }} -l app=cstor-pool,openebs.io/cstor-pool={{ target_csp }} -o jsonpath='{.items[0].metadata.name}'
           register: pool_pod_name
 
         - name: Restarting the cstor-pool-mgmt container
@@ -232,9 +237,9 @@
           ignore_errors: true
 
         - name: Checking for the pool pod to be in running state
-          shell: kubectl get pod -n {{ operator_ns }} -l app=cstor-pool,openebs.io/cstor-pool={{ csp_name.stdout_lines[0] }} -o jsonpath='{.items[0].status.phase}'
+          shell: kubectl get pod -n {{ operator_ns }} -l app=cstor-pool,openebs.io/cstor-pool={{ target_csp }} -o jsonpath='{.items[0].status.phase}'
           register: pod_status
-          until: "'Running' in pod_status.stdout"
+          until: "((pod_status.stdout_lines|unique)|length) == 1 and 'Running' in pod_status.stdout"
           delay: 10
           retries: 50
 
@@ -340,7 +345,7 @@
   
         - name: Take snapshot for data verification
           shell: >
-              kubectl exec -it {{ istgt_replica.stdout }} -n {{ operator_ns }} --container  cstor-istgt -- istgtcontrol snapcreate {{ pv.stdout }} {{ snap_name }} 30 30
+              kubectl exec -it {{ istgt_replica.stdout }} -n {{ operator_ns }} --container cstor-istgt -- istgtcontrol snapcreate {{ pv.stdout }} {{ snap_name }} 30 30
           register: snap_status
           until: "'DONE SNAPCREATE command' in snap_status.stdout"
           delay: 20
@@ -396,8 +401,3 @@
         - include_tasks: /utils/fcm/update_litmus_result_resource.yml
           vars:
             status: 'EOT'
-                
-
-            
-
-            
