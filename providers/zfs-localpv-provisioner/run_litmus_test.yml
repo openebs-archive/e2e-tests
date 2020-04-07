@@ -22,10 +22,17 @@ spec:
             #value: log_plays
             value: default
 
+            ## Give the versioned branch name for zfs_localPV provisioner from openebs/zfs-localpv repo
+            ## for e.g. (v0.4.x , v0.5.x  OR  master)
+          - name: ZFS_BRANCH  
+            value: ''
+
             ## Provide openebs ZFS_DRIVER image. To use ci images use ci tag.
             ## Give full image name (for e.g. quay.io/openebs/zfs-driver:<tag>)
+            ## For versioned branch (other than master) leave this empty
+            ## This env will be used only when master branch is used with custom-images or tags other than ci
           - name: ZFS_DRIVER_TAG
-            value:
+            value: ''
 
             ## Storage class will be created with the name provided here
           - name: STORAGE_CLASS  

@@ -22,7 +22,7 @@
         
           - name: Download OpenEBS ZFS driver file
             get_url:
-              url: https://raw.githubusercontent.com/openebs/zfs-localpv/master/deploy/zfs-operator.yaml
+              url: https://raw.githubusercontent.com/openebs/zfs-localpv/{{ zfs_branch }}/deploy/zfs-operator.yaml
               dest: ./zfs_operator.yml
               force: yes
             register: result
@@ -30,7 +30,7 @@
             delay: 5
             retries: 3
               
-          - name: Update the openebs zfs-driver tag
+          - name: Update the openebs zfs-driver image tag
             replace:
               path: ./zfs_operator.yml
               regexp: quay.io/openebs/zfs-driver:ci
