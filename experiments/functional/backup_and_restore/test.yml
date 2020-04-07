@@ -117,7 +117,7 @@
           vars:
             back_up_name: "{{ backup_name }}"
             action: 'SNAPSHOT_DELETE'
-          when: "storage_engine == 'cstor' and lookup('env','COMPONENT_FAILURE') == ''"
+          when: "storage_engine == 'cstor' and lookup('env','COMPONENT_FAILURE') == '' and lookup('env','LOCAL_SNAPSHOT') == 'false'"
 
         - block:
 
