@@ -82,7 +82,7 @@
          args:
            executable: /bin/bash
          register: status_fio_pod
-         until: "'Running' in status_fio_pod.stdout"
+         until: "status_fio_pod.stdout == 'Running' or status_fio_pod.stdout == 'Succeeded'"
          delay: 5
          retries: 30
 
