@@ -140,11 +140,11 @@
           register: target_ip
 
         - name: Getting the Node name from CSP where CVR need to create
-          shell: kubectl get csp {{ csp_name.stdout_lines[0] }} -o jsonpath='{.metadata.labels.kubernetes\.io/hostname}'
+          shell: kubectl get csp {{ target_csp }} -o jsonpath='{.metadata.labels.kubernetes\.io/hostname}'
           register: node_name
 
         - name: Getting csp uid 
-          shell: kubectl get csp {{ csp_name.stdout_lines[0] }} -o jsonpath='{.metadata.uid}'
+          shell: kubectl get csp {{ target_csp }} -o jsonpath='{.metadata.uid}'
           register: uid
 
         - name: Replacing the storage class in cvr yml
@@ -163,7 +163,7 @@
           replace:
             path: "./cvr.yml"
             regexp: "<csp-name>"
-            replace: "{{ csp_name.stdout_lines[0] }}"
+            replace: "{{ target_csp }}"
 
         - name: Replacing the uid in cvr yml
           replace:
@@ -250,7 +250,7 @@
               register: target_name
 
             - name: Checking for reconstructing state of newly created cvr 
-              shell: kubectl get cvr {{ pv.stdout }}-{{ csp_name.stdout_lines[0] }} -n {{ operator_ns }} -o jsonpath='{.status.phase}'
+              shell: kubectl get cvr {{ pv.stdout }}-{{ target_csp }} -n {{ operator_ns }} -o jsonpath='{.status.phase}'
               register: new_cvr_state
               until: "'ReconstructingNewReplica' in new_cvr_state.stdout"
               delay: 10
