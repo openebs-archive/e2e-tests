@@ -91,6 +91,27 @@
             path: /proc/{{ p_id.stdout }}/status
             state: absent
 
+        # Verify Revision counter values of all three replicas.
+        - name: Obtain the all three jiva replica pods to verify revision counter.
+          shell: >
+            kubectl get pods -n {{ operator_ns }} -l openebs.io/replica=jiva-replica,openebs.io/persistent-volume="{{ pv.stdout }}" 
+            --no-headers -o custom-columns=:.metadata.name
+          args:
+            executable: /bin/bash
+          register: jiva_replica_pods
+          failed_when: "jiva_replica_pods.rc != 0"
+
+        - name: Verify the revision counter value
+          shell: >
+            kubectl exec -ti "{{ item }}" -n {{ operator_ns }} 
+            -- bash -c "du -h /openebs/revision.counter"
+          args:
+            executable: /bin/bash
+          with_items:
+            - "{{ jiva_replica_pods.stdout_lines }}"
+          register: status
+          failed_when: "'4.0K' not in status.stdout"
+          
         # Verify that each replica consumes same storage
 
         - name: Obtain one replica pod to verify consumed storage
