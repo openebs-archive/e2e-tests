@@ -124,5 +124,5 @@
     executable: /bin/bash
   register: replica
   until: replica.stdout == rcount_before.stdout
-  retries: 10
-  delay: 15
+  retries: 15
+  delay: 30
