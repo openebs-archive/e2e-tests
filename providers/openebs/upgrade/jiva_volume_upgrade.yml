@@ -59,8 +59,8 @@
 
             - name: Check if the replica has been upgraded to latest version
               shell: >
-                kubectl get deploy {{ item }} -n {{ operator_ns }}
-                -o=jsonpath='{range .items[*]}{.metadata.labels.openebs\.io\/version}{"\n"}{end}'
+                kubectl get deploy -n {{ operator_ns }} 
+                -o jsonpath='{.items[?(@.metadata.name=="{{ item }}")].metadata.labels.openebs\.io\/version}'
               register: rep_version
               with_items:
                   - "{{ rep_name.stdout_lines }}"
