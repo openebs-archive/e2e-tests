@@ -239,7 +239,7 @@
                   register: chart_name
 
                 - name: Upgrade openebs control plane components
-                  shell: cd openebs/k8s/charts/openebs && helm upgrade --namespace {{ operator_ns }} {{ chart_name.stdout }} .
+                  shell: cd charts/stable/openebs && helm upgrade --namespace {{ operator_ns }} {{ chart_name.stdout }} .
                   args:
                     executable: /bin/bash
 
