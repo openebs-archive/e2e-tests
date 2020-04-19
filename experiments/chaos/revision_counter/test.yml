@@ -90,6 +90,23 @@
           wait_for:
             path: /proc/{{ p_id.stdout }}/status
             state: absent
+        
+        # Sync the dumped data in jiva replica
+        - name: Sync the dumped data in jiva replica from buffer
+          shell: >
+            kubectl exec -ti "{{ app_pod.stdout }}" -n "{{ app_ns }}" -- bash 
+            -c "sync;sync;sync"
+          args:
+            executable: /bin/bash
+          register: status
+          failed_when: "status.rc != 0"
+
+          #### Check the replica access mode after injecting chaos using mayactl commands ####
+        - name: Check the replicas access mode
+          include_tasks: "/funclib/openebs/access-mode-check.yml"
+          vars:
+            ns: "{{ app_ns }}"
+            pvc_name: "{{ pvc }}"
 
         # Verify Revision counter values of all three replicas.
         - name: Obtain the all three jiva replica pods to verify revision counter.

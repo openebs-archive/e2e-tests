@@ -37,7 +37,7 @@
          register: result
          until: result.stdout| int == node_count.stdout | int
          delay: 30
-         retries: 15
+         retries: 30
          changed_when: True
 
        - debug:

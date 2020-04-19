@@ -16,4 +16,6 @@ mount_path: "{{ lookup('env','MOUNT_PATH') }}"
 
 operator_ns: 'openebs'
 
+pvc: "{{ lookup('env','APP_PVC') }}"
+
 test_name: "jiva-revision-counter"
