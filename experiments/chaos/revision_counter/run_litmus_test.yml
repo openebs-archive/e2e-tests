@@ -30,6 +30,10 @@ spec:
           - name: APP_NAMESPACE
             value: ''
 
+             # Application PVC
+          - name: APP_PVC
+            value: ''
+
             # Block Size to dump the data using dd 
           - name: BLOCK_SIZE
             value: '3000000'
