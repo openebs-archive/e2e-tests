@@ -1,13 +1,13 @@
 apiVersion: batch/v1
 kind: Job
 metadata:
-  generateName: zfs-controller-high-avail
+  generateName: zfs-controller-high-availability
   namespace: litmus
 spec:
   template:
     metadata:
       labels:
-        name: zfs-controller-high-avail
+        name: zfs-controller-high-availability
     spec:
       serviceAccountName: litmus
       restartPolicy: Never

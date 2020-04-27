@@ -31,7 +31,7 @@
 
         - name: Get the count of the nodes which don't have `NoSchedule` taints
           shell: >
-            kubectl get no --no-headers -o custom-columns=:.metadata.name,:.spec.taints
+            kubectl get nodes --no-headers -o custom-columns=:.metadata.name,:.spec.taints
             | grep -v NoSchedule | wc -l
           args:
             executable: /bin/bash
@@ -57,6 +57,10 @@
             kubectl taint node {{ item }} key=value:NoSchedule
           args:
             executable: /bin/bash
+          register: taint_status
+          until: "'tainted' in taint_status.stdout "
+          retries: 20
+          delay: 5
           with_items: "{{ node_list.stdout_lines }}"
 
         - name: Delete the {{ active_replica_name.stdout }} replica pod
