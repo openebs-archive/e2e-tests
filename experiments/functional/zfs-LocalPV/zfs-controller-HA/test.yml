@@ -113,7 +113,7 @@
             flag: "Fail"
 
       always:
-            ## RECORD END-OF-TEST IN LITMUS RESULT CR
+          ## RECORD END-OF-TEST IN LITMUS RESULT CR
 
         - name: Remove the taint from the nodes
           shell: >
