@@ -92,7 +92,7 @@
           args:
             executable: /bin/bash
           register: cleanup_jobs
-          failed_when: "cleanup_jobs.rc != 0"
+          failed_when: "cleanup_jobs.stdout == ''"
 
         - name: Check if the cleanup jobs completed successfully
           shell: >
