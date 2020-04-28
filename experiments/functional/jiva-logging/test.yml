@@ -1,0 +1,104 @@
+---
+
+- hosts: localhost
+  connection: local
+
+  vars_files:
+    - test_vars.yml
+
+  tasks:
+    - block:
+          ## Generating the testname for deployment
+        - include_tasks: /utils/fcm/create_testname.yml
+
+        ## RECORD START-OF-TEST IN LITMUS RESULT CR
+        - include_tasks: "/utils/fcm/update_litmus_result_resource.yml"
+          vars:
+            status: 'SOT'
+
+        ## DISPLAY APP INFORMATION
+
+        - name: Display the app information passed via the test job
+          debug:
+            msg:
+              - "The application info is as follows:"
+              - "Namespace    : {{ app_ns }}"
+              - "Label        : {{ app_label }}"
+              - "PVC          : {{ app_pvc }}"
+
+        ## APPLICATION LIVENESS CHECK
+        - name: Verify that the AUT (Application Under Test) is running
+          include_tasks: "/utils/k8s/status_app_pod.yml"
+          vars:
+            app_lkey: "{{ app_label.split('=')[0] }}"
+            app_lvalue: "{{ app_label.split('=')[1] }}"       
+            delay: 5
+            retries: 60
+   
+        - name: Obtain the pv name of the application.
+          shell: >
+            kubectl get pvc -n "{{ app_ns }}" -o custom-columns=:.spec.volumeName --no-headers
+          args:
+            executable: /bin/bash
+          register: pv_name
+          failed_when: "pv_name.rc != 0"
+
+        - name: Obtain the jiva controller pod in openebs namespace 
+          shell: >
+            kubectl get pods -n {{ operator_ns }} -l openebs.io/controller=jiva-controller,openebs.io/persistent-volume="{{ pv_name.stdout }}" 
+            --no-headers -o custom-columns=:.metadata.name
+          args:
+            executable: /bin/bash
+          register: controller_pod
+          failed_when: "controller_pod.stdout == ''"
+        
+        ## Disable the logging of jiva replica 
+        - name: Disable the logging of jiva replicas
+          shell: >
+            kubectl exec -ti "{{ controller_pod.stdout }}" -n {{ operator_ns }} 
+            -- bash -c "jivactl logtofile disable" 
+          args:
+            executable: /bin/bash
+          register: status
+          failed_when: "status.rc != 0"
+
+        ## Include task to verify consistency in replica logging file size
+        - include_tasks: "verify_logging.yml"
+          vars: 
+            action: 'disable'
+
+        #### Check the replica access mode before enabling the logging ####
+        - name: Check the replicas access mode
+          include_tasks: "/funclib/openebs/access-mode-check.yml"
+          vars:
+            ns: "{{ app_ns }}"
+            pvc_name: "{{ app_pvc }}"
+
+         ## Enable the logging of jiva replica 
+        - name: Enable the logging of jiva replicas
+          shell: >
+            kubectl exec -ti "{{ controller_pod.stdout }}" -n {{ operator_ns }} 
+            -- bash -c "jivactl logtofile enable" 
+          args:
+            executable: /bin/bash
+          register: status
+          failed_when: "status.rc != 0"
+
+        ## Include task to verify increase in replica logging file size
+        - include_tasks: "verify_logging.yml"
+          vars: 
+            action: 'enable'
+              
+        - set_fact:
+            flag: "Pass"
+
+      rescue:
+        - set_fact:
+            flag: "Fail"
+
+      always:
+                  
+           ## RECORD END-OF-TEST IN LITMUS RESULT CR
+        - include_tasks: /utils/fcm/update_litmus_result_resource.yml
+          vars:
+            status: 'EOT'
