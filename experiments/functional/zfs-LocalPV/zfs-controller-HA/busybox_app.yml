@@ -38,7 +38,7 @@ apiVersion: v1
 metadata:
   name: pvcha
 spec:
-  storageClassName: sc
+  storageClassName: zfs-sc-zfs
   accessModes:
     - ReadWriteOnce
   resources:
