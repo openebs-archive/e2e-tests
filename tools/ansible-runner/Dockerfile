@@ -1,4 +1,4 @@
-FROM ubuntu
+FROM ubuntu:18.04
 
 LABEL maintainer="OpenEBS"
 
@@ -6,7 +6,7 @@ LABEL maintainer="OpenEBS"
 RUN rm -rf /var/lib/apt/lists/* && \
     apt-get clean && \
     apt-get update --fix-missing || true && \
-    apt-get install -y python-minimal python-pip netcat iproute2 jq sshpass bc git\
+    apt-get install -y python python-pip netcat iproute2 jq sshpass bc git\
     curl openssh-client
 
 #Installing gcloud cli
