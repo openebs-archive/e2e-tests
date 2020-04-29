@@ -31,7 +31,7 @@ spec:
             ## Give full image name (for e.g. quay.io/openebs/zfs-driver:<tag>)
             ## For versioned branch (other than master) leave this empty
             ## This env will be used only when master branch is used with custom-images or tags other than ci
-          - name: ZFS_DRIVER_TAG
+          - name: ZFS_DRIVER_IMAGE
             value: ''
 
             ## Storage class will be created with the name provided here
