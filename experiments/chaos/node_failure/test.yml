@@ -69,6 +69,23 @@
             executable: /bin/bash
           register: app_pod_name
 
+        - name: Obtain PVC name from the application mount
+          shell: >
+            kubectl get pods "{{ app_pod_name.stdout }}" -n "{{ namespace }}"
+            -o yaml | grep claimName | awk '{print $2}'
+          args:
+            executable: /bin/bash
+          register: pvc
+
+        - name: Obtain the Persistent Volume name
+          shell: >
+            kubectl get pvc "{{ pvc.stdout }}" -n "{{ namespace }}" --no-headers 
+            -o custom-columns=:.spec.volumeName
+          args:
+            executable: /bin/bash
+          register: pv
+          failed_when: 'pv.stdout == ""'
+
         ## Generate data on the application
         - name: Generate data on the specified application.
           include: "{{ data_consistency_util_path }}"
@@ -119,6 +136,17 @@
           delay: 5
           retries: 10
           ignore_errors: true
+
+        - name: Check if the CVRs are in healthy state
+          shell: >
+            kubectl get cvr -n {{ operator_ns }} -l openebs.io/persistent-volume={{ pv.stdout }}
+            -o custom-columns=:.status.phase --no-headers
+          args:
+            executable: /bin/bash
+          register: cvr_status
+          until: "((cvr_status.stdout_lines|unique)|length) == 1 and 'Healthy' in cvr_status.stdout"
+          retries: 60
+          delay: 10
 
           ### Due to node shutdown, the application pod will be in containercreating state due to multi-attach error.
           ### As a workaround, the node CR can be deleted which can forcefully remove the terminating pod.
