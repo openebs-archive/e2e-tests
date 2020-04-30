@@ -1,7 +1,7 @@
 apiVersion: batch/v1
 kind: Job
 metadata:
-  generateName: zfs-controller-high-availability
+  generateName: zfs-controller-high-availability-
   namespace: litmus
 spec:
   template:
