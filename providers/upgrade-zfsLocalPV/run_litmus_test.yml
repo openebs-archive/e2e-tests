@@ -2,7 +2,7 @@
 apiVersion: batch/v1
 kind: Job
 metadata:
-  generateName: upgrade-zfs-localpv
+  generateName: upgrade-zfs-localpv-
   namespace: litmus
 spec:
   template:
