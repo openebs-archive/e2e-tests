@@ -34,8 +34,8 @@
             replace:
               path: ./zfs_operator.yml
               regexp: quay.io/openebs/zfs-driver:ci
-              replace: "{{ lookup('env','ZFS_DRIVER_TAG') }}"
-            when: lookup('env','ZFS_DRIVER_TAG') | length > 0
+              replace: "{{ lookup('env','ZFS_DRIVER_IMAGE') }}"
+            when: lookup('env','ZFS_DRIVER_IMAGE') | length > 0
 
           - name: Apply the zfs_operator file to deploy zfs-driver components
             shell: 

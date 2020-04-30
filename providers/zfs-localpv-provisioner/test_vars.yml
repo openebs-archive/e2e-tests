@@ -18,6 +18,6 @@ vol_block_size: "{{ lookup('env','VOLBLOCKSIZE') }}"
 
 snapshot_class: "{{ lookup('env','SNAPSHOT_CLASS') }}"
 
-zfs_driver_tag: "{{ lookup('env','ZFS_DRIVER_TAG') }}"
+zfs_driver_image: "{{ lookup('env','ZFS_DRIVER_IMAGE') }}"
 
 zfs_branch: "{{ lookup('env','ZFS_BRANCH') }}"

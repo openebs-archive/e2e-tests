@@ -1,0 +1,127 @@
+- hosts: localhost
+  connection: local
+
+  vars_files:
+    - test_vars.yml
+    
+  tasks:
+    - block:
+
+        ## Generating the testname for deployment
+        - include_tasks: /utils/fcm/create_testname.yml
+
+        ## RECORD START-OF-TEST IN LITMUS RESULT CR
+        - include_tasks: "/utils/fcm/update_litmus_result_resource.yml"
+          vars:
+            status: 'SOT'
+        
+        - name: Get the no of replicas in zfs-controller statefulset 
+          shell: >
+            kubectl get sts openebs-zfs-controller -n kube-system -o jsonpath='{.status.replicas}'
+          args:
+            executable: /bin/bash
+          register: zfs_ctrl_replicas
+
+        - name: Get the list of names of all the nodes in cluster
+          shell: >
+            kubectl get nodes --no-headers -o custom-columns=:.metadata.name
+          args:
+            executable: /bin/bash
+          register: node_list
+
+        - name: Get the count of the nodes which don't have `NoSchedule` taints
+          shell: >
+            kubectl get nodes --no-headers -o custom-columns=:.metadata.name,:.spec.taints
+            | grep -v NoSchedule | wc -l
+          args:
+            executable: /bin/bash
+          register: no_of_Schedulable_nodes
+        
+        - name: scale the replicas of zfs-controller statefulset
+          shell: >
+            kubectl scale sts openebs-zfs-controller -n kube-system
+            --replicas="{{ zfs_ctrl_replicas.stdout|int + 1 }}"
+          args:
+            executable: /bin/bash
+          when: "{{ zfs_ctrl_replicas.stdout|int + 1 }} <= {{no_of_Schedulable_nodes.stdout|int}}"
+
+        - name: Get the name of the controller pod replica which is active as master at present
+          shell: >
+            kubectl get lease zfs-csi-openebs-io -n kube-system -o jsonpath='{.spec.holderIdentity}'
+          args: 
+            executable: /bin/bash
+          register: active_replica_name
+
+        - name: Taint all nodes with `NoSchedule` to keep replica {{ active_replica_name.stdout }} out of action
+          shell: >
+            kubectl taint node {{ item }} key=value:NoSchedule
+          args:
+            executable: /bin/bash
+          register: taint_status
+          until: "'tainted' in taint_status.stdout "
+          retries: 20
+          delay: 5
+          with_items: "{{ node_list.stdout_lines }}"
+
+        - name: Delete the {{ active_replica_name.stdout }} replica pod
+          shell: >
+            kubectl delete pod {{ active_replica_name.stdout }} -n kube-system
+          args:
+            executable: /bin/bash
+          register: status
+          failed_when: "status.rc != 0"
+
+        - name: Get the new replica name which is in action as master for zfs-controller
+          shell: >
+            kubectl get lease zfs-csi-openebs-io -n kube-system -o jsonpath='{.spec.holderIdentity}'
+          args: 
+            executable: /bin/bash
+          register: new_active_replica
+          retries: 30
+          delay: 5
+          until: active_replica_name.stdout != new_active_replica.stdout
+
+        - name: Provision volume to check zfs-controller in HA working fine when one replica is down
+          shell: >
+            kubectl apply -f busybox_app.yml
+          args: 
+            executable: /bin/bash
+          
+        - name: Check if the PVC is Bound
+          shell: >
+            kubectl get pvc pvcha -n litmus -o jsonpath='{.status.phase}'
+          args:
+            executable: /bin/bash
+          register: pvc_status
+          until: "'Bound' in pvc_status.stdout"
+          delay: 5
+          retries: 30
+          
+        - name: Check if the application pod is in running state.
+          shell: >
+            kubectl get pods -n litmus -o jsonpath='{.items[?(@.metadata.labels.app=="test_ha")].status.phase}'
+          register: pod_status
+          until: "'Running' in pod_status.stdout"
+          delay: 5
+          retries: 20
+
+        - set_fact:
+            flag: "Pass"
+
+      rescue:
+        - set_fact:
+            flag: "Fail"
+
+      always:
+          ## RECORD END-OF-TEST IN LITMUS RESULT CR
+
+        - name: Remove the taint from the nodes
+          shell: >
+            kubectl taint node {{ item }} key-
+          args:
+            executable: /bin/bash
+          with_items: "{{ node_list.stdout_lines }}"
+
+        - include_tasks: /utils/fcm/update_litmus_result_resource.yml
+          vars:
+            status: 'EOT'
