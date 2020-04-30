@@ -16,14 +16,23 @@
        vars:
          status: 'SOT'
 
-     - name: Verify that the ZFS-controller pod and zfs-node daemonset all are in running state
+     - name: Get the list of pods of zfs-localpv components (zfs-controller and zfs-node agent deamonset)
        shell: >
-         kubectl get pods -n kube-system -l role=openebs-zfs
-         --no-headers -o custom-columns=:status.phase | sort | uniq
+         kubectl get pods -n kube-system -l role=openebs-zfs 
+         --no-headers -o custom-columns=:.metadata.name
+       args:
+         executable: /bin/bash
+       register: zfs_localpv_components
+
+     - name: Verify that the zfs-localpv components are in running state
+       shell: >
+         kubectl get pods {{ item }} -n kube-system --no-headers -o custom-columns=:status.phase
        args: 
          executable: /bin/bash
        register: ZFS_driver_components
-       failed_when: "'Running' not in ZFS_driver_components.stdout"
+       failed_when: "ZFS_driver_components.stdout != 'Running'"
+       with_items: "{{ zfs_localpv_components.stdout_lines }}"
+       ignore_errors: true
 
      - name: Get the version tag for zfs-driver
        shell: >
@@ -74,7 +83,7 @@
          delay: 5
          retries: 3
 
-       - name: Apply the upgrade scriptopenebs-zfs-node
+       - name: Apply the upgrade script
          shell: sh ./upgrade.sh {{ operator_ns }}
          args:
            executable: /bin/bash
