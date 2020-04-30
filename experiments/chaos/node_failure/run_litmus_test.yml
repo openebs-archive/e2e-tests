@@ -63,6 +63,9 @@ spec:
           - name: ESX_HOST_IP
             value: ""
 
+          - name: OPERATOR_NS
+            value: openebs
+
           - name: ESX_PASSWORD
             valueFrom:
               secretKeyRef:
