@@ -1,0 +1,60 @@
+## To obtain jiva replica logging file size
+- name: Obtain the one of jiva replica pod in openebs namespace
+  shell: >
+    kubectl get pod -n {{ operator_ns }} -l openebs.io/persistent-volume="{{ pv_name.stdout }}",openebs.io/replica=jiva-replica 
+    --no-headers -o custom-columns=:.metadata.name | awk 'FNR==1{print $1}'
+  args:
+    executable: /bin/bash
+  register: replica_pod
+  failed_when: "replica_pod.stdout == ''"
+
+- name: Obtain the jiva logging file size
+  shell: >
+    kubectl exec -it "{{ replica_pod.stdout }}" -n {{ operator_ns }} 
+    -- bash -c "du -h /openebs/replica.log" | awk '{print $1}'
+  args:
+    executable: /bin/bash
+  register: file_size_before
+  failed_when: "file_size_before.stdout == ''"  
+
+## Delete the jiva replicas to verify increase in logging file size
+- name: Delete the jiva replica pods in openebs namespace
+  shell: >
+    kubectl delete pod -n {{ operator_ns }} -l openebs.io/persistent-volume="{{ pv_name.stdout }}",openebs.io/replica=jiva-replica && sleep 10
+  args:
+    executable: /bin/bash
+  register: status
+  failed_when: "status.rc != 0"
+  loop: "{{ range(0, 5 | int, 1)|list }}"  
+
+## Verify increase in jiva replica logging file size
+- name: Obtain the one of jiva replica pod in openebs namespace
+  shell: >
+    kubectl get pod -n {{ operator_ns }} -l openebs.io/persistent-volume="{{ pv_name.stdout }}",openebs.io/replica=jiva-replica 
+    --no-headers -o custom-columns=:.metadata.name | awk 'FNR==1{print $1}'
+  args:
+    executable: /bin/bash
+  register: replica_pod
+  failed_when: "replica_pod.stdout == ''"
+
+- block: 
+    - name: Obtain the jiva logging file size
+      shell: >
+        kubectl exec -it "{{ replica_pod.stdout }}" -n {{ operator_ns }} 
+        -- bash -c "du -h /openebs/replica.log" | awk '{print $1}'
+      args:
+        executable: /bin/bash
+      register: file_size_after
+      failed_when: "file_size_before.stdout == file_size_after.stdout"
+  when: action == 'enable'
+
+- block: 
+    - name: Obtain the jiva logging file size
+      shell: >
+        kubectl exec -it "{{ replica_pod.stdout }}" -n {{ operator_ns }} 
+        -- bash -c "du -h /openebs/replica.log" | awk '{print $1}'
+      args:
+        executable: /bin/bash
+      register: file_size_after
+      failed_when: "file_size_before.stdout != file_size_after.stdout"
+  when: action == 'disable'

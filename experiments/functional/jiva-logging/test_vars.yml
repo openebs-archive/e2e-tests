@@ -1,0 +1,10 @@
+---
+test_name: jiva-logging
+
+app_ns: "{{ lookup('env','APP_NAMESPACE') }}"
+
+app_label: "{{ lookup('env','APP_LABEL') }}"
+
+app_pvc: "{{ lookup('env','APP_PVC') }}"
+
+operator_ns: "{{ lookup('env','OPERATOR_NS') }}"
