@@ -1,6 +1,7 @@
 # Test-specific parameters
 test_name: cstor-storage-policies
 pool_name: "{{ lookup('env','POOL_NAME') }}"
+pool_type: "{{ lookup('env','POOL_TYPE') }}"
 local_pv_hostpath: "{{ lookup('env','POOL_PATH') }}"
 queue_depth_value: "{{ lookup('env','QUEUE_DEPTH') }}"
 lu_workers: "{{ lookup('env','LU_WORKER') }}"
@@ -15,3 +16,6 @@ storage_policies:
   - cstor-perf-parameters.yml
   - jiva-openebs-ns.yml
   - cstor-cvr-scale.yml
+csi_storage_policies:
+  - csi-cstor-xfs-sc.yml
+  - csi-cstor-sc.yml
