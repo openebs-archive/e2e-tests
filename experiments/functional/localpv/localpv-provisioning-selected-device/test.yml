@@ -81,6 +81,17 @@
           delay: 10
           retries: 20
 
+        - name: Check if the application is running
+          shell: >
+            kubectl get pods -n {{ namespace }} -l name=percona 
+            --no-headers -o custom-columns=:status.phase
+          args:
+            executable: /bin/bash
+          register: app_state
+          until: "'Running' in app_state.stdout"
+          delay: 5
+          retries: 50
+
         - name: Getting PV name from PVC
           shell: >
             kubectl get pvc {{ pvc_name }} -n {{ namespace }}
