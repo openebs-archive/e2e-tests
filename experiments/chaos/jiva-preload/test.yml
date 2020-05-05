@@ -1,0 +1,139 @@
+---
+
+- hosts: localhost
+  connection: local
+
+  vars_files:
+    - test_vars.yml
+
+  tasks:
+    - block:
+          ## Generating the testname for deployment
+        - include_tasks: /utils/fcm/create_testname.yml
+
+        ## RECORD START-OF-TEST IN LITMUS RESULT CR
+        - include_tasks: "/utils/fcm/update_litmus_result_resource.yml"
+          vars:
+            status: 'SOT'
+
+        ## DISPLAY APP INFORMATION
+
+        - name: Display the app information passed via the test job
+          debug:
+            msg:
+              - "The application info is as follows:"
+              - "Namespace    : {{ app_ns }}"
+              - "Label        : {{ app_label }}"
+              - "PVC          : {{ app_pvc }}"
+
+        ## APPLICATION LIVENESS CHECK
+        - name: Verify that the AUT (Application Under Test) is running
+          include_tasks: "/utils/k8s/status_app_pod.yml"
+          vars:
+            app_lkey: "{{ app_label.split('=')[0] }}"
+            app_lvalue: "{{ app_label.split('=')[1] }}"       
+            delay: 5
+            retries: 60
+   
+        - name: Obtain the application pod name
+          shell: >
+            kubectl get pod -n "{{ app_ns }}" -l "{{ app_label }}" --no-headers 
+            -o custom-columns=:.metadata.name
+          args:
+            executable: /bin/bash
+          register: app_pod
+          failed_when: "app_pod.rc != 0"
+
+        - name: Obtain the pv name of the application.
+          shell: >
+            kubectl get pvc -n "{{ app_ns }}" -o custom-columns=:.spec.volumeName --no-headers
+          args:
+            executable: /bin/bash
+          register: app_pv
+          failed_when: "app_pv.rc != 0"
+
+        - name: Checking for all replicas to be in Running state
+          shell: >
+            kubectl get pod -n {{ operator_ns }} -l openebs.io/replica=jiva-replica,openebs.io/persistent-volume="{{ app_pv.stdout }}" 
+            --no-headers -o custom-columns=:status.phase
+          register: running_rep_status
+          until: "((running_rep_status.stdout_lines|unique)|length) == 1 and 'Running' in running_rep_status.stdout"
+          delay: 10
+          retries: 30
+        
+        ## Writing the data to even offsets to make more number of extents in preloading file.
+        - name: Dumping the data to even offset using dd
+          shell: >
+            kubectl exec -ti "{{ app_pod.stdout }}" -n "{{ app_ns }}" -- sh -c "dd if=/dev/urandom of=/busybox/abc.txt bs=4k count=1 seek={{ item }}"
+          args:
+            executable: /bin/bash
+          register: status
+          failed_when: "status.rc != 0"
+          loop: "{{ range(0, offset_count | int, 2)|list }}" 
+
+        - name: Restart all the replica pods of jiva volume
+          shell: >
+            kubectl delete pods -n "{{ operator_ns }}" -l openebs.io/replica=jiva-replica,openebs.io/persistent-volume="{{ app_pv.stdout }}" --force --grace-period=0 
+          args:
+            executable: /bin/bash
+          register: status
+          failed_when: "status.rc != 0"
+
+        - name: Get the maya-apiserver pod name
+          shell:  kubectl get pods -n {{ operator_ns }} -l name=maya-apiserver --no-headers -o jsonpath='{.items[0].metadata.name}'
+          args:
+            executable: /bin/bash
+          register: mayapod
+          changed_when: True
+
+        - name: Get the volume list
+          shell: kubectl exec -it {{ mayapod.stdout }} -n {{ operator_ns }} -- mayactl volume list
+          args:
+            executable: /bin/bash
+          register: volname
+          changed_when: True
+          until: 'app_pv.stdout in volname.stdout'
+          delay: 30
+          retries: 5
+
+        - name: Get the replicas access mode
+          shell: >
+              kubectl exec -it {{ mayapod.stdout }} -n {{ operator_ns }} -- mayactl volume describe --volname "{{ app_pv.stdout }}" -n {{ app_ns }} | grep 'RW' | wc -l
+          args:
+            executable: /bin/bash
+          register: result
+          until: result.stdout| int == 2
+          delay: 30
+          retries: 30
+          changed_when: True
+
+        ## Writing the data to odd offsets to make even more number of extents in preloading file.
+        - name: Dumping the data to odd offsets using dd
+          shell: >
+            kubectl exec -ti "{{ app_pod.stdout }}" -n "{{ app_ns }}" -- sh -c "dd if=/dev/urandom of=/busybox/abc.txt bs=4k count=1 seek={{ item }}"
+          args:
+            executable: /bin/bash
+          register: status
+          failed_when: "status.rc != 0"
+          loop: "{{ range(1, offset_count | int, 2)|list }}" 
+        
+        #### Check the replica access mode after completion of dumping process
+        - name: Check the replicas access mode
+          include_tasks: "/funclib/openebs/access-mode-check.yml"
+          vars:
+            ns: "{{ app_ns }}"
+            pvc_name: "{{ app_pvc }}"
+                       
+        - set_fact:
+            flag: "Pass"
+
+      rescue:
+        - set_fact:
+            flag: "Fail"
+
+      always:
+                  
+           ## RECORD END-OF-TEST IN LITMUS RESULT CR
+        - include_tasks: /utils/fcm/update_litmus_result_resource.yml
+          vars:
+            status: 'EOT'

@@ -1,0 +1,12 @@
+---
+test_name: jiva-preloading
+
+app_ns: "{{ lookup('env','APP_NAMESPACE') }}"
+
+app_label: "{{ lookup('env','APP_LABEL') }}"
+
+app_pvc: "{{ lookup('env','APP_PVC') }}"
+
+operator_ns: "{{ lookup('env','OPERATOR_NS') }}"
+
+offset_count: "{{ lookup('env','OFFSET_COUNT') }}"
