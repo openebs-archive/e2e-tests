@@ -21,73 +21,139 @@
             src: "{{ item.src }}"
             dest: "{{ item.dest }}"
           with_items:
-             - { src: cstor-xfs-sc.j2,dest: cstor-xfs-sc.yml }
-             - { src: jiva-xfs-sc.j2,dest: jiva-xfs-sc.yml }
-             - { src: cstor-volume-monitor-sc.j2,dest: cstor-volume-monitor-sc.yml }
-             - { src: cstor-disk-standalone.j2,dest: cstor-disk-standalone.yml }
-             - { src: local-pv-hostpath.j2,dest: local-pv-hostpath.yml }
-             - { src: cstor-perf-parameters.j2,dest: cstor-perf-parameters.yml }
-             - { src: cstor-cvr-scale.j2,dest: cstor-cvr-scale.yml }
+              - { src: cstor-xfs-sc.j2,dest: cstor-xfs-sc.yml }
+              - { src: jiva-xfs-sc.j2,dest: jiva-xfs-sc.yml }
+              - { src: cstor-volume-monitor-sc.j2,dest: cstor-volume-monitor-sc.yml }
+              - { src: cstor-disk-standalone.j2,dest: cstor-disk-standalone.yml }
+              - { src: local-pv-hostpath.j2,dest: local-pv-hostpath.yml }
+              - { src: cstor-perf-parameters.j2,dest: cstor-perf-parameters.yml }
+              - { src: cstor-cvr-scale.j2,dest: cstor-cvr-scale.yml }
+          when: lookup('env','POOL_TYPE') == 'spc'
+
+        - name: Generate yaml files to create storage class for cspc-csi
+          template:
+            src: "{{ item.src }}"
+            dest: "{{ item.dest }}"
+          with_items:
+             - { src: csi-cstor-xfs-sc.j2,dest: csi-cstor-xfs-sc.yml }
+             - { src: csi-cstor-sc.j2,dest: csi-cstor-sc.yml }
+          when: lookup('env','POOL_TYPE') == 'cspc'
 
         - block:
 
-            - name: Create storage classes with specific storage policies
-              shell: kubectl apply -f {{ item }}
-              args:
-                executable: /bin/bash
-              register: sc
-              with_items:
-                - "{{ storage_policies }}"
+            - block:
 
-            - name: Confirm that the storage classes are created
-              shell: kubectl get storageclass
-              args:
-                executable: /bin/bash
-              register: result_sc
-              until: '"{{ item }}" in result_sc.stdout'
-              delay: 15
-              retries: 5
-              with_items:
-                - openebs-cstor-xfs
-                - openebs-jiva-xfs
-                - openebs-cstor-volume-monitor
-                - cstor-disk-standalone
-                - openebs-jiva-standalone
-                - local-pv-hostpath
-                - cstor-performance-config
-                - jiva-openebs-ns
-                - openebs-cstor-cvr-scale
+                - name: Create storage classes with specific storage policies
+                  shell: kubectl apply -f {{ item }}
+                  args:
+                    executable: /bin/bash
+                  register: sc
+                  with_items:
+                    - "{{ storage_policies }}"
+
+                - name: Confirm that the storage classes are created
+                  shell: kubectl get storageclass
+                  args:
+                    executable: /bin/bash
+                  register: result_sc
+                  until: '"{{ item }}" in result_sc.stdout'
+                  delay: 15
+                  retries: 5
+                  with_items:
+                    - openebs-cstor-xfs
+                    - openebs-jiva-xfs
+                    - openebs-cstor-volume-monitor
+                    - cstor-disk-standalone
+                    - openebs-jiva-standalone
+                    - local-pv-hostpath
+                    - cstor-performance-config
+                    - jiva-openebs-ns
+                    - openebs-cstor-cvr-scale
+
+              when: lookup('env','POOL_TYPE') == 'spc'
+
+            - block:
+
+                - name: Create storage classes with specific storage policies for cspc-csi
+                  shell: kubectl apply -f {{ item }}
+                  args:
+                    executable: /bin/bash
+                  register: sc
+                  with_items:
+                     - "{{ csi_storage_policies }}"
+
+                - name: Confirm that the storage classes are created
+                  shell: kubectl get storageclass
+                  args:
+                    executable: /bin/bash
+                  register: result_sc
+                  until: '"{{ item }}" in result_sc.stdout'
+                  delay: 15
+                  retries: 5
+                  with_items:
+                    - openebs-cstor-csi
+                    - openebs-cstor-csi-xfs
+
+              when: lookup('env','POOL_TYPE') == 'cspc'
 
           when: lookup('env','ACTION') == 'create'
 
         - block:
-        
-            - name: Delete storage classes with specific storage policies
-              shell: kubectl delete -f {{ item }}
-              args:
-                executable: /bin/bash
-              register: sc
-              with_items:
-                - "{{ storage_policies }}"
 
-            - name: Confirm that the storage classes are deleted
-              shell: kubectl get storageclass
-              args:
-                executable: /bin/bash
-              register: result_sc
-              until: '"{{ item }}" not in result_sc.stdout'
-              delay: 15
-              retries: 5
-              with_items:
-                - openebs-cstor-xfs
-                - openebs-jiva-xfs
-                - openebs-cstor-volume-monitor
-                - local-pv-hostpath
-                - cstor-disk-standalone
-                - openebs-jiva-standalone
-                - cstor-performance-config                
-                - jiva-openebs-ns
-                - openebs-cstor-cvr-scale
+            - block:
+
+                - name: Create storage classes with specific storage policies
+                  shell: kubectl delete -f {{ item }}
+                  args:
+                    executable: /bin/bash
+                  register: sc
+                  with_items:
+                    - "{{ storage_policies }}"
+
+                - name: Confirm that the storage classes are created
+                  shell: kubectl get storageclass
+                  args:
+                    executable: /bin/bash
+                  register: result_sc
+                  until: '"{{ item }}" not in result_sc.stdout'
+                  delay: 15
+                  retries: 5
+                  with_items:
+                    - openebs-cstor-xfs
+                    - openebs-jiva-xfs
+                    - openebs-cstor-volume-monitor
+                    - cstor-disk-standalone
+                    - openebs-jiva-standalone
+                    - local-pv-hostpath
+                    - cstor-performance-config
+                    - jiva-openebs-ns
+                    - openebs-cstor-cvr-scale
+
+              when: lookup('env','POOL_TYPE') == 'spc'
+
+            - block:
+
+                - name: Create storage classes with specific storage policies
+                  shell: kubectl delete -f {{ item }}
+                  args:
+                    executable: /bin/bash
+                  register: sc
+                  with_items:
+                     - "{{ csi_storage_policies }}"
+
+                - name: Confirm that the storage classes are created
+                  shell: kubectl get storageclass
+                  args:
+                    executable: /bin/bash
+                  register: result_sc
+                  until: '"{{ item }}" not in result_sc.stdout'
+                  delay: 15
+                  retries: 5
+                  with_items:
+                    - openebs-cstor-csi
+                    - openebs-cstor-csi-xfs
+
+              when: lookup('env','POOL_TYPE') == 'cspc'
 
           when: lookup('env','ACTION') == 'delete'
 
@@ -103,4 +169,3 @@
         - include_tasks: /utils/fcm/update_litmus_result_resource.yml
           vars:
             status: 'EOT'
-
