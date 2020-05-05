@@ -8,5 +8,6 @@ metadata:
 provisioner: cstor.csi.openebs.io
 allowVolumeExpansion: true
 parameters:
+  replicaCount: "3"
   cas-type: cstor
   cstorPoolCluster: "{{ pool_name }}"
