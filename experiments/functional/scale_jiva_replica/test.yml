@@ -69,32 +69,19 @@
            executable: /bin/bash
          register: ctrl_deploy
 
+       - name: Obtain the replica deployment spec 
+         shell: >
+           kubectl get deployment "{{ rep_deployment_name.stdout }}" 
+           -n {{ operator_namespace }} -o yaml > rep_deploy.yml
+         args:
+           executable: /bin/bash
+         register: status
+         failed_when: status.rc != 0
+
        - name: Getting the node name on which replica is scheduled
          shell: kubectl get deploy {{ rep_deployment_name.stdout }} -n {{ operator_namespace }} -o jsonpath='{.spec.template.spec.affinity.nodeAffinity.requiredDuringSchedulingIgnoredDuringExecution.nodeSelectorTerms[0].matchExpressions[0].values[0]}' 
-         register: replica_node_name
-
-       - name: Getting the node name where replica is not scheduled
-         shell: kubectl get nodes --no-headers | grep -v master | grep -v {{ replica_node_name.stdout }} | awk {'print $1'}
-         register: node_name
-
-       - name: Adding the replica node-name in patch file
-         lineinfile:
-            path: "./rep_patch.yml"
-            insertafter: 'values:'
-            line: '                - {{ replica_node_name.stdout }}'
-
-       - name: Adding node-name where replica is not scheduled in patch file
-         lineinfile:
-            path: "./rep_patch.yml"
-            insertafter: 'values:'
-            line: '                - {{item}}'
-         with_items: "{{ node_name.stdout_lines }}"
-
-       - name: Patching replica deployment
-         shell: kubectl patch deployment {{ rep_deployment_name.stdout }} -n {{ operator_namespace }} --patch "$(cat rep_patch.yml)"
-         register: status
-         failed_when: "'patched' not in status.stdout"
-
+         register: replica_node
+      
        - name: Obtaining the current replication factor
          shell: kubectl get deployments {{ ctrl_deploy.stdout }} -n {{ operator_namespace }} -o jsonpath='{.spec.template.spec.containers[0].env[0].value}'    
          register: replication_factor
@@ -106,19 +93,10 @@
          retries: 5
          delay: 10
          when: replication_factor.stdout != node_count 
- 
-       #### scale up the storage replica using kubectl command ####
+
+       - include_tasks: ./scale_replicas.yml
+         loop: "{{ range((replication_factor.stdout | int) + 1, (node_count | int) + 1 , 1)|list }}"
         
-       - name: Scaling-up Jiva replica
-         include_tasks: "/funclib/kubectl/scale_replicas.yml"
-         vars:
-             app_ns: "{{ namespace }}"
-             deploy_type: "deployment"
-             app_name: "{{ rep_deployment_name.stdout }}"   
-             app_label: "openebs.io/replica=jiva-replica,openebs.io/persistent-volume={{ pv_name.stdout }}" 
-             app_replica_count: "{{ node_count }}"
-
-
        - block:
 
            - name: Getting the PV name
@@ -136,7 +114,6 @@
              retries: 30
 
          when: lookup('env','COMPONENT_FAILURE') == 'controller' or lookup('env','COMPONENT_FAILURE') == 'replica'
-
 
        - block:
            
