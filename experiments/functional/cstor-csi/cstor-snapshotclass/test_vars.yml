@@ -1,0 +1,4 @@
+test_name: cstor-snapshotclass
+
+snapshot_class: "{{ lookup('env','SNAPSHOT_CLASS') }}"
+
