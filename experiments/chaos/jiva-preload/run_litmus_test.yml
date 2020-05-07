@@ -35,7 +35,7 @@ spec:
           - name: APP_LABEL
             value: ''
 
-             # Application Label
+             # Application mount path
           - name: MOUNT_PATH
             value: ''
             
