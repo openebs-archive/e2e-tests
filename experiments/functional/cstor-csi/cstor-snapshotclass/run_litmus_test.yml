@@ -1,0 +1,30 @@
+---
+apiVersion: batch/v1
+kind: Job
+metadata:
+  generateName: cstor-snapshotclass-
+  namespace: litmus
+spec:
+  template:
+    metadata:
+      labels:
+        name: cstor-snapshotclass
+    spec:
+      serviceAccountName: litmus
+      restartPolicy: Never
+      containers:
+      - name: ansibletest
+        image: openebs/ansible-runner:ci
+        imagePullPolicy: IfNotPresent
+        env:
+          - name: ANSIBLE_STDOUT_CALLBACK
+            #value: log_plays
+            #value: actionable
+            value: default
+
+          ##Name of CSI volumesnapshotclass
+          - name: SNAPSHOT_CLASS
+            value: 'csi-cstor'
+       
+        command: ["/bin/bash"]
+        args: ["-c", "ansible-playbook ./experiments/functional/cstor-csi/cstor-snapshotclass/test.yml -i /etc/ansible/hosts -vv; exit 0"]
