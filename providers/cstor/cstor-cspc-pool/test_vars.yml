@@ -3,7 +3,6 @@ operator_ns: "{{ lookup('env','OPERATOR_NS') }}"
 test_name: cstor-pool-provision
 pool_name: "{{ lookup('env','POOL_NAME') }}"
 pool_type: "{{ lookup('env','POOL_TYPE') }}"
-sc_name: "{{ lookup('env', 'STORAGE_CLASS') }}"
 node_label: "{{ lookup('env','NODE_LABEL') }}"
 deploy_mode: "{{ lookup('env','DEPLOY_MODE') }}"
 pool_count: "{{ lookup('env','POOL_COUNT') }}"

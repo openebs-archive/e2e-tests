@@ -75,18 +75,6 @@
                 regexp: "pool-name"
                 replace: "{{ pool_name }}"
 
-            - name: Update replica count matching pool count in storage class spec
-              replace:
-                path: ./cspc.yml
-                regexp: "replica-count"
-                replace: "{{ pool_count }}"
-
-            - name: Replacing the storage class name in CSPC spec
-              replace:
-                path: ./cspc.yml
-                regexp: "sc-name"
-                replace: "{{ sc_name }}"
-
             - name: Replacing the namespace in CSPC spec
               replace:
                 path: ./cspc.yml
@@ -171,13 +159,6 @@
               until: "runningStatusCount.stdout == device_count"
               delay: 30
               retries: 10
-
-            - name: Check if the storage class is created
-              shell: kubectl get sc
-              args:
-                executable: /bin/bash
-              register: sc_list
-              failed_when: "sc_name not in sc_list.stdout"
 
           when: deploy_mode == "create"
 
