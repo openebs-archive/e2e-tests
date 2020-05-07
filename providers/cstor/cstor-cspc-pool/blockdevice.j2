@@ -1,13 +1,6 @@
     - nodeSelector:
         kubernetes.io/hostname: {{ item[0] }}
+      dataRaidGroups:
+      - blockDevices:
       poolConfig:
-        cacheFile: ""
-        defaultRaidGroupType: pool-type
-        overProvisioning: false
-        compression: "off"
-      raidGroups:
-      - type: pool-type
-        isWriteCache: false
-        isSpare: false
-        isReadCache: false
-        blockDevices:
+        dataRaidGroupType: pool-type
