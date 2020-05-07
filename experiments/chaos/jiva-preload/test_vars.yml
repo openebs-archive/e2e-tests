@@ -7,6 +7,8 @@ app_label: "{{ lookup('env','APP_LABEL') }}"
 
 app_pvc: "{{ lookup('env','APP_PVC') }}"
 
+mount_path: "{{ lookup('env','MOUNT_PATH') }}"
+
 operator_ns: "{{ lookup('env','OPERATOR_NS') }}"
 
 offset_count: "{{ lookup('env','OFFSET_COUNT') }}"

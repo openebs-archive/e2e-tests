@@ -64,7 +64,7 @@
         ## Writing the data to even offsets to make more number of extents in preloading file.
         - name: Dumping the data to even offset using dd
           shell: >
-            kubectl exec -ti "{{ app_pod.stdout }}" -n "{{ app_ns }}" -- sh -c "dd if=/dev/urandom of=/busybox/abc.txt bs=4k count=1 seek={{ item }}"
+            kubectl exec -ti "{{ app_pod.stdout }}" -n "{{ app_ns }}" -- sh -c "dd if=/dev/urandom of={{ mount_path }}/abc.txt bs=4k count=1 seek={{ item }}"
           args:
             executable: /bin/bash
           register: status
@@ -110,7 +110,7 @@
         ## Writing the data to odd offsets to make even more number of extents in preloading file.
         - name: Dumping the data to odd offsets using dd
           shell: >
-            kubectl exec -ti "{{ app_pod.stdout }}" -n "{{ app_ns }}" -- sh -c "dd if=/dev/urandom of=/busybox/abc.txt bs=4k count=1 seek={{ item }}"
+            kubectl exec -ti "{{ app_pod.stdout }}" -n "{{ app_ns }}" -- sh -c "dd if=/dev/urandom of={{ mount_path }}/abc.txt bs=4k count=1 seek={{ item }}"
           args:
             executable: /bin/bash
           register: status

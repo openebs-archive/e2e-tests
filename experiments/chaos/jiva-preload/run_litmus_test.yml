@@ -34,6 +34,10 @@ spec:
             # Application Label
           - name: APP_LABEL
             value: ''
+
+             # Application Label
+          - name: MOUNT_PATH
+            value: ''
             
             # Number of count to be used in dd process 
           - name: OFFSET_COUNT
