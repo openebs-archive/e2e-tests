@@ -34,6 +34,9 @@ spec:
           - name: CSPC
             value: cstor-sparse-pool
 
+          - name: IMAGE_TAG
+            value: "1.9.0"
+
           - name: REPLICA_COUNT
             value: "3"
 
