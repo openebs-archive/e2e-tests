@@ -1,0 +1,48 @@
+- name: copy the deployment spec to modify the specific values
+  shell: cp rep_deploy.yml rep_deploy-{{item}}.yml
+  args:
+    executable: /bin/bash
+  
+- name: modify the Deployment name appended with number generated earlier
+  replace:
+    path: rep_deploy-{{item}}.yml
+    regexp: "{{ rep_deployment_name.stdout }}"
+    replace: "{{ pv_name.stdout }}-rep-{{item}}"
+
+- name: Getting the node name on which replica is scheduled
+  shell: >
+    kubectl get pods -n {{ operator_namespace}} -l openebs.io/replica=jiva-replica,openebs.io/persistent-volume="{{ pv_name.stdout }}" 
+    --no-headers -o custom-columns=:.spec.nodeName
+  register: replica_node_name
+
+- name: Getting the node name where replica is not scheduled
+  shell: >
+    kubectl get nodes --no-headers  -o custom-columns=:.metadata.name | grep -v master | grep -v "{{ replica_node_name.stdout }}" | awk 'FNR==1{ print $1}'
+  register: node_name
+
+- name: modify the node name in replica deployment spec
+  replace:
+    path: rep_deploy-{{item}}.yml
+    regexp: "{{ replica_node.stdout }}"
+    replace: "{{ node_name.stdout }}"
+
+- name: print the specific spec
+  shell: cat rep_deploy-{{item}}.yml   
+
+- name: Applying the deployment spec
+  shell: kubectl create -f rep_deploy-{{item}}.yml
+  args:
+    executable: /bin/bash
+  register: status
+  failed_when: "status.rc != 0"
+
+- name: Check the replica pod status
+  shell: >
+    kubectl get pod -n {{ operator_namespace }} -l openebs.io/replica=jiva-replica,openebs.io/persistent-volume="{{ pv_name.stdout }}" 
+    -o jsonpath='{.items[?(@.spec.nodeName=="'{{ node_name.stdout }}'")].status.phase}'
+  args:
+    executable: /bin/bash
+  register: result
+  until: "'Running' in result.stdout"
+  delay: 10
+  retries: 30
