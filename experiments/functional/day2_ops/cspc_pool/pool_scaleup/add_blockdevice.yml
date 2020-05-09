@@ -13,7 +13,7 @@
     - block:
         - name: Patch the CSPC to expand the pool size
           shell: >
-            kubectl patch cspc -n {{ operator_ns }} {{ pool_name }} --type='json' -p='[{"op": "add", "path": "/spec/pools/0", "value": {"nodeSelector": {"kubernetes.io/hostname": "'{{ outer_item }}'"},   "poolConfig": {"cacheFile": "", "compression": "off", "defaultRaidGroupType": "stripe", "overProvisioning": false, "priorityClassName": ""}, "raidGroups": [{"blockDevices": [{"blockDeviceName": "'{{ blockDevice.stdout_lines[0] }}'", "capacity": "", "devLink": "" }], "isReadCache": false, "isSpare": false, "isWriteCache": false, "type": "stripe" }]}}]'
+             kubectl patch cspc -n {{ operator_ns }} {{ pool_name }} --type='json' -p='[{"op": "add", "path": "/spec/pools/0", "value": {"dataRaidGroups": [{"blockDevices": [{"blockDeviceName": "'{{ blockDevice.stdout_lines[0] }}'" }]}], "nodeSelector": {"kubernetes.io/hostname": "'{{ outer_item }}'"},   "poolConfig": {"dataRaidGroupType": "stripe"}}}]'
           args:
             executable: /bin/bash
           register: patch_cspc
@@ -23,7 +23,7 @@
     - block:
         - name: Patch the CSPC to expand the pool size
           shell: >
-             kubectl patch cspc -n {{ operator_ns }} {{ pool_name }} --type='json' -p='[{"op": "add", "path": "/spec/pools/0", "value": {"nodeSelector": {"kubernetes.io/hostname": "'{{ outer_item }}'"},   "poolConfig": {"cacheFile": "", "compression": "off", "defaultRaidGroupType": "mirror", "overProvisioning": false, "priorityClassName": ""}, "raidGroups": [{"blockDevices": [{"blockDeviceName": "'{{ blockDevice.stdout_lines[0] }}'", "capacity": "", "devLink": "" },{"blockDeviceName": "'{{ blockDevice.stdout_lines[1] }}'", "capacity": "", "devLink": "" }], "isReadCache": false, "isSpare": false, "isWriteCache": false, "type": "mirror" }]}}]'
+             kubectl patch cspc -n {{ operator_ns }} {{ pool_name }} --type='json' -p='[{"op": "add", "path": "/spec/pools/0", "value": {"dataRaidGroups": [{"blockDevices": [{"blockDeviceName": "'{{ blockDevice.stdout_lines[0] }}'"},{"blockDeviceName": "'{{ blockDevice.stdout_lines[1] }}'"}]}], "nodeSelector": {"kubernetes.io/hostname": "'{{ outer_item }}'"},   "poolConfig": {"dataRaidGroupType": "mirror"}}}]'
           args:
             executable: /bin/bash
           register: patch_cspc
@@ -33,7 +33,7 @@
     - block:
         - name: Patch the CSPC to expand the pool size
           shell: >
-            kubectl patch cspc -n {{ operator_ns }} {{ pool_name }} --type='json' -p='[{"op": "add", "path": "/spec/pools/0", "value": {"nodeSelector": {"kubernetes.io/hostname": "'{{ outer_item }}'"},   "poolConfig": {"cacheFile": "", "compression": "off", "defaultRaidGroupType": "raidz", "overProvisioning": false, "priorityClassName": ""}, "raidGroups": [{"blockDevices": [{"blockDeviceName": "'{{ blockDevice.stdout_lines[0] }}'", "capacity": "", "devLink": "" },{"blockDeviceName": "'{{ blockDevice.stdout_lines[1] }}'", "capacity": "", "devLink": "" },,{"blockDeviceName": "'{{ blockDevice.stdout_lines[2] }}'", "capacity": "", "devLink": "" }], "isReadCache": false, "isSpare": false, "isWriteCache": false, "type": "raidz" }]}}]'
+             kubectl patch cspc -n {{ operator_ns }} {{ pool_name }} --type='json' -p='[{"op": "add", "path": "/spec/pools/0", "value": {"dataRaidGroups": [{"blockDevices": [{"blockDeviceName": "'{{ blockDevice.stdout_lines[0] }}'"},{"blockDeviceName": "'{{ blockDevice.stdout_lines[1] }}'"},{"blockDeviceName": "'{{ blockDevice.stdout_lines[2] }}'"}]}], "nodeSelector": {"kubernetes.io/hostname": "'{{ outer_item }}'"},   "poolConfig": {"dataRaidGroupType": "raidz"}}}]'
           args:
             executable: /bin/bash
           register: patch_cspc
@@ -43,7 +43,7 @@
     - block:
         - name: Patch the CSPC to expand the pool size
           shell: >
-            kubectl patch cspc -n {{ operator_ns }} {{ pool_name }} --type='json' -p='[{"op": "add", "path": "/spec/pools/0", "value": {"nodeSelector": {"kubernetes.io/hostname": "'{{ outer_item }}'"},   "poolConfig": {"cacheFile": "", "compression": "off", "defaultRaidGroupType": "raidz2", "overProvisioning": false, "priorityClassName": ""}, "raidGroups": [{"blockDevices": [{"blockDeviceName": "'{{ blockDevice.stdout_lines[0] }}'", "capacity": "", "devLink": "" },{"blockDeviceName": "'{{ blockDevice.stdout_lines[1] }}'", "capacity": "", "devLink": "" },{"blockDeviceName": "'{{ blockDevice.stdout_lines[2] }}'", "capacity": "", "devLink": "" },{"blockDeviceName": "'{{ blockDevice.stdout_lines[3] }}'", "capacity": "", "devLink": "" },{"blockDeviceName": "'{{ blockDevice.stdout_lines[4] }}'", "capacity": "", "devLink": "" },{"blockDeviceName": "'{{ blockDevice.stdout_lines[5] }}'", "capacity": "", "devLink": "" }], "isReadCache": false, "isSpare": false, "isWriteCache": false, "type": "raidz2" }]}}]'
+             kubectl patch cspc -n {{ operator_ns }} {{ pool_name }} --type='json' -p='[{"op": "add", "path": "/spec/pools/0", "value": {"dataRaidGroups": [{"blockDevices": [{"blockDeviceName": "'{{ blockDevice.stdout_lines[0] }}'"},{"blockDeviceName": "'{{ blockDevice.stdout_lines[1] }}'"},{"blockDeviceName": "'{{ blockDevice.stdout_lines[2] }}'"},{"blockDeviceName": "'{{ blockDevice.stdout_lines[3] }}'"}]}], "nodeSelector": {"kubernetes.io/hostname": "'{{ outer_item }}'"},   "poolConfig": {"dataRaidGroupType": "raidz2"}}}]'
           args:
             executable: /bin/bash
           register: patch_cspc
