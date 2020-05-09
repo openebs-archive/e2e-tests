@@ -1,0 +1,31 @@
+---
+apiVersion: batch/v1
+kind: Job
+metadata:
+  generateName: litmus-cstor-operator-
+  namespace: litmus
+spec:
+  template:
+    metadata:
+      name: litmus
+      labels: 
+        provider: cstor-operator
+    spec:
+      serviceAccountName: litmus
+      restartPolicy: Never
+      containers:
+      - name: ansibletest
+        image: openebs/ansible-runner:ci
+        imagePullPolicy: Always
+        env: 
+          - name: ANSIBLE_STDOUT_CALLBACK
+            value: default
+
+          - name: CSPC_OPERATOR_IMAGE
+            value: ""
+
+          - name: Action
+            value: provision   
+
+        command: ["/bin/bash"]
+        args: ["-c", "ansible-playbook ./providers/cstor-operator/test.yaml -i /etc/ansible/hosts -vv; exit 0"]

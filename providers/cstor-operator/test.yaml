@@ -1,0 +1,196 @@
+# Apply openebs operation.
+
+- hosts: localhost
+  connection: local
+
+  vars_files:
+    - test_vars.yaml
+
+  tasks:
+
+    - block:
+
+         ## GENERATING THE TEST NAME
+        - include_tasks: /utils/fcm/create_testname.yml
+
+         ##  RECORD START-OF-TEST IN LITMUS RESULT CR
+        - include_tasks: "/utils/fcm/update_litmus_result_resource.yml"
+          vars:
+            status: 'SOT'
+
+        - block:
+
+            - name: Downloading openebs cspc-operator.yaml
+              get_url:
+                url: "{{ cspc_operator_link }}"
+                dest: "{{ playbook_dir }}/{{ cspc_operator }}"
+                force: yes
+              register: result
+              until:  "'OK' in result.msg"
+              delay: 5
+              retries: 3
+
+            - name: Downloading cspc operator yaml
+              get_url:
+                url: "{{ cspc_rbac_link }}"
+                dest: "{{ playbook_dir }}/{{ cspc_rbac }}"
+                force: yes
+              register: result
+              until:  "'OK' in result.msg"
+              delay: 5
+              retries: 3
+
+            - name: Downloading cspc crd yaml
+              get_url:
+                url: "{{ cspc_crd_link }}"
+                dest: "{{ playbook_dir }}/{{ cspc_crd }}"
+                force: yes
+              register: result
+              until:  "'OK' in result.msg"
+              delay: 5
+              retries: 3
+
+            - name: Downloading cspi crd yaml
+              get_url:
+                url: "{{ cspi_crd_link }}"
+                dest: "{{ playbook_dir }}/{{ cspi_crd }}"
+                force: yes
+              register: result
+              until:  "'OK' in result.msg"
+              delay: 5
+              retries: 3
+
+            - name: Downloading csi volumes crd yaml
+              get_url:
+                url: "{{ csi_volume_crd_link }}"
+                dest: "{{ playbook_dir }}/{{ csi_volume_crd }}"
+                force: yes
+              register: result
+              until:  "'OK' in result.msg"
+              delay: 5
+              retries: 3
+
+            - name: Change CSPC operator image
+              replace:
+                path: "{{ cspc_operator }}"
+                regexp: openebs/cspc-operator-amd64:ci
+                replace: openebs/cspc-operator-amd64:{{ lookup('env','CSPC_OPERATOR_IMAGE') }}
+              when: lookup('env','CSPC_OPERATOR_IMAGE') | length > 0
+
+            - name: Change CSTOR POOL MANAGER image
+              replace:
+                path: "{{ cspc_operator }}"
+                regexp: openebs/cstor-pool-manager-amd64:ci
+                replace: openebs/cstor-pool-manager-amd64:{{ lookup('env','CSPC_OPERATOR_IMAGE') }}
+              when: lookup('env','CSPC_OPERATOR_IMAGE') | length > 0
+
+            - name: Change OPENEBS_IO_CSTOR_POOL image
+              replace:
+                path: "{{ cspc_operator }}"
+                regexp: openebs/cstor-pool:ci
+                replace: openebs/cstor-pool:{{ lookup('env','CSPC_OPERATOR_IMAGE') }}
+              when: lookup('env','CSPC_OPERATOR_IMAGE') | length > 0
+
+            - name: Change OPENEBS_IO_CSTOR_POOL_EXPORTER image
+              replace:
+                path: "{{ cspc_operator }}"
+                regexp: openebs/m-exporter:ci
+                replace: openebs/m-exporter:{{ lookup('env','CSPC_OPERATOR_IMAGE') }}
+              when: lookup('env','CSPC_OPERATOR_IMAGE') | length > 0
+
+            - name: Change openebs cvc operator image
+              replace:
+                path: "{{ cspc_operator }}"
+                regexp: openebs/cvc-operator-amd64:ci
+                replace: openebs/cvc-operator-amd64:{{ lookup('env','CSPC_OPERATOR_IMAGE') }}
+              when: lookup('env','CSPC_OPERATOR_IMAGE') | length > 0
+
+            - name: Change openebs CSTOR ISTGT image
+              replace:
+                path: "{{ cspc_operator }}"
+                regexp: openebs/cstor-istgt:ci
+                replace: openebs/cstor-istgt:{{ lookup('env','CSPC_OPERATOR_IMAGE') }}
+              when: lookup('env','CSPC_OPERATOR_IMAGE') | length > 0
+
+            - name: Change openebs CSTOR VOLUME MGMT image
+              replace:
+                path: "{{ cspc_operator }}"
+                regexp: openebs/cstor-volume-manager-amd64:ci
+                replace: openebs/cstor-volume-manager-amd64:{{ lookup('env','CSPC_OPERATOR_IMAGE') }}
+              when: lookup('env','CSPC_OPERATOR_IMAGE') | length > 0
+
+            - name: Change openebs CSTOR WEBHOOK image
+              replace:
+                path: "{{ cspc_operator }}"
+                regexp: openebs/cstor-webhook-amd64:ci
+                replace: openebs/cstor-webhook-amd64:{{ lookup('env','CSPC_OPERATOR_IMAGE') }}
+              when: lookup('env','CSPC_OPERATOR_IMAGE') | length > 0
+
+            - name: Applying cspc operator
+              shell: "kubectl  apply -f {{ cspc_operator }}"
+              args:
+                executable: /bin/bash
+
+            - name: Applying cspc rbac
+              shell: "kubectl  apply -f {{ cspc_rbac }}"
+              args:
+                executable: /bin/bash
+
+            - name: Applying cspc crd
+              shell: "kubectl  apply -f {{ cspc_crd }}"
+              args:
+                executable: /bin/bash
+
+            - name: Applying cspi crd
+              shell: "kubectl  apply -f {{ cspi_crd }}"
+              args:
+                executable: /bin/bash
+
+            - name: Applying csi volume crd
+              shell: "kubectl  apply -f {{ csi_volume_crd }}"
+              args:
+                executable: /bin/bash
+
+            - name: Checking OpenEBS-CSPC-Operator is running
+              shell: >
+                kubectl get pods -n {{ namespace }}
+                -o jsonpath='{.items[?(@.metadata.labels.name=="cspc-operator")].status.phase}'
+              register: cspc_status
+              until: "'Running' in cspc_status.stdout"
+              delay: 5
+              retries: 120
+
+          when: lookup('env','Action') == "provision"
+
+        - block:
+              - name: Cleaning cspc operator
+                shell: "kubectl  delete -f {{ cspc_operator_link }}"
+                args:
+                  executable: /bin/bash
+                ignore_errors: True
+
+              - name: Confirm pods has been deleted
+                shell: kubectl get pods -n openebs
+                args:
+                  executable: /bin/bash
+                register: result
+                until: 'item not in result.stdout'
+                with_items:
+                  - "cstor-operator"
+                  - "cvc-operator"
+                delay: 30
+                retries: 10
+
+          when: lookup('env','Action') == "deprovision"
+
+        - set_fact:
+            flag: "Pass"
+      rescue:
+        - set_fact:
+            flag: "Fail"
+
+      always:
+        ## RECORD END-OF-TEST IN LITMUS RESULT CR
+        - include_tasks: /utils/fcm/update_litmus_result_resource.yml
+          vars:
+            status: 'EOT'

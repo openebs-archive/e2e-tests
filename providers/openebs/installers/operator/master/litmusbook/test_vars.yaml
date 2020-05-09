@@ -1,21 +1,9 @@
 kubeapply: kubectl --kubeconfig /root/admin.conf
 namespace: openebs
-#openebs_operator_link: https://raw.githubusercontent.com/openebs/openebs/master/k8s/openebs-operator.yaml
-#storageclass_link: https://raw.githubusercontent.com/openebs/openebs/master/k8s/openebs-storageclasses.yaml
 openebs_operator_link: "https://raw.githubusercontent.com/openebs/openebs/{{ lookup('env','OPENEBS_VERSION') }}/k8s/openebs-operator.yaml"
 storageclass_link: "https://raw.githubusercontent.com/openebs/openebs/{{ lookup('env','OPENEBS_VERSION') }}/k8s/openebs-storageclasses.yaml"
-cspc_operator_link: https://raw.githubusercontent.com/openebs/cstor-operators/master/deploy/cstor-operator.yaml
-cspc_rbac_link: https://raw.githubusercontent.com/openebs/cstor-operators/master/deploy/rbac.yaml
-cspc_crd_link: https://raw.githubusercontent.com/openebs/cstor-operators/master/deploy/crds/cspc-crd.yaml
-cspi_crd_link: https://raw.githubusercontent.com/openebs/cstor-operators/master/deploy/crds/cspi-crd.yaml
-csi_volume_crd_link: https://raw.githubusercontent.com/openebs/cstor-operators/master/deploy/crds/volumes-crd.yaml
 openebs_operator: openebs-operator.yaml
 storageclass: storageclass.yaml
-cspc_operator: cstor-operator.yaml
-cspc_rbac: rbac.yaml
-cspc_crd: cspc-crd.yaml
-cspi_crd: cspi-crd.yaml
-csi_volume_crd: volumes-crd.yaml
 selector_name: openebs-ndm
 sparse_pool_label: 'app=cstor-pool'
 test_name: "openebs-{{ lookup('env','Action') }}"
