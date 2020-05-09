@@ -18,7 +18,7 @@
     - block:
         - name: Patch the CSPC to expand the pool size
           shell: >
-            kubectl patch cspc -n {{ operator_ns }} {{ pool_name }} --type='json' -p='[{"op": "add", "path": "/spec/pools/{{ index_count.stdout }}/raidGroups/0/blockDevices/0", "value": {"blockDeviceName": "'{{ blockDevice.stdout_lines[0] }}'"}}]'
+            kubectl patch cspc -n {{ operator_ns }} {{ pool_name }} --type='json' -p='[{"op": "add", "path": "/spec/pools/{{ index_count.stdout }}/dataRaidGroups/0/blockDevices/0", "value": {"blockDeviceName": "'{{ blockDevice.stdout_lines[0] }}'"}}]'
           args:
             executable: /bin/bash
           register: patch_cspc
@@ -28,7 +28,7 @@
     - block:
         - name: Patch the CSPC to expand the pool size
           shell: >
-            kubectl patch cspc -n {{ operator_ns }} {{ pool_name }} --type='json' -p='[{"op": "add", "path": "/spec/pools/{{ index_count.stdout }}/raidGroups/0", "value": {"blockDevices": [{"blockDeviceName": "'{{ blockDevice.stdout_lines[0] }}'"},{"blockDeviceName": "'{{ blockDevice.stdout_lines[1] }}'"}],"type": "mirror"}}]'                  
+            kubectl patch cspc -n {{ operator_ns }} {{ pool_name }} --type='json' -p='[{"op": "add", "path": "/spec/pools/{{ index_count.stdout }}/dataRaidGroups/0", "value": {"blockDevices": [{"blockDeviceName": "'{{ blockDevice.stdout_lines[0] }}'"},{"blockDeviceName": "'{{ blockDevice.stdout_lines[1] }}'"}],"type": "mirror"}}]'                  
           args:
             executable: /bin/bash
           register: patch_cspc
@@ -39,7 +39,7 @@
         - name: Patch the CSPC to expand the pool size
           shell: >
             kubectl patch cspc -n {{ operator_ns }}
-            {{ pool_name }} --type='json' -p='[{"op": "add", "path": "/spec/pools/{{ index_count.stdout }}/raidGroups/0",
+            {{ pool_name }} --type='json' -p='[{"op": "add", "path": "/spec/pools/{{ index_count.stdout }}/dataRaidGroups/0",
             "value": {"blockDevices": [{"blockDeviceName": "'{{ blockDevice.stdout_lines[0] }}'"},
             {"blockDeviceName": "'{{ blockDevice.stdout_lines[1] }}'"},
             {"blockDeviceName": "'{{ blockDevice.stdout_lines[2] }}'"}],"type": "raidz"}}]'
@@ -53,7 +53,7 @@
         - name: Patch the CSPC to expand the pool size
           shell: >
             kubectl patch cspc -n {{ operator_ns }} {{ pool_name }}
-            --type='json' -p='[{"op": "add", "path": "/spec/pools/{{ index_count.stdout }}/raidGroups/0",
+            --type='json' -p='[{"op": "add", "path": "/spec/pools/{{ index_count.stdout }}/dataRaidGroups/0",
             "value": {"blockDevices": [{"blockDeviceName": "'{{ blockDevice.stdout_lines[0] }}'"},
             {"blockDeviceName": "'{{ blockDevice.stdout_lines[1] }}'"},{"blockDeviceName": "'{{ blockDevice.stdout_lines[2] }}'"},
             {"blockDeviceName": "'{{ blockDevice.stdout_lines[3] }}'"},{"blockDeviceName": "'{{ blockDevice.stdout_lines[4] }}'"},
