@@ -6,6 +6,7 @@ pool_type: "{{ lookup('env','POOL_TYPE') }}"
 node_label: "{{ lookup('env','NODE_LABEL') }}"
 deploy_mode: "{{ lookup('env','DEPLOY_MODE') }}"
 pool_count: "{{ lookup('env','POOL_COUNT') }}"
+sc_name: "{{ lookup('env', 'STORAGE_CLASS') }}"
 
 bd_count:
    stripe:
