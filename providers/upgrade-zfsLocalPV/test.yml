@@ -108,8 +108,8 @@
        replace:
          path: ./new_zfs_operator.yml
          regexp: quay.io/openebs/zfs-driver:ci
-         replace: "{{ lookup('env','ZFS_DRIVER_IMAGE') }}"
-       when: lookup('env','ZFS_DRIVER_IMAGE') | length > 0
+         replace: "{{ lookup('env','TO_VERSION_ZFS_DRIVER_IMAGE') }}"
+       when: lookup('env','TO_VERSION_ZFS_DRIVER_IMAGE') | length > 0
 
      - name: Update the number of zfs-controller statefulset replicas
        replace:
