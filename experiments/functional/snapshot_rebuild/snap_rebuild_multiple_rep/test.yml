@@ -144,13 +144,13 @@
 
         - name: Delete the snapshot that created
           shell: >
-            kubectl delete volumesnapshots {{ snapshot_name }} -n {{ app_ns }}
+            kubectl delete volumesnapshots {{ snapshot_name }} -n {{ namespace }}
           args:
             executable: /bin/bash
 
         - name: Check if the snapshot has been deleted
           shell: >
-             kubectl get volumesnapshot {{ snapshot_name }} -n {{ app_ns }}
+             kubectl get volumesnapshot {{ snapshot_name }} -n {{ namespace }}
           args:
             executable: /bin/bash
           register: snap_list

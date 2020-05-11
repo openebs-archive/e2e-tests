@@ -561,7 +561,7 @@
 
             - name: Build a list of replica pods
               set_fact:
-                cstor_replicas: "{{ cstor_replicas }} + [ '{{ item.stdout }}' ]"
+                cstor_replicas: "{{ cstor_replicas }} + [ '{{ item.stdout_lines }}' ]"
               with_items: "{{ cvr_name.results }}"
 
             - name: Check if the CVRs are upgraded to newer version
@@ -653,7 +653,7 @@
 
             - name: Build a list of replica pods
               set_fact:
-                jiva_replicas: "{{ jiva_replicas }} + [ '{{ item.stdout }}' ]"
+                jiva_replicas: "{{ jiva_replicas }} + [ '{{ item.stdout_lines }}' ]"
               with_items: "{{ rep_name.results }}"
 
             - name: Check if the replica has been upgraded to latest version
