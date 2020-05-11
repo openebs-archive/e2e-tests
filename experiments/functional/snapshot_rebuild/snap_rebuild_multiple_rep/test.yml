@@ -142,6 +142,22 @@
             - "{{ replica_pod1 }}"
             - "{{ replica_pod2 }}"          
 
+        - name: Delete the snapshot that created
+          shell: >
+            kubectl delete volumesnapshots {{ snapshot_name }} -n {{ app_ns }}
+          args:
+            executable: /bin/bash
+
+        - name: Check if the snapshot has been deleted
+          shell: >
+             kubectl get volumesnapshot {{ snapshot_name }} -n {{ app_ns }}
+          args:
+            executable: /bin/bash
+          register: snap_list
+          until: "snapshot_name not in snap_list.stdout"
+          delay: 10
+          retries: 15
+
         - set_fact:
             flag: "Pass"
 

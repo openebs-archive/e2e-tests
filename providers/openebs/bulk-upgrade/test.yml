@@ -599,7 +599,7 @@
               when: upgrade_to_ci is defined
 
             - name: Create the job to upgrade the jiva volume
-              shell: kubectl apply -f jiva-volume-upgrade-job-{{ outer_item }}.yml
+              shell: kubectl apply -f jiva-volume-upgrade-job.yml
               args:
                 executable: /bin/bash
 
