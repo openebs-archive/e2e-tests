@@ -93,7 +93,15 @@
     executable: /bin/bash
   register: rcount_before
 
-- name: Identify the pumba pod that co-exists with jiva controller
+- name: Getting the RestartCount before injecting delay
+  shell: >
+   kubectl get pod "{{ jiva_replica_pod.stdout }}" -n {{ operator_ns }} --no-headers 
+   -o jsonpath='{.status.containerStatuses[].restartCount}'
+  args:
+    executable: /bin/bash
+  register: restart_count_before
+
+- name: Identify the pumba pod that co-exists with jiva replica (targeted for network delay)
   shell: >
     kubectl get pods -l app=pumba -n {{ app_ns }} 
     -o jsonpath='{.items[?(@.spec.nodeName==''"{{ node.stdout }}"'')].metadata.name}'
@@ -101,7 +109,7 @@
     executable: /bin/bash
   register: pumba_pod
 
-- name: Inject egress delay of {{network_delay}}ms on jiva controller for {{ chaos_duration }}ms
+- name: Inject egress delay of {{network_delay}}ms on jiva replica for {{ chaos_duration }}ms
   shell: >
     kubectl exec {{ pumba_pod.stdout }} -n {{ app_ns }} 
     -- pumba netem --interface eth0 --duration {{ chaos_duration }}ms delay
@@ -111,12 +119,12 @@
 
 - name: Verifying the Replica getting disconnected
   shell: >
-   kubectl exec -it {{ jiva_controller_pod.stdout }} -n {{ operator_ns }} 
-   -c {{ jiva_controller_name }} curl http://"{{controller_svc.stdout}}":9501/v1/volumes | jq -r '.data[].replicaCount'
+   kubectl get pod "{{ jiva_replica_pod.stdout }}" -n {{ operator_ns }} --no-headers 
+   -o jsonpath='{.status.containerStatuses[].restartCount}'
   args:
     executable: /bin/bash
   register: resp
-  until: resp.stdout != rcount_before.stdout
+  until: resp.stdout != restart_count_before.stdout
   retries: 10
   delay: 15
 
