@@ -1,0 +1,19 @@
+---
+
+            - name: Obtain the name of the replica
+              shell: >
+                kubectl get deploy -n {{ operator_ns }} -l openebs.io/persistent-volume={{ outer_item }},openebs.io/replica=jiva-replica
+                -o=jsonpath='{range .items[*]}{.metadata.name}{"\n"}{end}'
+              register: rep_name
+              with_items:
+                  - "{{ jiva_pv_name.stdout_lines }}"
+
+            - name: Check if the replica has been upgraded to latest version
+              shell: >
+                kubectl get deploy -n {{ operator_ns }}
+                -o jsonpath='{.items[?(@.metadata.name=="{{ item }}")].metadata.labels.openebs\.io\/version}'
+              register: rep_version
+              with_items:
+                  - "{{ rep_name.stdout_lines }}"
+              failed_when: "rep_version.stdout != new_version"
+
