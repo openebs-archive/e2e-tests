@@ -5,8 +5,6 @@
                 -o=jsonpath='{range .items[*]}{.metadata.name}{"\n"}{end}'
               register: cvr_name
               failed_when: 'cvr_name.stdout == ""'
-              with_items:
-                  - "{{ pv_name.stdout_lines }}"
 
             - name: Check if the CVRs are upgraded to newer version
               shell: >
