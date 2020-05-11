@@ -546,32 +546,11 @@
               with_items:
                   - "{{ pv_name.stdout_lines }}"              
 
-            - name: Create an empty list of cstor replicas
-              set_fact:
-                cstor_replicas: []
-
-            - name: Obtain the CVR name to verify the current version
-              shell: >
-                kubectl get cvr -n {{ operator_ns }} -l openebs.io/persistent-volume={{ item }}
-                -o=jsonpath='{range .items[*]}{.metadata.name}{"\n"}{end}'
-              register: cvr_name
-              failed_when: 'cvr_name.stdout == ""'
-              with_items:
-                  - "{{ pv_name.stdout_lines }}"              
-
-            - name: Build a list of replica pods
-              set_fact:
-                cstor_replicas: "{{ cstor_replicas }} + [ '{{ item.stdout_lines }}' ]"
-              with_items: "{{ cvr_name.results }}"
-
-            - name: Check if the CVRs are upgraded to newer version
-              shell: >
-                 kubectl get cvr -n {{ operator_ns }} {{ item }}
-                 -o custom-columns=:.versionDetails.status.current --no-headers
-              register: cvr_version
-              failed_when: "cvr_version.stdout != new_version"
-              with_items:
-                  - "{{ cstor_replicas }}"
+            - name: Verify the cstor replicas are upgraded to new version
+              include_tasks: cstor_replica_version.yml
+              with_items: "{{ pv_name.stdout_lines }}"
+              loop_control:
+                loop_var: outer_item
 
           when: upgrade_cstor == "true"
 
@@ -637,33 +616,13 @@
               register: ctrl_version
               failed_when: "ctrl_version.stdout != new_version"
               with_items:
-                  - "{{ jiva_pv_name.stdout_lines }}"              
-
-            - name: Create an empty list of jiva replicas
-              set_fact:
-                jiva_replicas: []
-
-            - name: Obtain the name of the replica
-              shell: >
-                kubectl get deploy -n {{ operator_ns }} -l openebs.io/persistent-volume={{ item }},openebs.io/replica=jiva-replica
-                -o=jsonpath='{range .items[*]}{.metadata.name}{"\n"}{end}'
-              register: rep_name
-              with_items:
                   - "{{ jiva_pv_name.stdout_lines }}"
 
-            - name: Build a list of replica pods
-              set_fact:
-                jiva_replicas: "{{ jiva_replicas }} + [ '{{ item.stdout_lines }}' ]"
-              with_items: "{{ rep_name.results }}"
-
-            - name: Check if the replica has been upgraded to latest version
-              shell: >
-                kubectl get deploy -n {{ operator_ns }}
-                -o jsonpath='{.items[?(@.metadata.name=="{{ item }}")].metadata.labels.openebs\.io\/version}'
-              register: rep_version
-              with_items:
-                  - "{{ jiva_replicas }}"
-              failed_when: "rep_version.stdout != new_version"
+            - name: Verify the jiva replicas are upgraded to new version
+              include_tasks: jiva_replica_version.yml
+              with_items: "{{ jiva_pv_name.stdout_lines }}"
+              loop_control:
+                loop_var: outer_item                    
 
           when: upgrade_jiva == "true"
 
