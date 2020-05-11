@@ -6,12 +6,16 @@
          register: pv_name
          changed_when: True
 
-       - name: Get the nodes count
-         shell: kubectl get nodes --no-headers | grep -v master | awk {'print $1'} | wc -l
+       - name: Get the controller deployment name 
+         shell: kubectl get deployment -n {{ operator_ns }} -l openebs.io/controller=jiva-controller,openebs.io/persistent-volume="{{ pv_name.stdout }}" -o jsonpath='{.items[0].metadata.name}'
          args:
            executable: /bin/bash
-         register: node_count
+         register: ctrl_deployment
 
+       - name: Obtaining the replication factor count from controller deployment
+         shell: kubectl get deployments {{ ctrl_deployment.stdout }} -n {{ operator_ns }} -o jsonpath='{.spec.template.spec.containers[0].env[0].value}'    
+         register: replication_factor_count
+       
        - name: Get the maya-apiserver pod name
          shell:  kubectl get pods -n {{ operator_ns }} -l name=maya-apiserver --no-headers -o jsonpath='{.items[0].metadata.name}'
          args:
@@ -35,7 +39,7 @@
          args:
            executable: /bin/bash
          register: result
-         until: result.stdout| int == node_count.stdout | int
+         until: result.stdout| int == replication_factor_count.stdout | int
          delay: 30
          retries: 30
          changed_when: True
