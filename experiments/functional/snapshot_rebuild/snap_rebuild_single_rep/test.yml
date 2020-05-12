@@ -123,7 +123,7 @@
 
         - name: Check if the snapshot has been deleted
           shell: >
-             kubectl get volumesnapshot {{ snapshot_name }} -n {{ namespace }}
+             kubectl get volumesnapshot -n {{ namespace }}
           args:
             executable: /bin/bash
           register: snap_list
