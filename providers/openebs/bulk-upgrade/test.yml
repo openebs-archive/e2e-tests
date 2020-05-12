@@ -512,7 +512,7 @@
               shell: kubectl get pods -n {{ operator_ns }} -l job-name=cstor-volume-upgrade -o custom-columns=:.status.phase --no-headers
               register: job_status
               until: "'Succeeded' in job_status.stdout"
-              delay: 10
+              delay: 30
               retries: 60
 
             - name: Check if the target pod is in Running state
@@ -595,7 +595,7 @@
               shell: kubectl get pods -n {{ operator_ns }} -l job-name=jiva-volume-upgrade -o custom-columns=:.status.phase --no-headers
               register: job_status
               until: "'Succeeded' in job_status.stdout"
-              delay: 10
+              delay: 15
               retries: 60
 
             - name: Check if the controler and replicas are in Running state
