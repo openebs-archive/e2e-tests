@@ -161,7 +161,7 @@
         - name: Obtain the Claimed block device from the targeted node
           shell: >
             kubectl get cspi -n {{ operator_ns }} {{ target_cspi }}
-            -o custom-columns=:.spec.raidGroup[*].blockDevices[*].blockDeviceName --no-headers
+            -o custom-columns=:.spec.dataRaidGroups[*].blockDevices[*].blockDeviceName --no-headers
           args:
             executable: /bin/bash
           register: claimed_bd
