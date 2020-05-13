@@ -55,6 +55,9 @@ spec:
           - name: APP_LABEL
             value: 'name=percona'
 
+          - name: APP_PVC
+            value: ''
+            
           # The platform where k8s cluster is created.
           - name: PLATFORM
             value: "vmware"

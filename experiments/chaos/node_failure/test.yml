@@ -26,6 +26,8 @@
               - "Namespace    : {{ namespace }}"
               - "Label        : {{ label }}"
 
+        - include: prerequisites.yml
+
         - name: Identify the chaos util to be invoked
           template:
             src: chaosutil.j2
@@ -147,6 +149,7 @@
           until: "((cvr_status.stdout_lines|unique)|length) == 1 and 'Healthy' in cvr_status.stdout"
           retries: 60
           delay: 10
+          when: stg_engine == 'cstor'
 
           ### Due to node shutdown, the application pod will be in containercreating state due to multi-attach error.
           ### As a workaround, the node CR can be deleted which can forcefully remove the terminating pod.
