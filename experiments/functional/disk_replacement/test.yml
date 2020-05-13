@@ -179,7 +179,7 @@
 
         - name: Obtain the cspc yaml
           shell:
-            kubectl get cspc -n {{ operator_ns }} -o yaml > ./cspc_disk_replace.yml
+            kubectl get cspc {{ pool_name }} -n {{ operator_ns }} -o yaml > ./cspc_disk_replace.yml
           args:
             executable: /bin/bash
 
