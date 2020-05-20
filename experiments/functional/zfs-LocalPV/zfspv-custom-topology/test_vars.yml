@@ -1,0 +1,13 @@
+test_name: zfspv-custom-topology-test
+
+app_ns: "{{ lookup('env','APP_NAMESPACE') }}"
+
+app_label: "{{ lookup('env','APP_LABEL') }}"
+
+zpool_name: "{{ lookup('env','ZPOOL_NAME') }}"
+
+stg_class: "{{ lookup('env','STORAGE_CLASS') }}"
+
+fs_type: "{{ lookup('env','FS_TYPE') }}"
+
+node_label: "{{ lookup('env','NODE_LABEL') }}"
