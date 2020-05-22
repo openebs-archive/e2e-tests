@@ -29,3 +29,5 @@ chaos_duration: 120
 deploy_type: "{{ lookup('env','DEPLOY_TYPE') }}"
 
 cri: "{{ lookup('env','CONTAINER_RUNTIME') }}"
+
+target_affinity_check: "{{ lookup('env','TARGET_AFFINITY_CHECK') }}"
