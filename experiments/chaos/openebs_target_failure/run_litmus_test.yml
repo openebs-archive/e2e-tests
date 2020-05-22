@@ -75,6 +75,9 @@ spec:
           - name: DEPLOY_TYPE
             value: deployment
 
+          - name: TARGET_AFFINITY_CHECK
+            value: 'enable'
+
         command: ["/bin/bash"]
         args: ["-c", "ansible-playbook ./experiments/chaos/openebs_target_failure/test.yml -i /etc/ansible/hosts -vv; exit 0"]
 
