@@ -17,6 +17,7 @@
     - vars.yml
 
   vars:
+    ssh_path: "~/.ssh/id_rsa.pub"
     cluster_name:
     subnet_id: "{{ lookup('lines', 'grep subnet_id /tmp/aws/id.csv | cut -d, -f3 | cut -d: -f2') }}"
     vpc_id: "{{ lookup('lines', 'grep vpc_id /tmp/aws/id.csv | cut -d, -f1 | cut -d: -f2') }}"
@@ -41,7 +42,7 @@
             state: present
 
         - name: AWS Cluster creating started
-          command: kops create cluster --name k8s-{{ cluster_name }}.k8s.local --zones {{ zone }} --node-count {{ node_count }} --state s3://k8s-bucket-{{ cluster_name }} --vpc {{ vpc_id }} --image {{ image }} --subnets {{ subnet_id }} --master-size {{ master_size }} --node-size {{ node_size }} --kubernetes-version {{ k8s_version }} --networking {{ networking }} --yes
+          command: kops create cluster --name k8s-{{ cluster_name }}.k8s.local --zones {{ zone }} --node-count {{ node_count }} --state s3://k8s-bucket-{{ cluster_name }} --vpc {{ vpc_id }} --image {{ image }} --subnets {{ subnet_id }} --master-size {{ master_size }} --node-size {{ node_size }} --kubernetes-version {{ k8s_version }} --networking {{ networking }} --ssh-public-key {{ ssh_path }} --yes
 
         - name: Create a csv file for store cluster name
           lineinfile:
