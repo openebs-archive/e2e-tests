@@ -25,9 +25,6 @@
 | NODE_LABEL    | give the label name by which nodes will be labeled               |
 | FS_TYPE       | To create storage class with this fs_type parameter (zfs,xfs,ext)               |
 
-## Note:
-
-In this playbook resuources appended with `i` will be for immediate volume binding mode scenario and appended with `w` will be for WaitForFirstConsumer binding mode. For e.g. immediate binding PVC's and application pod will be deployed in {{ APP_NAMESPACE}}-i namespace and late binding resources will be in {{ APP_NAMESPACE }}-w namespace.
 
 
 
