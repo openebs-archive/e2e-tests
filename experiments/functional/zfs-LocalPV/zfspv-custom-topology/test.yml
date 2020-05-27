@@ -56,36 +56,36 @@
             app_label_value: "{{ app_label.split('=')[1] }}" 
 
         - name: Create namespace
-          shell: kubectl create ns {{ app_ns }}-i
+          shell: kubectl create ns {{ app_ns }}-immediate
           args: 
             executable: /bin/bash
         
         - name: Update the busybox yaml template with test specific values
           template: 
             src: busybox.j2
-            dest: busybox_I.yml
+            dest: busybox_immediate.yml
 
-        - name: Apply the script for generating multiple busybox appliation yamls
-          shell: bash app_gen_I.sh
+        - name: Apply the script for generating multiple busybox application yamls
+          shell: bash app_gen_immediate.sh
           args: 
             executable: /bin/bash  
           
         - name: Apply the busybox yamls
           shell: >
-            kubectl apply -f app_yamls_I/ -n {{ app_ns}}-i
+            kubectl apply -f app_yamls_immediate/ -n {{ app_ns}}-immediate
           args: 
             executable: /bin/bash
           register: status
           failed_when: "status.rc != 0" 
           
         - name: Get the pvc list
-          shell: kubectl get pvc -n {{ app_ns }}-i --no-headers -o custom-columns=:.metadata.name
+          shell: kubectl get pvc -n {{ app_ns }}-immediate --no-headers -o custom-columns=:.metadata.name
           args: 
             executable: /bin/bash
           register: pvc_list
           
         - name: Check the PVC status.
-          shell: kubectl get pvc {{ item }} -n {{ app_ns }}-i --no-headers -o custom-columns=:.status.phase
+          shell: kubectl get pvc {{ item }} -n {{ app_ns }}-immediate --no-headers -o custom-columns=:.status.phase
           args:
             executable: /bin/bash
           register: pvc_status
@@ -95,14 +95,14 @@
           retries: 30
 
         - name: Get the application pod list
-          shell: kubectl get pods -n {{ app_ns }}-i -l {{ app_label }} --no-headers -o custom-columns=:.metadata.name
+          shell: kubectl get pods -n {{ app_ns }}-immediate -l {{ app_label }} --no-headers -o custom-columns=:.metadata.name
           args: 
             executable: /bin/bash
           register: app_pod_list
 
         - name: Check the application pod status
           shell: >
-            kubectl get pods {{ item }} -n {{ app_ns }}-i --no-headers -o custom-columns=:.status.phase
+            kubectl get pods {{ item }} -n {{ app_ns }}-immediate --no-headers -o custom-columns=:.status.phase
           args:
             executable: /bin/bash
           register: app_pod_status
@@ -112,7 +112,7 @@
           retries: 20
 
         - name: Verify that application pod is scheduled on node on which custom label is applied
-          shell: kubectl get pods {{ item }} -n {{ app_ns }}-i --no-headers -o custom-columns=:.spec.nodeName
+          shell: kubectl get pods {{ item }} -n {{ app_ns }}-immmediate --no-headers -o custom-columns=:.spec.nodeName
           args: 
             executable: /bin/bash
           register: node_name
@@ -120,23 +120,23 @@
           failed_when: "'{{ node_name.stdout }}' not in node_list.stdout"
 
         - name: Create namespace
-          shell: kubectl create ns {{ app_ns}}-w
+          shell: kubectl create ns {{ app_ns}}-wfc
           args:
             executable: /bin/bash
               
         - name: Update the busybox yaml template with test specific values
           template: 
             src: busybox.j2
-            dest: busybox_W.yml
+            dest: busybox_wfc.yml
 
         - name: Apply the script for generating multiple busybox appliation yamls
-          shell: bash app_gen_W.sh
+          shell: bash app_gen_wfc.sh
           args: 
             executable: /bin/bash
           
         - name: Apply the busybox yamls
           shell: >
-            kubectl apply -f app_yamls_W/ -n {{ app_ns }}-w
+            kubectl apply -f app_yamls_wfc/ -n {{ app_ns }}-wfc
           args: 
             executable: /bin/bash
           register: status
@@ -146,7 +146,7 @@
         ## Meanwhile PVC will be remain in pending state.
 
         - name: Check all the pvc is in pending state.
-          shell: kubectl get pvc -n {{ app_ns }}-w --no-headers -o custom-columns=:.status.phase | sort | uniq
+          shell: kubectl get pvc -n {{ app_ns }}-wfc --no-headers -o custom-columns=:.status.phase | sort | uniq
           args:
             executable: /bin/bash
           register: pvc_status
@@ -181,13 +181,13 @@
           with_items: "{{ node_list.stdout_lines }}"
 
         - name: Get the pvc list
-          shell: kubectl get pvc -n {{ app_ns }}-w --no-headers -o custom-columns=:.metadata.name
+          shell: kubectl get pvc -n {{ app_ns }}-wfc --no-headers -o custom-columns=:.metadata.name
           args: 
             executable: /bin/bash
           register: pvc_list
         
         - name: Check the status of pvc
-          shell: kubectl get pvc {{ item }} -n {{ app_ns }}-w --no-headers -o custom-columns=:.status.phase
+          shell: kubectl get pvc {{ item }} -n {{ app_ns }}-wfc --no-headers -o custom-columns=:.status.phase
           args: 
             executable: /bin/bash
           register: pvc_status
@@ -197,14 +197,14 @@
           retries: 30
           
         - name: Get the application pod list
-          shell: kubectl get pods -n {{ app_ns }}-w -l {{ app_label }} --no-headers -o custom-columns=:.metadata.name
+          shell: kubectl get pods -n {{ app_ns }}-wfc -l {{ app_label }} --no-headers -o custom-columns=:.metadata.name
           args: 
             executable: /bin/bash
           register: app_pod_list
         
         - name: Check the application pod status
           shell: >
-            kubectl get pods {{ item }} -n {{ app_ns }}-w --no-headers -o custom-columns=:.status.phase
+            kubectl get pods {{ item }} -n {{ app_ns }}-wfc --no-headers -o custom-columns=:.status.phase
           args:
             executable: /bin/bash
           register: app_pod_status
@@ -215,7 +215,7 @@
 
         - name: Check the container status
           shell: >
-            kubectl get pods {{ item }} -n {{ app_ns }}-w --no-headers -o custom-columns=:.status.containerStatuses[*].state
+            kubectl get pods {{ item }} -n {{ app_ns }}-wfc --no-headers -o custom-columns=:.status.containerStatuses[*].state
           args: 
             executable: /bin/bash
           register: container_status
@@ -225,7 +225,7 @@
           retries: 30
 
         - name: Verify that application pod is scheduled on node on which custom label is applied
-          shell: kubectl get pods {{ item }} -n {{ app_ns }}-w --no-headers -o custom-columns=:.spec.nodeName
+          shell: kubectl get pods {{ item }} -n {{ app_ns }}-wfc --no-headers -o custom-columns=:.spec.nodeName
           args: 
             executable: /bin/bash
           register: node_name

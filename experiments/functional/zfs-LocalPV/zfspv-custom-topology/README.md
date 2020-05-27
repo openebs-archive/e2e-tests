@@ -7,7 +7,7 @@
 ## About the experiment
 
 - After zfs-driver:v0.7.x user can label the nodes with the required topology, the ZFSPV driver will support all the node labels as topology keys.
-- In this experiment we cover two scenarios one with immediate volume binding and other with late binding (i.e. WaitForFirstConsumer). If we add label after zfs-localpv driver has been deployed and using late binding mode then a restart of all the node agents are required so that the drivercan pick the labels and add them as supported topology key. Restart is not required in case of immediate volumebinding irrespective of if we add labels after zfs-driver deploy or before.
+- In this experiment we cover two scenarios such as one with immediate volume binding and other with late binding (i.e. WaitForFirstConsumer). If we add a label to node after zfs-localpv driver deployment and using late binding mode, then a restart of all the node agents are required so that the driver can pick the labels and add them as supported topology key. Restart is not required in case of immediate volumebinding irrespective of if we add labels after zfs-driver deployment or before.
 
 ## How to run experiment
 
