@@ -1,0 +1,10 @@
+test_name: cspc-pool-failure
+namespace: "{{ lookup('env','APP_NAMESPACE') }}"
+label: "{{ lookup('env','APP_LABEL') }}"
+pvc: "{{ lookup('env','APP_PVC') }}"
+data_persistence: "{{ lookup('env','DATA_PERSISTENCE') }}"
+operator_ns: openebs
+pool_debug_msg: 'uncorrectable I/O failure|suspended|ERROR ZFS event'
+chaos_duration: 240
+cri: "{{ lookup('env','CONTAINER_RUNTIME') }}"
+container_name: "{{ lookup('env','CONTAINER_NAME') }}"
