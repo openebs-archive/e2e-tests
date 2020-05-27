@@ -1,0 +1,246 @@
+- hosts: localhost
+  connection: local
+  gather_facts: False
+
+  vars_files:
+    - test_vars.yml
+    
+  tasks:
+    - block:
+
+        ## Generating the testname for deployment
+        - include_tasks: /utils/fcm/create_testname.yml
+
+        ## RECORD START-OF-TEST IN LITMUS RESULT CR
+        - include_tasks: "/utils/fcm/update_litmus_result_resource.yml"
+          vars:
+            status: 'SOT'
+
+        - name: Get any of the two kubernetes nodes which are not having noSchedule taints
+          shell: >
+            kubectl get nodes --no-headers -o custom-columns=:.metadata.name,:.spec.taints |
+            grep -v NoSchedule | shuf -n 2 | awk '{print $1}'
+          args:
+            executable: /bin/bash
+          register: node_list
+
+        - name: Label the nodes
+          shell: >
+            kubectl label node {{ item }} {{ node_label }}
+          args:
+            executable: /bin/bash
+          register: status
+          failed_when: "status.rc != 0"  
+          with_items: "{{ node_list.stdout_lines }}"
+
+        - name: Split the node label into key and values
+          set_fact:
+            lkey: "{{ node_label.split('=')[0] }}"
+            lvalue: "{{ node_label.split('=')[1] }}"
+
+        - name: Update the storage_class template with test specific values
+          template:
+            src: storage_class.j2
+            dest: storage_class.yml
+
+        - name: Create the storage class yaml
+          shell: kubectl create -f storage_class.yml
+          args:
+            executable: /bin/bash
+          register: status
+          failed_when: "status.rc != 0"
+
+        - name: Split the application pod label into key and value
+          set_fact:
+            app_label_key: "{{ app_label.split('=')[0] }}"
+            app_label_value: "{{ app_label.split('=')[1] }}" 
+
+        - name: Create namespace
+          shell: kubectl create ns {{ app_ns }}-immediate
+          args: 
+            executable: /bin/bash
+        
+        - name: Update the busybox yaml template with test specific values
+          template: 
+            src: busybox.j2
+            dest: busybox_immediate.yml
+
+        - name: Apply the script for generating multiple busybox application yamls
+          shell: bash app_gen_immediate.sh
+          args: 
+            executable: /bin/bash  
+          
+        - name: Apply the busybox yamls
+          shell: >
+            kubectl apply -f app_yamls_immediate/ -n {{ app_ns}}-immediate
+          args: 
+            executable: /bin/bash
+          register: status
+          failed_when: "status.rc != 0" 
+          
+        - name: Get the pvc list
+          shell: kubectl get pvc -n {{ app_ns }}-immediate --no-headers -o custom-columns=:.metadata.name
+          args: 
+            executable: /bin/bash
+          register: pvc_list
+          
+        - name: Check the PVC status.
+          shell: kubectl get pvc {{ item }} -n {{ app_ns }}-immediate --no-headers -o custom-columns=:.status.phase
+          args:
+            executable: /bin/bash
+          register: pvc_status
+          with_items: "{{ pvc_list.stdout_lines }}"
+          until: " pvc_status.stdout == 'Bound'"
+          delay: 5
+          retries: 30
+
+        - name: Get the application pod list
+          shell: kubectl get pods -n {{ app_ns }}-immediate -l {{ app_label }} --no-headers -o custom-columns=:.metadata.name
+          args: 
+            executable: /bin/bash
+          register: app_pod_list
+
+        - name: Check the application pod status
+          shell: >
+            kubectl get pods {{ item }} -n {{ app_ns }}-immediate --no-headers -o custom-columns=:.status.phase
+          args:
+            executable: /bin/bash
+          register: app_pod_status
+          with_items: "{{ app_pod_list.stdout_lines }}"
+          until: "app_pod_status.stdout == 'Running'"
+          delay: 5
+          retries: 20
+
+        - name: Verify that application pod is scheduled on node on which custom label is applied
+          shell: kubectl get pods {{ item }} -n {{ app_ns }}-immmediate --no-headers -o custom-columns=:.spec.nodeName
+          args: 
+            executable: /bin/bash
+          register: node_name
+          with_items: "{{ app_pod_list.stdout_lines }}"
+          failed_when: "'{{ node_name.stdout }}' not in node_list.stdout"
+
+        - name: Create namespace
+          shell: kubectl create ns {{ app_ns}}-wfc
+          args:
+            executable: /bin/bash
+              
+        - name: Update the busybox yaml template with test specific values
+          template: 
+            src: busybox.j2
+            dest: busybox_wfc.yml
+
+        - name: Apply the script for generating multiple busybox appliation yamls
+          shell: bash app_gen_wfc.sh
+          args: 
+            executable: /bin/bash
+          
+        - name: Apply the busybox yamls
+          shell: >
+            kubectl apply -f app_yamls_wfc/ -n {{ app_ns }}-wfc
+          args: 
+            executable: /bin/bash
+          register: status
+          failed_when: "status.rc != 0"
+
+        ## Restart of node-agent pods is required to get aware of node_labels
+        ## Meanwhile PVC will be remain in pending state.
+
+        - name: Check all the pvc is in pending state.
+          shell: kubectl get pvc -n {{ app_ns }}-wfc --no-headers -o custom-columns=:.status.phase | sort | uniq
+          args:
+            executable: /bin/bash
+          register: pvc_status
+          failed_when: "pvc_status.stdout != 'Pending'"
+
+        - name: Restart the zfs node-agent pods in kube-system namespace
+          shell: kubectl delete pods -n kube-system -l app=openebs-zfs-node
+          args: 
+            executable: /bin/bash
+
+        - name: Wait for 10 sec
+          shell:
+            sleep 10
+        
+        - name: Check for the zfs node-agent pods to come into Running state
+          shell: >
+            kubectl get pods -n kube-system -l app=openebs-zfs-node 
+            --no-headers -o custom-columns=:.status.phase | sort | uniq
+          args: 
+            executable: /bin/bash
+          register: zfs_node_pod_status
+          until: "zfs_node_pod_status.stdout == 'Running'"
+          delay: 5
+          retries: 20
+
+        - name: Verify new topology key is now available in csi_nodes
+          shell: kubectl get csinode {{ item }} --no-headers -o custom-columns=:.spec.drivers[*].topologyKeys
+          args: 
+            executable: /bin/bash
+          register: csi_node_keys
+          failed_when: "'{{ lkey }}' not in csi_node_keys.stdout"
+          with_items: "{{ node_list.stdout_lines }}"
+
+        - name: Get the pvc list
+          shell: kubectl get pvc -n {{ app_ns }}-wfc --no-headers -o custom-columns=:.metadata.name
+          args: 
+            executable: /bin/bash
+          register: pvc_list
+        
+        - name: Check the status of pvc
+          shell: kubectl get pvc {{ item }} -n {{ app_ns }}-wfc --no-headers -o custom-columns=:.status.phase
+          args: 
+            executable: /bin/bash
+          register: pvc_status
+          with_items: "{{ pvc_list.stdout_lines }}"
+          until: "pvc_status.stdout == 'Bound'"
+          delay: 2
+          retries: 30
+          
+        - name: Get the application pod list
+          shell: kubectl get pods -n {{ app_ns }}-wfc -l {{ app_label }} --no-headers -o custom-columns=:.metadata.name
+          args: 
+            executable: /bin/bash
+          register: app_pod_list
+        
+        - name: Check the application pod status
+          shell: >
+            kubectl get pods {{ item }} -n {{ app_ns }}-wfc --no-headers -o custom-columns=:.status.phase
+          args:
+            executable: /bin/bash
+          register: app_pod_status
+          with_items: "{{ app_pod_list.stdout_lines }}"
+          until: "app_pod_status.stdout == 'Running'"
+          delay: 5
+          retries: 20
+
+        - name: Check the container status
+          shell: >
+            kubectl get pods {{ item }} -n {{ app_ns }}-wfc --no-headers -o custom-columns=:.status.containerStatuses[*].state
+          args: 
+            executable: /bin/bash
+          register: container_status
+          with_items: "{{ app_pod_list.stdout_lines }}"
+          until: "'running' in container_status.stdout"
+          delay: 2
+          retries: 30
+
+        - name: Verify that application pod is scheduled on node on which custom label is applied
+          shell: kubectl get pods {{ item }} -n {{ app_ns }}-wfc --no-headers -o custom-columns=:.spec.nodeName
+          args: 
+            executable: /bin/bash
+          register: node_name
+          with_items: "{{ app_pod_list.stdout_lines }}"
+          failed_when: "'{{ node_name.stdout }}' not in node_list.stdout"
+
+        - set_fact:
+            flag: "Pass"
+    
+      rescue:
+        - set_fact:
+            flag: "Fail"
+    
+      always:
+      ## RECORD END-OF-TEST IN LITMUS RESULT CR
+        - include_tasks: /utils/fcm/update_litmus_result_resource.yml
+          vars:
+            status: 'EOT'
