@@ -1,6 +1,7 @@
 ---
 - hosts: localhost
   connection: local
+  gather_facts: False
 
   vars_files:
     - test_vars.yml
@@ -8,9 +9,6 @@
 
   tasks:
     - block:
-
-        - include_tasks: /utils/k8s/application_liveness_check.yml
-          when: liveness_label != ''
 
         - name: Identify the data consistency util to be invoked
           template:
@@ -59,33 +57,49 @@
             executable: /bin/bash
           register: pv_name
 
-        - name: Check for presence & value of cas type annotation
+        - name: Check the persistent volume provisioner name
           shell: >
             kubectl get pv {{ pv_name.stdout }} --no-headers
-            -o jsonpath="{.metadata.annotations.openebs\\.io/cas-type}"
+            -o custom-columns=:.metadata.annotations.pv\\.kubernetes\\.io\/provisioned-by
           args:
             executable: /bin/bash
-          register: openebs_stg_engine
-    
-        - name: Record the storage engine name
-          set_fact:
-            stg_engine: "{{ openebs_stg_engine.stdout }}"
+          register: volume_provisioner
 
-        - name: Get the target pod name associated with this pv
-          shell: >
-            kubectl get pods -n {{ operator_ns }} -l openebs.io/persistent-volume={{ pv_name.stdout }} --no-headers -o custom-columns=:.metadata.name
-          args:
-            executable: /bin/bash
-          register: target_pod_name
-          when: stg_engine == 'cstor'
+        - name: Record the volume provisioner name 
+          set_fact: 
+            vol_provisioner: "{{ volume_provisioner.stdout }}"
 
-        - name: Get the controller pod name associated with this pv
-          shell: >
-            kubectl get pods -n {{ namespace }} -l openebs.io/controller=jiva-controller,openebs.io/persistent-volume={{ pv_name.stdout }} --no-headers -o custom-columns=:.metadata.name
-          args:
-            executable: /bin/bash
-          register: ctrl_pod_name
-          when: stg_engine == 'jiva'
+        - block:
+          
+          - name: Check for presence & value of cas type annotation
+            shell: >
+              kubectl get pv {{ pv_name.stdout }} --no-headers
+              -o jsonpath="{.metadata.annotations.openebs\\.io/cas-type}"
+            args:
+              executable: /bin/bash
+            register: openebs_stg_engine
+      
+          - name: Record the storage engine name
+            set_fact:
+              stg_engine: "{{ openebs_stg_engine.stdout }}"
+
+          - name: Get the target pod name associated with this pv
+            shell: >
+              kubectl get pods -n {{ operator_ns }} -l openebs.io/persistent-volume={{ pv_name.stdout }} --no-headers -o custom-columns=:.metadata.name
+            args:
+              executable: /bin/bash
+            register: target_pod_name
+            when: stg_engine == 'cstor'
+
+          - name: Get the controller pod name associated with this pv
+            shell: >
+              kubectl get pods -n {{ operator_ns }} -l openebs.io/controller=jiva-controller,openebs.io/persistent-volume={{ pv_name.stdout }} --no-headers -o custom-columns=:.metadata.name
+            args:
+              executable: /bin/bash
+            register: ctrl_pod_name
+            when: stg_engine == 'jiva'
+        
+          when: vol_provisioner == 'openebs.io/provisioner-iscsi'
 
         - name: Create some test data
           include: "{{ data_consistency_util_path }}"
