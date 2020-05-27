@@ -181,6 +181,11 @@
                 shell: kubectl get pvc {{ app_pvc }} -n {{ app_ns }} -o jsonpath='{.spec.volumeName}'
                 register: volume_name
 
+              - include_tasks: ./cstor_post_restore.yml
+                vars:
+                  operator: "{{ operator_ns }}"
+                  vol_name: "{{ volume_name.stdout }}"
+
              when: lookup('env','RESTORE_IN_DIFF_NAMESPACE') == "false"
 
            - block: 
@@ -189,43 +194,12 @@
                 shell: kubectl get pvc {{ app_pvc }} -n {{ app_ns_new }} -o jsonpath='{.spec.volumeName}'
                 register: volume_name
 
-             when: lookup('env','RESTORE_IN_DIFF_NAMESPACE') == "true"
-      
-           - name: Getting the target IP
-             shell: kubectl get svc -n {{ operator_ns }} --no-headers -l openebs.io/persistent-volume={{ volume_name.stdout }} -o jsonpath='{.items[0].spec.clusterIP}'
-             register: target_ip
-             until: 'target_ip.stdout != ""'
-             delay: 5
-             retries: 10
-    
-           - name: Getting the CVR name from the corresponding PV
-             shell:  kubectl get cvr -n {{ operator_ns }} -l openebs.io/persistent-volume={{ volume_name.stdout }} -o jsonpath='{range.items[*]}{.metadata.labels.cstorpool\.openebs\.io/name}{"\n"}{end}'
-             register: cvr_name
-   
-           - name: Geting the CSP name corresponding to CVR
-             shell: kubectl get csp {{item}} -n {{ operator_ns }} -o jsonpath='{.metadata.name}'
-             register: csp_pod
-             with_items: "{{ cvr_name.stdout_lines }}"     
-   
-           - name: Getting the pool pod name
-             shell: kubectl get pod -n {{ operator_ns }} | grep {{item}} | awk '{print $1}'
-             register: pool_pod
-             with_items: "{{ cvr_name.stdout_lines }}" 
-   
-           - name: Getting the volume name inside cstor pool
-             shell: |
-               echo $(kubectl exec -it {{item.stdout}} -n {{ operator_ns }} -c cstor-pool -- zfs list | grep {{ volume_name.stdout }} | awk '{print $1}') >> cstor-vol
-             with_items: "{{ pool_pod.results }}"
-     
-           - name: Assigning the cstor-pool volume name to variable
-             shell: cat ./cstor-vol
-             register: pool_volume_name
-           
-           - name: Setting target IP for volume inside cstor pool
-             shell: kubectl exec -it {{item.0.stdout}} -n {{ operator_ns }} -- zfs set io.openebs:targetip={{ target_ip.stdout }} {{item.1}}
-             with_together:
-               - "{{ pool_pod.results }}"  
-               - "{{ pool_volume_name.stdout_lines }}" 
+              - include_tasks: ./cstor_post_restore.yml
+                vars:
+                  operator: "{{ operator_ns }}"
+                  vol_name: "{{ volume_name.stdout }}"
+
+             when: lookup('env','RESTORE_IN_DIFF_NAMESPACE') == "true" 
           
           when: storage_engine == "cstor" and lookup('env','LOCAL_SNAPSHOT') == "false"
 
