@@ -88,7 +88,7 @@
         args:
           executable: /bin/bash
    
-     when: lookup('env','LOCAL_SNAPSHOT') == "false"
+     when: lookup('env','LOCAL_SNAPSHOT') == "false" and lookup('env','RESTORE_IN_DIFF_NAMESPACE') == "false"
 
    - block:
 
@@ -98,7 +98,22 @@
         args:
           executable: /bin/bash
    
-     when: lookup('env','LOCAL_SNAPSHOT') == "true"  
+     when: lookup('env','LOCAL_SNAPSHOT') == "true"
+
+   - block:
+
+      - name: Creating application namespace
+        shell: kubectl create ns {{ app_ns_new }}
+        register: app_ns_create_status
+        failed_when: "'created' not in app_ns_create_status.stdout"
+
+      - name: Restoring application 
+        shell: >
+          velero restore create --from-backup {{ velero_backup_name }} --restore-volumes=true --namespace-mappings {{ app_ns }}:{{ app_ns_new }}
+        args:
+          executable: /bin/bash
+   
+     when: lookup('env','RESTORE_IN_DIFF_NAMESPACE') == "true"
 
   when: action == "RESTORE"
 

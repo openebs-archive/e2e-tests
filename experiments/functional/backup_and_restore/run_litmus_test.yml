@@ -2,7 +2,7 @@
 apiVersion: batch/v1
 kind: Job
 metadata:
-  generateName: litmus-velero-backup-restore
+  generateName: litmus-velero-backup-restore-
   namespace: litmus
 spec:
   template:
@@ -50,16 +50,19 @@ spec:
             value: "openebs"
 
           - name: VELERO_PLUGIN_NAME
-            value: "openebs/velero-plugin:ci"
+            value: "openebs/velero-plugin:1.10.0"
 
           - name: VELERO_VERSION
-            value: "v1.1.0"
+            value: "v1.3.0"
 
           #Supported values are {'minio', 'GCP'}
           - name: STORAGE_BUCKET
             value: "minio"
-          #Supported values ae {'true', false}, can be set true only with cstor volumes
+          #Supported values are {'true', false}, can be set true only with cstor volumes
           - name: LOCAL_SNAPSHOT
+            value: "false"
+           #Supported values are {'true', false}, can be set true only with cstor volumes whose restore will happen in different namespace. 
+          - name: RESTORE_IN_DIFF_NAMESPACE
             value: "false"
 
           - name: GCP_PROJECT_ID
