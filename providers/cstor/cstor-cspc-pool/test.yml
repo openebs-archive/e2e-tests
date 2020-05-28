@@ -113,6 +113,17 @@
               delay: 30
               retries: 10
 
+            - name: Verify the status of CSPI
+              shell: >
+                kubectl get cspi -n {{ operator_ns}} -l openebs.io/cstor-pool-cluster={{ pool_name }}
+                -o custom-columns=:.status.phase --no-headers
+              args:
+                executable: /bin/bash
+              register: cspi_status
+              until: "((cspi_status.stdout_lines|unique)|length) == 1 and 'ONLINE' in cspi_status.stdout"
+              delay: 5
+              retries: 60
+
             - name: Obtain the CSPI name to verify the status
               shell: >
                 kubectl get cspi -n {{ operator_ns}} -l openebs.io/cstor-pool-cluster={{ pool_name }}
@@ -120,17 +131,6 @@
               args:
                 executable: /bin/bash
               register: cspi_name
-
-            - name: Verify the status of CSPI
-              shell: >
-                kubectl get cspi -n {{ operator_ns }} -o jsonpath='{.items[?(@.metadata.name=="{{ item }}")].status.phase}'
-              args:
-                executable: /bin/bash
-              register: cspi_status
-              with_items: "{{ cspi_name.stdout_lines }}"
-              until: "'ONLINE' in cspi_status.stdout"
-              delay: 5
-              retries: 30
 
             - name: Verify if the cStor Pool pods are Running
               shell: >
