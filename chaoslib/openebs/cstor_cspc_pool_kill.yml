@@ -30,7 +30,7 @@
   register: cspi_status
   until: "'ONLINE' in cspi_status.stdout"
   delay: 2
-  retries: 150
+  retries: 30
 
 - name: Get the pod of pool deployment status
   shell: >
@@ -41,7 +41,7 @@
   register: pool_pod_status
   until: "'Running' in pool_pod_status.stdout"
   delay: 2
-  retries: 150
+  retries: 30
 
 - name: Obtain the pool pod name
   shell: >
@@ -61,7 +61,7 @@
   register: runningStatusCount
   until: "runningStatusCount.stdout == \"3\""
   delay: 2
-  retries: 150
+  retries: 30
 
 - include_tasks: /chaoslib/pumba/pod_failure_by_sigkill.yaml
   vars:

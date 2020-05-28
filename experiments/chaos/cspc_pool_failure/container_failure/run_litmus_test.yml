@@ -44,10 +44,10 @@ spec:
             value: ""  
 
           - name: CONTAINER_RUNTIME
-            value: docker
+            value: ""
 
           - name: CONTAINER_NAME
-            value: "cstor-pool-mgmt"
+            value: "cstor-pool"
 
         command: ["/bin/bash"]
         args: ["-c", "ansible-playbook ./experiments/chaos/cspc_pool_failure/container_failure/test.yml -i /etc/ansible/hosts -vv; exit 0"]

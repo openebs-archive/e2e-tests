@@ -59,17 +59,8 @@ The configmap data will be utilised by litmus experiments as its variables while
 | APP_LABEL     | Unique Labels in `key=value` format of application deployment |
 | APP_PVC       | Name of persistent volume claim used for app's volume mounts |
 
-### Chaos 
-
-| Parameter        | Description                      |
-| ---------------- | -------------------------------- |
-| CHAOS_TYPE       | The type of chaos to be induced. |
-| CHAOS_ITERATIONS | The number of chaos iterations   |
-
 ### Health Checks 
 
 | Parameter              | Description                                                  |
 | ---------------------- | ------------------------------------------------------------ |
-| LIVENESS_APP_NAMESPACE | Namespace in which external liveness pods are deployed, if any |
-| LIVENESS_APP_LABEL     | Unique Labels in `key=value` format for external liveness pod, if any |
 | DATA_PERSISTENCE       | Data accessibility & integrity verification post recovery. To check against busybox set value: "busybox" and for percona, set value: "mysql"|
