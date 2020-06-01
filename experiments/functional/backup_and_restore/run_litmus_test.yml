@@ -50,7 +50,7 @@ spec:
             value: "openebs"
 
           - name: VELERO_PLUGIN_NAME
-            value: "openebs/velero-plugin:1.10.0"
+            value: "openebs/velero-plugin:ci"
 
           - name: VELERO_VERSION
             value: "v1.3.0"
@@ -67,6 +67,9 @@ spec:
 
           - name: GCP_PROJECT_ID
             value: "openebs-ci"
+           #Supported values are {'default', 'user-defined'}, can be set only true when {bucket-type=minio, local-snapshot=false}
+          - name: PROFILE
+            value: "default"
 
           #Supported values are {"pool", "maya"}
           # Will have no impact if variable is undefined i.e; will not induce any failure

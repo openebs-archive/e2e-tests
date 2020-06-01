@@ -17,7 +17,7 @@
           executable: /bin/bash
         when: bucket_type == "GCP" and lookup('env','LOCAL_SNAPSHOT') == "false"
 
-      - name: Creating Backup using GCP bucket
+      - name: Creating Local Backup
         shell: >
           velero backup create {{ velero_backup_name }} --include-namespaces={{ app_ns }} --snapshot-volumes --volume-snapshot-locations=local
         args:
