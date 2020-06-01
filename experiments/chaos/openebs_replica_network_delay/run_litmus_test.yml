@@ -39,7 +39,7 @@ spec:
           - name: CHAOS_DURATION
             value: "60000" # in milliseconds
 
-          - name: DATA_PERSISTENCY
+          - name: DATA_PERSISTENCE
             value: ""  
 
           - name: LIVENESS_APP_LABEL
