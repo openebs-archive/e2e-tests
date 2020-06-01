@@ -1,4 +1,13 @@
 ---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: openebs-replica-network-delay
+  namespace: litmus
+data:
+  parameters.yml: |
+  
+---
 apiVersion: batch/v1
 kind: Job
 metadata:
@@ -39,7 +48,7 @@ spec:
           - name: CHAOS_DURATION
             value: "60000" # in milliseconds
 
-          - name: DATA_PERSISTENCY
+          - name: DATA_PERSISTENCE
             value: ""  
 
           - name: LIVENESS_APP_LABEL
@@ -47,3 +56,11 @@ spec:
 
         command: ["/bin/bash"]
         args: ["-c", "ansible-playbook ./experiments/chaos/openebs_replica_network_delay/test.yml -i /etc/ansible/hosts -vv; exit 0"]
+
+        volumeMounts:
+          - name: parameters
+            mountPath: /mnt/
+      volumes:
+          - name: parameters
+            configMap:
+              name: openebs-replica-network-delay

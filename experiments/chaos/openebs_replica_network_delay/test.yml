@@ -4,6 +4,8 @@
 
   vars_files:
     - test_vars.yml
+    - /mnt/parameters.yml
+
 
   tasks:
     - block:
@@ -14,6 +16,9 @@
         ## DERIVE THE APP STORAGE CLASS AND CHAOS UTIL TO USE       
  
         - include: test_prerequisites.yml
+
+        - include_vars:
+            file: data_persistence.yml
   
         - include_vars:
             file: chaosutil.yml
@@ -21,6 +26,11 @@
         - name: Record the chaos util path
           set_fact: 
             chaos_util_path: "/chaoslib/{{ chaosutil }}"
+
+        - name: Record the data consistency util path
+          set_fact:
+            data_consistency_util_path: "{{ consistencyutil }}"
+          when: data_persistence != ''
 
         ## RECORD START-OF-TEST IN LITMUS RESULT CR
 
@@ -61,21 +71,28 @@
             executable: /bin/bash
           register: app_pod_name      
 
-        - name: Create some test data in the mysql database
-          include_tasks: "/utils/scm/applications/mysql/mysql_data_persistence.yml"
+        - name: Create some test data
+          include: "{{ data_consistency_util_path }}"
           vars:
             status: 'LOAD'
             ns: "{{ namespace }}"
             pod_name: "{{ app_pod_name.stdout }}"
-            dbuser: 'root'
-            dbpassword: 'k8sDem0'
-            dbname: 'tdb'
-          when: data_persistance != ''         
-
+          when: data_persistence != ''      
 
         ## STORAGE FAULT INJECTION 
 
         - include: "{{ chaos_util_path }}"
+          status: "induce"
+          app_ns: "{{ namespace }}"
+          app_pvc: "{{ pvc }}"
+          network_delay: "{{ n_delay }}"
+          chaos_duration: "{{ c_duration }}"
+
+        - name: Wait for 10 seconds after applying netem delay
+          shell: sleep 10
+
+        - include: "{{ chaos_util_path }}"
+          status: "remove"
           app_ns: "{{ namespace }}"
           app_pvc: "{{ pvc }}"
           network_delay: "{{ n_delay }}"
@@ -94,17 +111,13 @@
         - include_tasks: /utils/k8s/application_liveness_check.yml
           when: liveness_label != ''
 
-        - name: Verify mysql data persistence  
-          include_tasks: "/utils/scm/applications/mysql/mysql_data_persistence.yml"
+        - name: Verify application data persistence
+          include: "{{ data_consistency_util_path }}"
           vars:
             status: 'VERIFY'
             ns: "{{ namespace }}"
-            pod_name: "{{ app_pod_name.stdout }}"
-            dbuser: 'root'
-            dbpassword: 'k8sDem0'
-            dbname: 'tdb'  
-          when: data_persistance != '' 
-
+            pod_name: "{{ app_pod_name.stdout }}"                 
+          when: data_persistence != '' 
 
         - set_fact:
             flag: "Pass"
