@@ -10,5 +10,6 @@ spec:
       bucket: velero
       provider: aws
       region: minio
+      #profile: new-profile
       s3ForcePathStyle: "true"
       s3Url: http://minio.velero.svc:9000

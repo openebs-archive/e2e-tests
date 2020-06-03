@@ -18,6 +18,13 @@
   register: velero
   failed_when: "velero_version not in velero.stdout"
 
+- name: Replacing Profile name in credential file
+  replace:
+    path: ./credentials-velero
+    regexp: "add-profile"
+    replace: "{{ profile_name }}"
+  when: lookup('env','PROFILE') != "default"
+
 - block:
 
    - name: Installing minio s3-bucket
@@ -144,7 +151,7 @@
             --bucket velero \
             --secret-file ./credentials-velero \
             --use-volume-snapshots=false \
-            --backup-location-config region=minio,s3ForcePathStyle="true",s3Url=http://minio.velero.svc:9000
+            --backup-location-config region=minio,s3ForcePathStyle="true",s3Url=http://minio.velero.svc:9000,profile={{ profile_name }}
         when: velero_version == "v1.1.0"
    
       - name: Installing velero server inside cluster
@@ -155,7 +162,7 @@
             --secret-file ./credentials-velero \
             --use-volume-snapshots=false \
             --plugins velero/velero-plugin-for-aws:v1.0.0 \
-            --backup-location-config region=minio,s3ForcePathStyle="true",s3Url=http://minio.velero.svc:9000
+            --backup-location-config region=minio,s3ForcePathStyle="true",s3Url=http://minio.velero.svc:9000,profile={{ profile_name }}
         when: velero_version == "v1.2.0" or velero_version == "v1.3.0"
 
      when: bucket_type == "minio"
@@ -193,6 +200,13 @@
   retries: 20
 
 - block:
+
+    - name: Replacing profile spec in volumesnapshotlocation.yml
+      replace:
+        path: ./minio-volume-snapshot-location.yml
+        regexp: "#profile: new-profile"
+        replace: "profile: {{ profile_name }}"
+      when: lookup('env','PROFILE') != "default"
 
     - name: Creating volume snapshot location
       shell: kubectl apply -f minio-volume-snapshot-location.yml
