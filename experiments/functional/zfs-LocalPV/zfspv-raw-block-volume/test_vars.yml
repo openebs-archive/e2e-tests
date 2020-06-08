@@ -1,11 +1,9 @@
-test_name: zfspv-block-volume
+test_name: zfspv-raw-block-volume
 
 app_ns: "{{ lookup('env','APP_NAMESPACE') }}"
 
 storage_class: "{{ lookup('env','STORAGE_CLASS') }}"
 
-app_label: "{{ lookup('env','APP_LABEL') }}"
-
-block_vol_pvc: "{{ lookup('env','APP_PVC') }}"
-
 pvc_size: "{{ lookup('env','PVC_SIZE') }}"
+
+operator_ns: "{{ lookup('env','OPERATOR_NAMESPACE') }}"
