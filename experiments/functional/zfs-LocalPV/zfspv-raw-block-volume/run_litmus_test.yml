@@ -1,0 +1,39 @@
+---
+apiVersion: batch/v1
+kind: Job
+metadata:
+  generateName: zfspv-block-volume-
+  namespace: litmus
+spec:
+  template:
+    metadata:
+      labels:
+        name: zfspv-block-volume
+    spec:
+      serviceAccountName: litmus
+      restartPolicy: Never
+
+      containers:
+      - name: ansibletest
+        image: openebs/ansible-runner:ci
+        imagePullPolicy: IfNotPresent
+        env:
+          - name: ANSIBLE_STDOUT_CALLBACK
+            #value: log_plays
+            #value: actionable
+            value: default
+
+          - name: APP_NAMESPACE
+            value: ''
+            
+          - name: STORAGE_CLASS
+            value: ''
+   
+          - name: PVC_SIZE
+            value: ''
+
+          - name: OPERATOR_NAMESPACE
+            value: ''
+
+        command: ["/bin/bash"]
+        args: ["-c", "ansible-playbook ./experiments/functional/zfs-LocalPV/zfspv-raw-block-volume/test.yml -i /etc/ansible/hosts -vv; exit 0"]
