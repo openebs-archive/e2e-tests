@@ -2,7 +2,7 @@
 
 | Type  | Description                                         | Storage | K8s Platform |
 | ----- | --------------------------------------------------- | ------- | ------------ |
-| Chaos | Kill the pool pod and check if gets scheduled again | OpenEBS | Any          |
+| Chaos | Kill the CSPC pool pod container and check if gets scheduled again | OpenEBS | Any          |
 
 ## Entry-Criteria
 
@@ -58,6 +58,13 @@ The configmap data will be utilised by litmus experiments as its variables while
 | APP_NAMESPACE | Namespace in which application pods are deployed             |
 | APP_LABEL     | Unique Labels in `key=value` format of application deployment |
 | APP_PVC       | Name of persistent volume claim used for app's volume mounts |
+
+### chaos parameters
+
+| Parameter     | Description                                                  |
+| ------------- | ------------------------------------------------------------ |
+| CONTAINER_RUNTIME | Type of container run time used (docker,containerd,cri-o)|
+| CONTAINER_NAME    | Name of the container to perform the chaos (cstor-pool or cstor-pool-mgmt) |
 
 ### Health Checks 
 
