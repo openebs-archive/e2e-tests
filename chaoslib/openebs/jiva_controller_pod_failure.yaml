@@ -52,7 +52,7 @@
 - name: Getting the Replicastatus before killing controller
   shell: >
    kubectl exec -it {{ jiva_controller_pod.stdout }} -n {{ target_ns }} 
-   -c {{ jiva_controller_name }} curl http://"{{controller_svc.stdout}}":9501/v1/replicas | jq -r '.data[].mode'
+   -c {{ jiva_controller_name }} curl http://127.0.0.1:9501/v1/replicas | jq -r '.data[].mode'
   args:
     executable: /bin/bash
   register: rstatus_before  
@@ -92,7 +92,7 @@
 - name: Getting the Replicastatus after killing the controller
   shell: >
    kubectl exec -it {{ jctrl_pod_after.stdout }} -n {{ target_ns }}
-   -c {{ jiva_controller_name }} curl http://"{{controller_svc.stdout}}":9501/v1/replicas | jq -r '.data[].mode'
+   -c {{ jiva_controller_name }} curl http://127.0.0.1:9501/v1/replicas | jq -r '.data[].mode'
   args:
     executable: /bin/bash
   register: rstatus_after
