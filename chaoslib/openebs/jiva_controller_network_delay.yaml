@@ -68,7 +68,7 @@
 - name: Getting the ReplicaCount before injecting delay
   shell: >
    kubectl exec -it {{ jiva_controller_pod.stdout }} -n {{ operator_ns }} 
-   -c {{ jiva_controller_name }} curl http://"{{controller_svc.stdout}}":9501/v1/volumes | jq -r '.data[].replicaCount'
+   -c {{ jiva_controller_name }} curl http://127.0.01:9501/v1/volumes | jq -r '.data[].replicaCount'
   args:
     executable: /bin/bash
   register: rcount_before
@@ -92,7 +92,7 @@
 - name: Verifying the Replica getting disconnected
   shell: >
    kubectl exec -it {{ jiva_controller_pod.stdout }} -n {{ operator_ns }} 
-   -c {{ jiva_controller_name }} curl http://"{{controller_svc.stdout}}":9501/v1/volumes | jq -r '.data[].replicaCount'
+   -c {{ jiva_controller_name }} curl http://127.0.0.1:9501/v1/volumes | jq -r '.data[].replicaCount'
   args:
     executable: /bin/bash
   register: resp
@@ -119,7 +119,7 @@
 - name: Verifying the replicas post network recovery
   shell: >
    kubectl exec -it {{ jiva_controller_pod.stdout }} -n {{ operator_ns }} 
-   -c {{ jiva_controller_name }} curl http://"{{controller_svc.stdout}}":9501/v1/volumes | jq -r '.data[].replicaCount'
+   -c {{ jiva_controller_name }} curl http://127.0.0.1:9501/v1/volumes | jq -r '.data[].replicaCount'
   args:
     executable: /bin/bash
   register: replica
