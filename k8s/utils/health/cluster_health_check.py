@@ -103,7 +103,7 @@ if __name__ == '__main__':
     p = multiprocessing.Process(target=init, name="main")
     p.start()
     timeElapsed = 0
-    timeOut = 900
+    timeOut = 1200
     while(True):
         if p.is_alive() is False:
             p.terminate()
