@@ -20,7 +20,7 @@
     - name: Install tc command on targeted pod
       shell: >
         kubectl exec -it {{ target_pod }} -n {{ operator_namespace }} --container {{ containername }} 
-        -- bash -c "apt-get update && apt-get -y install iproute2"
+        -- bash -c "chmod 1777 /tmp && apt-get update && apt-get -y install iproute2"
       register: tc_apt_output
       when: "'tc' not in tc_status.stdout"
 
