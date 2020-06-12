@@ -297,6 +297,7 @@
             -- sh -c "cd {{ app_mount_path.stdout }} && dd if=/dev/urandom of=test.txt bs=4k count=3932160"
           args:
             executable: /bin/bash
+          ignore_errors: true
 
         - name: Verify the readOnly status of CSP after reached the threshold limit
           shell: >
