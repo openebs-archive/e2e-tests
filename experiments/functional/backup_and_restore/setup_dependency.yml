@@ -93,7 +93,7 @@
              --use-volume-snapshots=false \
              --use-restic \
              --backup-location-config region=minio,s3ForcePathStyle="true",s3Url=http://minio.velero.svc:9000
-        when: velero_version == "v1.2.0" or velero_version == "v1.3.0"
+        when: velero_version == "v1.2.0" or velero_version == "v1.3.0" or velero_version == "v1.4.0"
 
      when: "bucket_type == 'minio'"
 
@@ -118,7 +118,7 @@
             --use-restic \
             --use-volume-snapshots=false \
             --secret-file ./key.json 
-        when: velero_version == "v1.2.0" or velero_version == "v1.3.0"
+        when: velero_version == "v1.2.0" or velero_version == "v1.3.0" or velero_version == "v1.4.0"
 
      when: bucket_type == "GCP"
 
@@ -163,7 +163,7 @@
             --use-volume-snapshots=false \
             --plugins velero/velero-plugin-for-aws:v1.0.0 \
             --backup-location-config region=minio,s3ForcePathStyle="true",s3Url=http://minio.velero.svc:9000,profile={{ profile_name }}
-        when: velero_version == "v1.2.0" or velero_version == "v1.3.0"
+        when: velero_version == "v1.2.0" or velero_version == "v1.3.0" or velero_version == "v1.4.0"
 
      when: bucket_type == "minio"
 
@@ -186,7 +186,7 @@
             --bucket e2e-gcp-bucket \
             --use-volume-snapshots=false \
             --secret-file ./key.json
-        when: velero_version == "v1.2.0" or velero_version == "v1.3.0"
+        when: velero_version == "v1.2.0" or velero_version == "v1.3.0" or velero_version == "v1.4.0"
 
      when: bucket_type == "GCP"
 
