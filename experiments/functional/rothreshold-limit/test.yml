@@ -350,11 +350,28 @@
   
       always:
 
+          - name: Obtain the PV name
+            shell: kubectl get pvc {{ app_pvc }} -n {{ app_ns }}  -o custom-columns=:.spec.volumeName --no-headers
+            args:
+              executable: /bin/bash
+            register: pv
+
           - name: Deprovisioning the Application
             include_tasks: "/utils/k8s/deprovision_deployment.yml"
             vars:
               app_deployer: "{{ application_deployment }}"
               
+          - name: Check if the CVR's got removed successfully. 
+            shell: >
+              kubectl get cvr -n {{ operator_ns }}
+              -l openebs.io/persistent-volume={{ pv.stdout }} --no-headers
+            args:
+              executable: /bin/bash
+            register: cvr_list
+            until: "'No resources found.' in cvr_list.stderr"
+            retries: 30
+            delay: 10
+
           - name: Obtain the claimed blockDevice list from bdc
             shell: >
               kubectl get bdc -n {{ operator_ns }} -l openebs.io/storage-pool-claim={{ pool_name }}
