@@ -122,10 +122,29 @@
 
      when: bucket_type == "GCP"
 
-   - name: Patching restic demonset for privileged access
-     shell: kubectl patch ds restic -n velero --patch "$(cat patch.yml)"
-     register: patch_status
-     failed_when: "'patched' not in patch_status.stdout"
+   - block:
+
+       - name: Patching restic demonset for privileged access
+         shell: kubectl patch ds restic -n velero --patch "$(cat patch.yml)"
+         register: patch_status
+         failed_when: "'patched' not in patch_status.stdout"
+
+     when: velero_version == "v1.1.0"
+
+   - block: 
+
+       - name: Replacing Restic Image in patch.yml
+         replace:
+           path: ./patch.yml
+           regexp: "gcr.io/heptio-images/velero:v1.1.0"
+           replace: "velero/velero:{{ velero_version }}"
+
+       - name: Patching restic demonset for privileged access
+         shell: kubectl patch ds restic -n velero --patch "$(cat patch.yml)"
+         register: patch_status
+         failed_when: "'patched' not in patch_status.stdout"
+
+     when: velero_version != "v1.1.0"
 
    - name: Getting the number of compute nodes
      shell: kubectl get nodes | grep worker | wc -l
