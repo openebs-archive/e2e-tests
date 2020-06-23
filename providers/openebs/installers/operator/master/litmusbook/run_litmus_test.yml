@@ -25,35 +25,35 @@ spec:
           - name: OPENEBS_VERSION
             value: master
           - name: OPENEBS_MAYA_APISERVER_IMAGE
-            value: "quay.io/openebs/m-apiserver:ci"
+            value: 
           - name: OPENEBS_PROVISIONER_IMAGE
-            value: "quay.io/openebs/openebs-k8s-provisioner:ci"
+            value: 
           - name: OPENEBS_SNAPSHOT_CONTROLLER_IMAGE
-            value: "quay.io/openebs/snapshot-controller:ci"
+            value: 
           - name: OPENEBS_SNAPSHOT_PROVISIONER_IMAGE
-            value: "quay.io/openebs/snapshot-provisioner:ci"
+            value: 
           - name: OPENEBS_IO_JIVA_IMAGE
-            value: "quay.io/openebs/jiva:ci"
+            value: 
           - name: OPENEBS_MAYA_EXPORTER_IMAGE
-            value: "quay.io/openebs/m-exporter:ci"
+            value: 
           - name: OPENEBS_NODE_DISK_MANAGER_IMAGE
-            value: "quay.io/openebs/node-disk-manager-amd64:ci"
+            value: 
           - name: OPENEBS_NODE_DISK_OPERATOR_IMAGE
-            value: "quay.io/openebs/node-disk-operator-amd64:ci"
+            value: 
           - name: OPENEBS_IO_CSTOR_TARGET_IMAGE
-            value: "quay.io/openebs/cstor-istgt:ci"
+            value: 
           - name: OPENEBS_IO_CSTOR_POOL_IMAGE
-            value: "quay.io/openebs/cstor-pool:ci"
+            value: 
           - name: OPENEBS_IO_CSTOR_POOL_MGMT_IMAGE
-            value: "quay.io/openebs/cstor-pool-mgmt:ci"
+            value: 
           - name: OPENEBS_IO_CSTOR_VOLUME_MGMT_IMAGE
-            value: "quay.io/openebs/cstor-volume-mgmt:ci"
+            value: 
           - name: OPENEBS_LOCALPV_PROVISIONER_IMAGE
-            value: "quay.io/openebs/provisioner-localpv:ci"
+            value: 
           - name: OPENEBS_ADMISSION_SERVER_IMAGE
-            value: "quay.io/openebs/admission-server:ci"
+            value: 
           - name: OPENEBS_CLEANUP_JOB_IMAGE
-            value: "quay.io/openebs/linux-utils:ci"
+            value: 
           - name: IMAGE_PULL_POLICY
             value:
           - name: HELM_REPO
