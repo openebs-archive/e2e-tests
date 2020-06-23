@@ -1,0 +1,475 @@
+# Apply openebs operation.
+
+- hosts: localhost
+  connection: local
+
+  vars_files:
+    - test_vars.yml
+
+  tasks:
+
+    - block:
+
+         ## GENERATING THE TEST NAME
+        - include_tasks: /utils/fcm/create_testname.yml
+
+         ##  RECORD START-OF-TEST IN LITMUS RESULT CR
+        - include_tasks: "/utils/fcm/update_litmus_result_resource.yml"
+          vars:
+            status: 'SOT'
+
+        - block:
+             ## START of provisioning
+             # Creating pod security policy in the test cluster.
+             # Creating clusterrole with the pod security policy resources
+             # The service account used to create resources is specified in clusterrrolebinding.
+             # The namespace where openebs will be deployed is specified in the clusterrolebinding.
+
+            - name: Creating pod security policy, cluster role and clusterrolebinding
+              shell: kubectl apply -f "{{ psp_spec }}"
+              args:
+                executable: /bin/bash
+              register: psp_status
+              failed_when: "psp_status.rc != 0"
+
+            - block:
+                  ## Obtaining the OpenEBS operator from charts.
+                  ## If the chart is not created, openebs operator will be downloaded from master branch.
+                - name: Downloading openebs-operator.yaml
+                  get_url:
+                    url: "{{ new_operator }}"
+                    dest: "{{ playbook_dir }}/{{ openebs_operator }}"
+                    force: yes
+                  register: operator_file
+                  ignore_errors: true
+                  until:  "'OK' in operator_file.msg"
+                  delay: 5
+                  retries: 3
+
+                - block:
+
+                    - name: Downloading openebs-operator.yaml
+                      get_url:
+                        url: "{{ openebs_operator_link }}"
+                        dest: "{{ playbook_dir }}/{{ openebs_operator }}"
+                        force: yes
+                      register: result
+                      until:  "'OK' in result.msg"
+                      delay: 5
+                      retries: 3
+
+                    - block: 
+
+                        - name: Change the OpenEBS component labels to desired version in Operator yaml
+                          replace:
+                            path: "{{ openebs_operator }}"
+                            regexp: 'openebs.io/version: dev'
+                            replace: "openebs.io/version: {{ openebs_version }}"
+
+                        - name: Change the Maya API server Image
+                          replace:
+                            path: "{{ openebs_operator }}"
+                            regexp: quay.io/openebs/m-apiserver:ci
+                            replace: "{{ lookup('env','OPENEBS_MAYA_APISERVER_IMAGE') }}"
+                          when: lookup('env','OPENEBS_MAYA_APISERVER_IMAGE') | length > 0
+
+                        - name: Change the OpenEBS k8s provisioner Image
+                          replace:
+                            path: "{{ openebs_operator }}"
+                            regexp: quay.io/openebs/openebs-k8s-provisioner:ci
+                            replace: "{{ lookup('env','OPENEBS_PROVISIONER_IMAGE') }}"
+                          when: lookup('env','OPENEBS_PROVISIONER_IMAGE') | length > 0
+
+                        - name: Change the OpenEBS Snapshot Controller Image
+                          replace:
+                            path: "{{ openebs_operator }}"
+                            regexp: quay.io/openebs/snapshot-controller:ci
+                            replace: "{{ lookup('env','OPENEBS_SNAPSHOT_CONTROLLER_IMAGE') }}"
+                          when: lookup('env','OPENEBS_SNAPSHOT_CONTROLLER_IMAGE') | length > 0
+
+                        - name: Change the OpenEBS Snapshot provisioner Image
+                          replace:
+                            path: "{{ openebs_operator }}"
+                            regexp: quay.io/openebs/snapshot-provisioner:ci
+                            replace: "{{ lookup('env','OPENEBS_SNAPSHOT_PROVISIONER_IMAGE') }}"
+                          when: lookup('env','OPENEBS_SNAPSHOT_PROVISIONER_IMAGE') | length > 0
+
+                        - name: Change the OpenEBS JIVA Controller and Replica Image
+                          replace:
+                            path: "{{ openebs_operator }}"
+                            regexp: quay.io/openebs/jiva:ci
+                            replace: "{{ lookup('env','OPENEBS_IO_JIVA_IMAGE') }}"
+                          when: lookup('env','OPENEBS_IO_JIVA_IMAGE') | length > 0
+
+                        - name: Change the Maya Exporter Image
+                          replace:
+                            path: "{{ openebs_operator }}"
+                            regexp: quay.io/openebs/m-exporter:ci
+                            replace: "{{ lookup('env','OPENEBS_MAYA_EXPORTER_IMAGE') }}"
+                          when: lookup('env','OPENEBS_MAYA_EXPORTER_IMAGE') | length > 0
+
+                        - name: Change the Node Disk Manager Image
+                          replace:
+                            path: "{{ openebs_operator }}"
+                            regexp: quay.io/openebs/node-disk-manager-amd64:ci
+                            replace: "{{ lookup('env','OPENEBS_NODE_DISK_MANAGER_IMAGE') }}"
+                          when: lookup('env','OPENEBS_NODE_DISK_MANAGER_IMAGE') | length > 0
+
+                        - name: Change the Node Disk Operator Image
+                          replace:
+                            path: "{{ openebs_operator }}"
+                            regexp: quay.io/openebs/node-disk-operator-amd64:ci
+                            replace: "{{ lookup('env','OPENEBS_NODE_DISK_OPERATOR_IMAGE') }}"
+                          when: lookup('env','OPENEBS_NODE_DISK_OPERATOR_IMAGE') | length > 0
+
+                        - name: Change the OpenEBS cStor Target Image
+                          replace:
+                            path: "{{ openebs_operator }}"
+                            regexp: quay.io/openebs/cstor-istgt:ci
+                            replace: "{{ lookup('env','OPENEBS_IO_CSTOR_TARGET_IMAGE') }}"
+                          when: lookup('env','OPENEBS_IO_CSTOR_TARGET_IMAGE') | length > 0
+
+                        - name: Change the OpenEBS cStor Pool Image
+                          replace:
+                            path: "{{ openebs_operator }}"
+                            regexp: quay.io/openebs/cstor-pool:ci
+                            replace: "{{ lookup('env','OPENEBS_IO_CSTOR_POOL_IMAGE') }}"
+                          when: lookup('env','OPENEBS_IO_CSTOR_POOL_IMAGE') | length > 0
+
+                        - name: Change the OpenEBS cStor Pool-mgmt Image
+                          replace:
+                            path: "{{ openebs_operator }}"
+                            regexp: quay.io/openebs/cstor-pool-mgmt:ci
+                            replace: "{{ lookup('env','OPENEBS_IO_CSTOR_POOL_MGMT_IMAGE') }}"
+                          when: lookup('env','OPENEBS_IO_CSTOR_POOL_MGMT_IMAGE') | length > 0
+
+                        - name: Change the OpenEBS cStor Volume mgmt Image
+                          replace:
+                            path: "{{ openebs_operator }}"
+                            regexp: quay.io/openebs/cstor-volume-mgmt:ci
+                            replace: "{{ lookup('env','OPENEBS_IO_CSTOR_VOLUME_MGMT_IMAGE') }}"
+                          when: lookup('env','OPENEBS_IO_CSTOR_VOLUME_MGMT_IMAGE') | length > 0
+
+                        - name: Change the OpenEBS LocalPV Provisioner Image
+                          replace:
+                            path: "{{ openebs_operator }}"
+                            regexp: quay.io/openebs/provisioner-localpv:ci
+                            replace: "{{ lookup('env','OPENEBS_LOCALPV_PROVISIONER_IMAGE') }}"
+                          when: lookup('env','OPENEBS_LOCALPV_PROVISIONER_IMAGE') | length > 0
+
+                        - name: Change the OpenEBS Admission Server Image
+                          replace:
+                            path: "{{ openebs_operator }}"
+                            regexp: quay.io/openebs/admission-server:ci
+                            replace: "{{ lookup('env','OPENEBS_ADMISSION_SERVER_IMAGE') }}"
+                          when: lookup('env','OPENEBS_ADMISSION_SERVER_IMAGE') | length > 0
+
+                        - name: Change the OpenEBS CleanUp Job Image
+                          replace:
+                            path: "{{ openebs_operator }}"
+                            regexp: quay.io/openebs/linux-utils:1.4.0
+                            replace: "{{ lookup('env','OPENEBS_CLEANUP_JOB_IMAGE') }}"
+                          when: lookup('env','OPENEBS_CLEANUP_JOB_IMAGE') | length > 0
+
+                        - name: Change the OpenEBS CleanUP Job Image
+                          replace:
+                            path: "{{ openebs_operator }}"
+                            regexp: quay.io/openebs/linux-utils:1.9.0
+                            replace: "{{ lookup('env','OPENEBS_CLEANUP_JOB_IMAGE') }}"
+                          when: lookup('env','OPENEBS_CLEANUP_JOB_IMAGE') | length > 0
+
+                      when: openebs_version != "master"
+
+                    - name: Change the value of sparse file count in operator YAML
+                      replace:
+                        path: "{{ openebs_operator }}"
+                        regexp: 'value: "1"'
+                        after: '- name: SPARSE_FILE_COUNT'
+                        replace: 'value: "{{ sparse_file_count }}"'
+
+                  when: "'OK' not in operator_file.msg"
+
+                - name: Change the openebs analytics value of openebs resources in operator YAML
+                  replace:
+                    path: "{{ openebs_operator }}"
+                    regexp: 'value: "true"'
+                    after: '- name: OPENEBS_IO_ENABLE_ANALYTICS'
+                    replace: 'value: "false"'
+
+                - name: Change the value of sparse file count in operator YAML
+                  replace:
+                    path: "{{ openebs_operator }}"
+                    regexp: 'value: "0"'
+                    after: '- name: SPARSE_FILE_COUNT'
+                    replace: 'value: "{{ sparse_file_count }}"'
+
+                - name: Applying openebs operator
+                  shell: "{{ kubeapply }} apply -f {{ openebs_operator }}"
+                  args:
+                    executable: /bin/bash
+
+              when:  deploy_type == "operator"
+
+            - block:
+
+                - name: Install helm client
+                  shell: curl https://raw.githubusercontent.com/kubernetes/helm/master/scripts/get | bash
+                  args:
+                    executable: /bin/bash
+                  register: output
+                  until: "'installed' in output.stdout"
+                  delay: 30
+                  retries: 5
+
+                - name: Setting up tiller.
+                  shell: helm init --upgrade
+                  args:
+                    executable: /bin/bash
+                  register: tiller_out
+
+                - name: Checking if the tiller pod is created.
+                  shell: helm version
+                  args:
+                    executable: /bin/bash
+                  register: tiller_version
+                  until: "'Server: &version.Version' in tiller_version.stdout"
+                  delay: 30
+                  retries: 30
+
+                - name: Checking if the tiller service account already exists.
+                  shell: kubectl get sa tiller -n kube-system
+                  args:
+                    executable: /bin/bash
+                  register: sa
+                  until: "'tiller' in sa.stdout"
+                  delay: 20
+                  retries: 2
+                  ignore_errors: True
+
+                - name: Creating the service account
+                  shell: kubectl create serviceaccount --namespace kube-system tiller | echo $?
+                  args:
+                    executable: /bin/bash
+                  register: tiller
+                  until: "'0' in tiller.stdout"
+                  delay: 30
+                  retries: 5
+                  when: "'tiller' not in sa.stdout"
+
+                - name: Checking if the tiller cluster role binding already exists.
+                  shell: kubectl get clusterrolebinding tiller
+                  args:
+                    executable: /bin/bash
+                  register: cr
+                  until: "'tiller' in cr.stdout"
+                  delay: 10
+                  retries: 2
+                  ignore_errors: True
+
+                - name: Creating the cluster rolebinding.
+                  shell: |
+                    kubectl create clusterrolebinding tiller --clusterrole=cluster-admin --serviceaccount=kube-system:tiller
+                    kubectl patch deploy --namespace kube-system tiller-deploy -p '{"spec":{"template":{"spec":{"serviceAccount":"tiller"}}}}'
+                  args:
+                    executable: /bin/bash
+                  when: "'tiller' not in cr.stdout"
+
+                - name: Installing openebs using stable charts.
+                  shell: >
+                    helm install --namespace {{ namespace }} --name openebs stable/openebs --version {{ openebs_version }}
+                  args:
+                    executable: /bin/bash
+                  register: openebs_out
+                  until: "'The OpenEBS has been installed' in openebs_out.stdout"
+                  delay: 5
+                  retries: 5
+                  ignore_errors: True
+
+                - block:
+
+                    - set_fact:
+                         helm_repo: "openebs/charts"
+                      when: helm_repo is undefined
+
+                    - set_fact:
+                         helm_branch: "master"
+                      when: helm_branch is undefined
+
+                    - name: Clone the Openebs Charts repo
+                      shell: git clone -b {{ helm_branch }} https://github.com/{{ helm_repo }}
+                      args:
+                        executable: /bin/bash
+                      ignore_errors: true
+
+                    - set_fact:
+                         helm_directory: "{{ helm_repo.split('/') }}"
+
+                    - name: Install helm using charts
+                      shell: cd "{{ helm_directory.1 }}"/charts/openebs && helm install --namespace {{ namespace }} --name openebs .
+                      args:
+                        executable: /bin/bash
+
+                  when: "'The OpenEBS has been installed' not in openebs_out.stdout"
+
+              when:  deploy_type == "helm"
+
+            - name: Verify that rolling update of maya-apiserver is completed
+              shell: >
+                kubectl get pods --no-headers -n {{ namespace }}
+                -l name=maya-apiserver | wc -l
+              args:
+                executable: /bin/bash
+              register: maya_count
+              until: "maya_count.stdout == '1'"
+              delay: 5
+              retries: 120
+
+            - name: Set the Maya container name in case of helm installation
+              set_fact:
+                container_name: "openebs-apiserver"
+              when: deploy_type == 'helm'
+
+            - name: Set the Maya container name in case of operator installation
+              set_fact:
+                 container_name: "maya-apiserver"
+              when: deploy_type == 'operator'
+
+            - name: Checking Maya-API-Server container status
+              shell: >
+                kubectl get pods --no-headers -n {{ namespace }} -l name=maya-apiserver
+                -o jsonpath='{.items[?(@.status.containerStatuses[*].name=="{{ container_name }}")].status.containerStatuses[*].ready}'
+              register: maya_api
+              until: "maya_api.stdout == 'true'"
+              delay: 5
+              retries: 120
+
+            - name: Checking OpenEBS-provisioner is running
+              shell: >
+                 kubectl get pods -n {{ namespace }}
+                 -o jsonpath='{.items[?(@.metadata.labels.name=="openebs-provisioner")].status.phase}'
+              register: openebs_prob
+              until: "'Running' in openebs_prob.stdout"
+              delay: 5
+              retries: 120
+
+            - name: Checking OpenEBS-admission-server is running
+              shell: >
+                 kubectl get pods -n {{ namespace }}
+                 -o jsonpath='{.items[?(@.metadata.labels.app=="admission-webhook")].status.phase}'
+              register: admission_web
+              until: "'Running' in admission_web.stdout"
+              delay: 5
+              retries: 120
+
+            - name: Checking OpenEBS-Snapshot-Operator is running
+              shell: >
+                  kubectl get pods -n {{ namespace }}
+                  -o jsonpath='{.items[?(@.metadata.labels.name=="openebs-snapshot-operator")].status.phase}'
+              register: oso
+              until: "'Running' in oso.stdout"
+              delay: 5
+              retries: 120
+
+            - name: Check if the OpenEBS-ndm-Operator is running
+              shell: >
+                kubectl get pods -n {{ namespace }}
+                -o jsonpath='{.items[?(@.metadata.labels.openebs\.io\/component-name=="ndm-operator")].status.phase}'
+              register: ndm_operator
+              until: "'Running' in ndm_operator.stdout"
+              delay: 5
+              retries: 120
+
+            - name: Check if the OpenEBS-localpv-provisioner is running
+              shell: >
+                kubectl get pods -n {{ namespace }}
+                -o jsonpath='{.items[?(@.metadata.labels.name=="openebs-localpv-provisioner")].status.phase}'
+              register: local_pv
+              until: "'Running' in local_pv.stdout"
+              delay: 5
+              retries: 120
+
+            - name: Getting the number of nodes
+              shell: kubectl get node --no-headers | grep -v "master" | wc -l
+              args:
+                executable: /bin/bash
+              register: node_count
+
+            - name: Confirm if node-disk-manager is running in all the nodes
+              shell: >
+                kubectl get pods -n {{ namespace }}
+                -o jsonpath='{.items[?(@.metadata.labels.name=="openebs-ndm")].status.phase}'| grep Running | wc -w
+              args:
+                executable: /bin/bash
+              register: ndm_count
+              until: (node_count.stdout)|int == (ndm_count.stdout)|int
+              delay: 5
+              retries: 120
+
+            - name: Confirm CAS Templates are deployed
+              shell: kubectl get castemplate -n {{ namespace }}
+              args:
+                executable: /bin/bash
+              register: result
+              until: "result.rc == 0"
+              delay: 5
+              retries: 120
+
+          when: lookup('env','Action') == "provision"
+
+        - block:
+
+              - name: Downloading openebs-operator.yaml
+                get_url:
+                  url: "{{ openebs_operator_link }}"
+                  dest: "{{ playbook_dir }}/{{ openebs_operator }}"
+                  force: yes
+                register: result
+                until:  "'OK' in result.msg"
+                delay: 5
+                retries: 3
+
+              - name: Cleaning openebs operator
+                shell: "{{ kubeapply }} delete -f {{ openebs_operator_link }}"
+                args:
+                  executable: /bin/bash
+                ignore_errors: True
+
+              - name: Confirm pods has been deleted
+                shell: kubectl get pods -n openebs
+                args:
+                  executable: /bin/bash
+                register: result
+                until: ' item not in result.stdout'
+                with_items:
+                  - "maya-apiserver"
+                  - "openebs-provisioner"
+                  - "openebs-snapshot-operator"
+                  - "openebs-ndm-operator"
+                  - "openebs-admission-server"
+                  - "openebs-localpv-provisioner"
+                  - "openebs-ndm"
+                delay: 30
+                retries: 100
+
+              - name: Confirm that namespace has been deleted
+                shell: 'kubectl get namespaces'
+                args:
+                  executable: /bin/bash
+                register: result
+                until: 'namespace not in result.stdout'
+                delay: 30
+                retries: 100
+
+          when: lookup('env','Action') == "deprovision"
+
+        - set_fact:
+            flag: "Pass"
+      rescue:
+        - set_fact:
+            flag: "Fail"
+
+      always:
+        ## RECORD END-OF-TEST IN LITMUS RESULT CR
+        - include_tasks: /utils/fcm/update_litmus_result_resource.yml
+          vars:
+            status: 'EOT'
