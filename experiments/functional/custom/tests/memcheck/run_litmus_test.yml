@@ -22,7 +22,7 @@ spec:
             value: default
 
           - name: PROVIDER_STORAGE_CLASS
-            value: openebs-standard
+            value: openebs-jiva-default
 
           - name: APP_NAMESPACE
             value: memleak
