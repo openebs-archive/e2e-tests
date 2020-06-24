@@ -19,7 +19,7 @@
         - block: 
 
             - name: Getting the compute node name
-              shell: kubectl get nodes --no-headers | grep -v master | awk {'print $1'}
+              shell: kubectl get nodes --no-headers | grep -v master | awk {'print $1'} | head -n "{{ maxpool_count }}"
               register: nodes
 
             - name: Replacing the pool type in SPC spec
