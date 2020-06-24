@@ -33,7 +33,7 @@
         - name: Obtain the CSPI size before expand the pool
           shell: >
             kubectl get cspi -n {{ operator_ns }} -l openebs.io/cstor-pool-cluster={{ pool_name }}
-            -o custom-columns=:.status.capacity.total --no-headers | tr -d G
+            -o custom-columns=:.status.capacity.total --no-headers | tr -d G | tr -d M | tr -d k
           args:
             executable: /bin/bash
           register: cspi_bfr_expansion
@@ -84,7 +84,7 @@
         - name: Obtain the CSPI size after expand the pool
           shell: >
             kubectl get cspi -n {{ operator_ns }} -l openebs.io/cstor-pool-cluster={{ pool_name }}
-            -o custom-columns=:.status.capacity.total --no-headers | tr -d G
+            -o custom-columns=:.status.capacity.total --no-headers | tr -d G | tr -d M | tr -d k
           args:
             executable: /bin/bash
           register: cspi_after_expansion
