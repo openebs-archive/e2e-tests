@@ -13,13 +13,14 @@
 
 ## Exit-Criteria
 
-- Volume replica should be scaled up and rebuilt successfully.
+- Volume replicas should be scaled up and rebuilt successfully.
 
 ## Procedure
 
 - This functional test checks if the csi volume replicas can be scaled up.
 - This litmusbook accepts the parameters in form of job environmental variables.
-- This job patched the respective CVC with the unused pool names and thereby scales up the replicas 
+- It is assumed that the volume is created with single replica.
+- This job patches the respective CVC with the unused pool names and thereby scaling up the replicas 
 
 ## Litmusbook Environment Variables
 
