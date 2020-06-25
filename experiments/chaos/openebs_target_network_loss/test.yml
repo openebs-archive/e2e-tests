@@ -207,7 +207,7 @@
           vars:
             status: "induce"
             target_pod: "{{ controller_pod.stdout }}"
-            operator_namespace: "{{ namespace }}"
+            operator_namespace: "{{ operator_ns }}"
             containername: "{{ pv.stdout }}-ctrl-con"
           when: 
             - cri == 'containerd' or cri =='cri-o'  
@@ -243,7 +243,7 @@
           vars:
             status: "remove"
             target_pod: "{{ controller_pod.stdout }}"
-            operator_namespace: "{{ namespace }}"
+            operator_namespace: "{{ operator_ns }}"
             containername: "{{ pv.stdout }}-ctrl-con"
           when: 
             - cri == 'containerd' or cri =='cri-o'  
