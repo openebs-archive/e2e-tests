@@ -7,7 +7,7 @@
 
     - name: Obtain the pool pod name to perform the chaos 
       shell: >
-         kubectl get po -n  {{ operator_ns }} -l openebs.io/cstor-pool-instance={{ cspi_name.stdout }}
+         kubectl get po -n  {{ operator_ns }} -l openebs.io/cstor-pool-instance={{ cspiname.stdout }}
          -o custom-columns=:.metadata.name --no-headers
       register: cspc_pool_pod
 
@@ -75,7 +75,7 @@
 
     - name: Restart the pool pod when the pool expansion is in progress
       shell: >
-         kubectl delete po -n {{ operator_ns }} {{ cspc_pool_pod.stdout_lines }}
+         kubectl delete po -n {{ operator_ns }} {{ cspc_pool_pod.stdout }} --grace-period=0 --force
       args:
         executable: /bin/bash
 
