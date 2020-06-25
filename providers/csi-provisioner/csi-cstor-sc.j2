@@ -11,3 +11,17 @@ parameters:
   cas-type: cstor
   cstorPoolCluster: {{ cspc }}
   replicaCount: "{{ replica_count }}"
+
+---
+kind: StorageClass
+apiVersion: storage.k8s.io/v1
+metadata:
+  name: {{ storage_class }}-single-replica
+  annotations:
+    openebs.io/cas-type: cstor
+provisioner: cstor.csi.openebs.io
+allowVolumeExpansion: true
+parameters:
+  cas-type: cstor
+  cstorPoolCluster: {{ cspc }}
+  replicaCount: "1"
