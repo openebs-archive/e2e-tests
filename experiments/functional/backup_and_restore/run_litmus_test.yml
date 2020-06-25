@@ -76,7 +76,7 @@ spec:
           - name: COMPONENT_FAILURE
             value: ''
 
-          # supported values are: cstor, jiva, localpv
+          # supported values are: cstor, cstor-csi, jiva, localpv
           - name: STORAGE_ENGINE
             value: "cstor"
 
