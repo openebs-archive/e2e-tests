@@ -105,7 +105,7 @@
 
             - name: Patching jiva controller deployment to allow security privileged
               shell: >
-                kubectl patch deployment {{ pv.stdout }}-ctrl -n {{ namespace }}
+                kubectl patch deployment {{ pv.stdout }}-ctrl -n {{ operator_ns }}
                 --patch "$(cat patch.yml)"
               register: patch_status
               failed_when: "'patched' not in patch_status.stdout"
@@ -117,7 +117,7 @@
             - name: Identify the jiva controller pod belonging to the PV
               shell: > 
                 kubectl get pods -l openebs.io/controller=jiva-controller
-                -n {{ namespace }} --no-headers | grep {{ pv.stdout }} 
+                -n {{ operator_ns }} --no-headers | grep {{ pv.stdout }} 
                 | awk '{print $1}'
               args:
                 executable: /bin/bash
@@ -125,7 +125,7 @@
 
             - name: Check for the jiva controller container status
               shell: >
-                kubectl get pods {{ controller_pod.stdout }} -n {{ namespace }} 
+                kubectl get pods {{ controller_pod.stdout }} -n {{ operator_ns }} 
                 -o jsonpath='{.status.containerStatuses[?(@.name=="{{ pv.stdout}}-ctrl-con")].state}' | grep running
               args:
                 executable: /bin/bash
@@ -207,7 +207,7 @@
           vars:
             status: "induce"
             target_pod: "{{ controller_pod.stdout }}"
-            operator_namespace: "{{ namespace }}"
+            operator_namespace: "{{ operator_ns }}"
             containername: "{{ pv.stdout }}-ctrl-con"
           when: 
             - cri == 'containerd' or cri =='cri-o'  
@@ -243,7 +243,7 @@
           vars:
             status: "remove"
             target_pod: "{{ controller_pod.stdout }}"
-            operator_namespace: "{{ namespace }}"
+            operator_namespace: "{{ operator_ns }}"
             containername: "{{ pv.stdout }}-ctrl-con"
           when: 
             - cri == 'containerd' or cri =='cri-o'  
