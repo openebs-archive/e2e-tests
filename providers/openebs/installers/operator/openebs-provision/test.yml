@@ -167,63 +167,6 @@
               register: service_account
               failed_when: 'service_account.stdout == ""'
 
-            - block:
-         
-                - name: Downloading openebs cspc-operator.yaml
-                  get_url:
-                    url: "{{ cspc_operator_link }}"
-                    dest: "{{ playbook_dir }}/{{ cspc_operator }}"
-                    force: yes
-                  register: result
-                  until:  "'OK' in result.msg"
-                  delay: 5
-                  retries: 3
-
-                - name: Change CSPC operator image
-                  replace:
-                    path: "{{ cspc_operator }}"
-                    regexp: quay.io/openebs/cspc-operator:ci
-                    replace: quay.io/openebs/cspc-operator:{{ release_version }}
-
-                - name: Change OPENEBS_IO_CSPI_MGMT image
-                  replace:
-                    path: "{{ cspc_operator }}"
-                    regexp: quay.io/openebs/cspi-mgmt:ci
-                    replace: quay.io/openebs/cspi-mgmt:{{ release_version }}
-
-                - name: Change OPENEBS_IO_CSTOR_POOL image
-                  replace:
-                    path: "{{ cspc_operator }}"
-                    regexp: quay.io/openebs/cstor-pool:ci
-                    replace: quay.io/openebs/cstor-pool:{{ release_version }}
-
-                - name: Change openebs maya exporter image in cspc spec
-                  replace:
-                    path: "{{ cspc_operator }}"
-                    regexp: quay.io/openebs/m-exporter:ci
-                    replace: quay.io/openebs/m-exporter:{{ release_version }}
-                  
-                - name: Change the service account name in CSPC operator
-                  replace:
-                    path: "{{ cspc_operator }}"
-                    regexp: 'serviceAccountName: openebs-maya-operator'
-                    replace: 'serviceAccountName: "{{ service_account.stdout }}"'
-
-                - name: Applying CSPC operator
-                  shell: kubectl apply -f {{ cspc_operator }}
-                  args:
-                    executable: /bin/bash
-                  ignore_errors: true
-
-                - name: Checking OpenEBS-CSPC-Operator is running
-                  shell: kubectl get pods -n {{ operator_ns }} -o jsonpath='{.items[?(@.metadata.labels.name=="cspc-operator")].status.phase}'
-                  register: cspc_status
-                  until: "'Running' in cspc_status.stdout"
-                  delay: 5
-                  retries: 120
-              
-              when: "release_version is version('1.2.0', '>=') or release_version == 'ci'"
-
             - name: Verify that rolling update of maya-apiserver is completed
               shell: >
                 kubectl get pods --no-headers -n {{ operator_ns }}
@@ -311,16 +254,6 @@
 
         - block:
 
-            - name: Downloading openebs cspc-operator.yaml
-              get_url:
-                url: "{{ cspc_operator_link }}"
-                dest: "{{ playbook_dir }}/{{ cspc_operator }}"
-                force: yes
-              register: result
-              until:  "'OK' in result.msg"
-              delay: 5
-              retries: 3                
-
             - name: Downloading openebs-operator.yaml
               get_url:
                 url: "{{ openebs_operator_link }}"
@@ -330,12 +263,6 @@
               until:  "'OK' in result.msg"
               delay: 5
               retries: 3
-
-            - name: Cleaning cspc operator
-              shell: kubectl delete -f {{ cspc_operator }}
-              args:
-                executable: /bin/bash
-              ignore_errors: True
 
             - name: Cleaning openebs operator
               shell: kubectl delete -f {{ openebs_operator }}
@@ -357,7 +284,6 @@
                 - "openebs-admission-server"
                 - "openebs-localpv-provisioner"
                 - "openebs-ndm"
-                - "cspc-operator"
               delay: 30
               retries: 100
 

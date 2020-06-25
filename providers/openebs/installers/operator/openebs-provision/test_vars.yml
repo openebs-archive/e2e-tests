@@ -1,9 +1,7 @@
 kubeapply: kubectl --kubeconfig /root/admin.conf
 openebs_operator_link: "https://raw.githubusercontent.com/openebs/openebs/master/k8s/openebs-operator.yaml"
-cspc_operator_link: "https://raw.githubusercontent.com/openebs/openebs/master/k8s/cstor-operator.yaml"
 openebs_link: "https://openebs.github.io/charts/openebs-operator-{{ lookup('env','RELEASE_VERSION') }}.yaml"
 openebs_operator: openebs-operator.yaml
-cspc_operator: cstor-operator.yaml
 psp_spec: openebs_psp.yaml
 test_name: openebs-provision
 operator_ns: "{{ lookup('env','OPERATOR_NS') }}"
