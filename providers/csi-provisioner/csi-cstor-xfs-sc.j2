@@ -10,3 +10,16 @@ parameters:
   replicaCount: "{{ replica_count }}"
   cstorPoolCluster: {{ cspc }}
   fsType: xfs
+
+---
+kind: StorageClass
+apiVersion: storage.k8s.io/v1
+metadata:
+  name: {{ storage_class }}-xfs-single-replica
+provisioner: cstor.csi.openebs.io
+allowVolumeExpansion: true
+parameters:
+  cas-type: cstor
+  replicaCount: "1"
+  cstorPoolCluster: {{ cspc }}
+  fsType: xfs
