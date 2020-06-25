@@ -37,6 +37,9 @@ spec:
           - name: APP_PVC
             value: ''
 
+          - name: APP_LABEL
+            value: ''
+            
           - name: OPENEBS_NAMESPACE
             value: "openebs"
 
