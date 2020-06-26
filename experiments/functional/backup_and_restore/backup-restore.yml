@@ -24,7 +24,7 @@
           executable: /bin/bash
         when: lookup('env','LOCAL_SNAPSHOT') == "true"
 
-     when: storage_engine == "cstor" 
+     when: "storage_engine == 'cstor' or storage_engine == 'cstor-csi'" 
 
    - block:
       
@@ -80,7 +80,7 @@
         shell: kubectl create ns {{ app_ns }}
         register: app_ns_create_status
         failed_when: "'created' not in app_ns_create_status.stdout"
-        when: storage_engine == "cstor"
+        when: "storage_engine == 'cstor' or storage_engine == 'cstor-csi'"
 
       - name: Restoring application 
         shell: >

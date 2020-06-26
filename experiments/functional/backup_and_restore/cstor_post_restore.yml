@@ -6,31 +6,58 @@
     delay: 5
     retries: 10
 
-  - name: Getting the CVR name from the corresponding PV
-    shell:  kubectl get cvr -n {{ operator }} -l openebs.io/persistent-volume={{ vol_name }} -o jsonpath='{range.items[*]}{.metadata.labels.cstorpool\.openebs\.io/name}{"\n"}{end}'
-    register: cvr_name
+  - block:
+
+      - name: Getting the CSP name from the corresponding PV
+        shell:  kubectl get cvr -n {{ operator }} -l openebs.io/persistent-volume={{ vol_name }} -o jsonpath='{range.items[*]}{.metadata.labels.cstorpool\.openebs\.io/name}{"\n"}{end}'
+        register: csp_name     
    
-  - name: Geting the CSP name corresponding to CVR
-    shell: kubectl get csp {{item}} -n {{ operator }} -o jsonpath='{.metadata.name}'
-    register: csp_pod
-    with_items: "{{ cvr_name.stdout_lines }}"     
+      - name: Getting the pool pod name
+        shell: kubectl get pod -n {{ operator }} | grep {{item}} | awk '{print $1}'
+        register: pool_pod
+        with_items: "{{ csp_name.stdout_lines }}" 
    
-  - name: Getting the pool pod name
-    shell: kubectl get pod -n {{ operator }} | grep {{item}} | awk '{print $1}'
-    register: pool_pod
-    with_items: "{{ cvr_name.stdout_lines }}" 
-   
-  - name: Getting the volume name inside cstor pool
-    shell: |
-      echo $(kubectl exec -it {{item.stdout}} -n {{ operator }} -c cstor-pool -- zfs list | grep {{ vol_name }} | awk '{print $1}') >> cstor-vol
-    with_items: "{{ pool_pod.results }}"
+      - name: Getting the volume name inside cstor pool
+        shell: |
+          echo $(kubectl exec -it {{item.stdout}} -n {{ operator }} -c cstor-pool -- zfs list | grep {{ vol_name }} | awk '{print $1}') >> cstor-vol
+        with_items: "{{ pool_pod.results }}"
      
-  - name: Assigning the cstor-pool volume name to variable
-    shell: cat ./cstor-vol
-    register: pool_vol_name
+      - name: Assigning the cstor-pool volume name to variable
+        shell: cat ./cstor-vol
+        register: pool_vol_name
            
-  - name: Setting target IP for volume inside cstor pool
-    shell: kubectl exec -it {{item.0.stdout}} -n {{ operator }} -- zfs set io.openebs:targetip={{ target_ip.stdout }} {{item.1}}
-    with_together:
-      - "{{ pool_pod.results }}"  
-      - "{{ pool_vol_name.stdout_lines }}"
+      - name: Setting target IP for volume inside cstor pool
+        shell: kubectl exec -it {{item.0.stdout}} -n {{ operator }} -- zfs set io.openebs:targetip={{ target_ip.stdout }} {{item.1}}
+        with_together:
+          - "{{ pool_pod.results }}"  
+          - "{{ pool_vol_name.stdout_lines }}"
+
+    when: storage_engine == "cstor"
+  
+  - block: 
+
+      - name: Getting the CSPI label value from the corresponding CVR
+        shell:  kubectl get cvr -n {{ operator }} -l openebs.io/persistent-volume={{ vol_name }} -o jsonpath='{range.items[*]}{.metadata.labels.cstorpoolinstance\.openebs\.io/name}{"\n"}{end}'
+        register: cspc_label_val   
+   
+      - name: Getting the pool pod name
+        shell: kubectl get pod -n {{ operator }} | grep {{item}} | awk '{print $1}'
+        register: pool_pod
+        with_items: "{{ cspc_label_val.stdout_lines }}" 
+   
+      - name: Getting the volume name inside cstor pool
+        shell: |
+          echo $(kubectl exec -it {{item.stdout}} -n {{ operator }} -c cstor-pool -- zfs list | grep {{ vol_name }} | awk '{print $1}') >> cstor-vol
+        with_items: "{{ pool_pod.results }}"
+     
+      - name: Assigning the cstor-pool volume name to variable
+        shell: cat ./cstor-vol
+        register: pool_vol_name
+           
+      - name: Setting target IP for volume inside cstor pool
+        shell: kubectl exec -it {{item.0.stdout}} -n {{ operator }} -- zfs set io.openebs:targetip={{ target_ip.stdout }} {{item.1}}
+        with_together:
+          - "{{ pool_pod.results }}"  
+          - "{{ pool_vol_name.stdout_lines }}"
+
+    when: storage_engine == "cstor-csi"

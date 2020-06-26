@@ -209,7 +209,7 @@
 
      when: bucket_type == "GCP"
 
-  when: storage_engine == "cstor"  
+  when: "storage_engine == 'cstor' or storage_engine == 'cstor-csi'"  
 
 - name: Checking for velero server status
   shell: kubectl get pod -n velero -l component=velero -ojsonpath='{.items[0].status.phase}'
@@ -256,7 +256,7 @@
       delay: 5
       retries: 20
     
-  when: storage_engine == 'cstor'
+  when: "storage_engine == 'cstor' or storage_engine == 'cstor-csi'" 
 
 - name: Checking for velero server status
   shell: kubectl get pod -n velero -l component=velero -ojsonpath='{.items[0].status.phase}'
