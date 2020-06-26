@@ -32,14 +32,14 @@
         
         - name: Get the application pod name
           shell: >
-            kubectl get pod -n {{ namespace }} --no-headers -o custom-columns=:.metadata.name
+            kubectl get pod -n {{ namespace }} -l {{ label }} --no-headers -o custom-columns=:.metadata.name
           args:
             executable: /bin/bash
           register: app_pod_name
 
         - name: Check if the application pod is in running state
           shell: >
-            kubectl get pods -n {{ namespace }} --no-headers -o custom-columns=:.status.phase
+            kubectl get pods -n {{ namespace }} -l {{ label }}--no-headers -o custom-columns=:.status.phase
           args:
             executable: /bin/bash
           register: pod_status
@@ -162,7 +162,7 @@
 
         - name: Get the application pod name
           shell: >
-            kubectl get pod -n {{ namespace }} --no-headers -o custom-columns=:.metadata.name
+            kubectl get pod -n {{ namespace }} -l {{ label }} --no-headers -o custom-columns=:.metadata.name
           args:
             executable: /bin/bash
           register: rescheduled_pod_name
