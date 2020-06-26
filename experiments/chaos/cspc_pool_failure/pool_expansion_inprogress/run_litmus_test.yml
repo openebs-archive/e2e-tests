@@ -23,8 +23,8 @@ spec:
             #value: log_plays, actionable, default
             value: default
 
-            # Provide POOL_NAME to expand
-          - name: POOL_NAME
+            # Provide CSPC_NAME to expand
+          - name: CSPC_NAME
             value: ''
 
            # Provide the value for POOL_TYPE to expand

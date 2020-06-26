@@ -8,23 +8,23 @@
 
 - K8s nodes should be ready.
 - cStor CSPC should be created.
-- Application should be deployed using with volume provisioned through CSI provisioner.
-- Uncliamed BlockDevices should be available to expand the pool.
+- Application should be deployed using volume provisioned through CSI provisioner.
+- Unclaimed BlockDevices should be available to expand the pool.
 
 ## Exit-Criteria
 
-- Pool expansion should be expanded successfully and the application is still up and running.
+- Pool should be expanded successfully and the application should be still up and running without any disruption.
 
 ## Procedure
 
-- This chaos test checks if the cspc pool expanded succesfully upon the restart of the pool pod.
+- This chaos test checks if the cspc pool can be expanded successfully even if the respective pool pod is restarted.
 - This litmusbook accepts the parameters in form of job environmental variables.
-- This job patched the respective CSPC pool to expand the cspc pool and verifying the status of cspi. 
+- This job patches the respective CSPC pool to expand the cspc pool and verifying the status of cspi. 
 
 ## Litmusbook Environment Variables
 
 | Parameters    | Description                                            |
 | ------------- | ------------------------------------------------------ |
-| POOL_NAME     | CSPC Pool name to expand                               |
+| CSPC_NAME     | CSPC Pool name to expand                               |
 | POOL_TYPE     | CSPC pool raid type [stripe,mirror,raidz,raidz2]       |
 | OPERATOR_NS   | Nmaespace where the openebs is deployed                |

@@ -1,7 +1,7 @@
 # Test-specific parameters
 operator_ns: "{{ lookup('env','OPERATOR_NS') }}"
 test_name: cspc-pool-failure-expansion-in-progress
-pool_name: "{{ lookup('env','POOL_NAME') }}"
+pool_name: "{{ lookup('env',CSPC_NAME') }}"
 pool_type: "{{ lookup('env','POOL_TYPE') }}"
 
 bd_count:
