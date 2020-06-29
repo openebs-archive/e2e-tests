@@ -41,8 +41,10 @@ spec:
           - name: OS_NAME  
             value: ''  
 
-            ## Storage class will be created with the name provided here
-          - name: STORAGE_CLASS  
+            ## If zpool need to be created on each worker node set this value as `true`
+            ## If already present and no need of zpool creation then set this value as `false`
+            ## If false then leave `POOL_NAME` & `POOL_TYPE` env values empty.
+          - name: ZPOOL_CREATION
             value: ''
 
             ## provide the ZPOOL name to be created  
@@ -53,6 +55,10 @@ spec:
             value: ''
 
           - name: ACTION  ##(provision or deprovision)
+            value: ''
+
+            ## Storage class will be created with the name provided here
+          - name: STORAGE_CLASS  
             value: ''
 
           - name: COMPRESSION ## If data compression is needed give value: 'on' else give 'off'

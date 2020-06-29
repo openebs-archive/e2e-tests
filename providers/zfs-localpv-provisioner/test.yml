@@ -19,7 +19,9 @@
        
        - block:
 
-          - include_tasks: /utils/zpool_creation/create_zpool.yml
+          - name: Create Zpool on each worker node
+            include_tasks: /utils/zpool_creation/create_zpool.yml
+            when: lookup('env','ZPOOL_CREATION') == 'true'
         
           - name: Download OpenEBS ZFS driver file when OS is ubuntu
             get_url:
