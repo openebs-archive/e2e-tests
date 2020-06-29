@@ -1,0 +1,64 @@
+---
+apiVersion: batch/v1
+kind: Job
+metadata:
+  generateName: openebs-upgrade-
+  namespace: litmus
+spec:
+  template:
+    metadata:
+      name: litmus
+      labels:
+        app: openebs-upgrade
+    spec:
+      serviceAccountName: litmus
+      restartPolicy: Never
+      containers:
+      - name: ansibletest
+        image: openebs/ansible-runner:ci
+        imagePullPolicy: IfNotPresent
+
+        env:
+          - name: ANSIBLE_STDOUT_CALLBACK
+            #value: log_plays, actionable, default
+            value: default
+
+            # OpenEBS Version already installed
+          - name: FROM_VERSION
+            value: ""
+
+            # OpenEBS version to be Upgraded
+          - name: TO_VERSION
+            value: ""
+            
+            # Namespace where OpenEBS is deployed
+          - name: OPERATOR_NS
+            value: ""
+
+            # Image tag for Upgrade Job
+          - name: UPGRADE_IMAGE_TAG
+            value: ""
+ 
+            # UPGRADE TO CI image tag then the value should be v1.x.x-ci
+          - name: UPGRADE_TO_CI
+            value: ""
+
+            # SUpported os for worker nodes ubuntu-16.04, ubuntu-18-04, centos
+
+          - name: NODE_OS
+            value: ubuntu-16.04
+             
+            # set to "true" if you want to upgrade cStor CSPC pool
+          - name: CSPC_POOL_UPGRADE
+            value: ""
+
+            # set to "true" if you want to upgrade CSI volumes        
+          - name: CSPC_VOLUME_UPGRADE
+            value: ""
+
+            # set to "true" to upgrade CSTOR OPERATOR  plane
+          - name: CSTOR_OPERATOR_UPGRADE
+            value: ""
+
+        command: ["/bin/bash"]
+        args: ["-c", "ansible-playbook ./providers/openebs/upgrade/test.yml -i /etc/ansible/hosts -v; exit 0"]
