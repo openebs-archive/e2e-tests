@@ -44,9 +44,8 @@ spec:
             value: ""
 
             # SUpported os for worker nodes ubuntu-16.04, ubuntu-18-04, centos
-
           - name: NODE_OS
-            value: ubuntu-16.04
+            value: ""
              
             # set to "true" if you want to upgrade cStor CSPC pool
           - name: CSPC_POOL_UPGRADE
