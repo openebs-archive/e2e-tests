@@ -45,7 +45,9 @@
            - name: Writing data on application mount point
              shell: kubectl exec -it {{ app_pod.stdout }} -n {{ app_ns }} -- sh -c "cd {{ app_mount_path.stdout }} && dd if=/dev/urandom of=test.txt bs=4k count=655360"
 
-          when: "storage_engine == 'cstor' or storage_engine == 'cstor-csi' and lookup('env','COMPONENT_FAILURE') != ''"
+          when: 
+            - "storage_engine == 'cstor' or storage_engine == 'cstor-csi'" 
+            - lookup('env','COMPONENT_FAILURE') != ''
 
         - block:
             
@@ -103,7 +105,9 @@
              shell: velero backup get | grep Completed | tail -1 | awk '{print $1}'
              register: basebackup_name 
 
-          when: "storage_engine == 'cstor' or storage_engine == 'cstor-csi' and lookup('env','COMPONENT_FAILURE') != ''"
+          when: 
+            - "storage_engine == 'cstor' or storage_engine == 'cstor-csi'"
+            - lookup('env','COMPONENT_FAILURE') != ''
 
         - name: Getting state of backup
           include_tasks: "./backup-restore.yml"
@@ -117,7 +121,9 @@
           vars:
             back_up_name: "{{ backup_name }}"
             action: 'SNAPSHOT_DELETE'
-          when: "storage_engine == 'cstor' or storage_engine == 'cstor-csi' and lookup('env','COMPONENT_FAILURE') == '' and lookup('env','LOCAL_SNAPSHOT') == 'false'"
+          when: 
+            - "storage_engine == 'cstor' or storage_engine == 'cstor-csi'"
+            - lookup('env','COMPONENT_FAILURE') == '' and lookup('env','LOCAL_SNAPSHOT') == 'false'
 
         - block:
 
@@ -138,8 +144,7 @@
              delay: 5
              retries: 15
              
-          when: lookup('env','LOCAL_SNAPSHOT') == "false"
-        
+          when: lookup('env','LOCAL_SNAPSHOT') == "false"      
 
         - block: 
 
@@ -201,7 +206,9 @@
 
              when: lookup('env','RESTORE_IN_DIFF_NAMESPACE') == "true" 
           
-          when: storage_engine == "cstor" or storage_engine == 'cstor-csi' and lookup('env','LOCAL_SNAPSHOT') == "false"
+          when: 
+            - "storage_engine == 'cstor' or storage_engine == 'cstor-csi'" 
+            - lookup('env','LOCAL_SNAPSHOT') == "false"
 
         - block: 
 
