@@ -9,4 +9,5 @@ cspc_rbac: rbac.yaml
 cspc_crd: cspc-crd.yaml
 cspi_crd: cspi-crd.yaml
 csi_volume_crd: volumes-crd.yaml
+image_tag: "{{ lookup('env','CSPC_OPERATOR_IMAGE') }}"
 test_name: "openebs-cstor-operator-{{ lookup('env','Action') }}"
