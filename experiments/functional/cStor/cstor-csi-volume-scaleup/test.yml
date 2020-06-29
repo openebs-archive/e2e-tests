@@ -39,7 +39,7 @@
 
         - name: Check if the application pod is in running state
           shell: >
-            kubectl get pods -n {{ namespace }} -l {{ label }}--no-headers -o custom-columns=:.status.phase
+            kubectl get pods -n {{ namespace }} -l {{ label }} --no-headers -o custom-columns=:.status.phase
           args:
             executable: /bin/bash
           register: pod_status
