@@ -36,7 +36,7 @@
 
            - name: Change the OpenEBS component labels to desired version csi provisioner spec
              replace:
-               path: "{{ cstor_operator }}"
+               path: "{{ playbook_dir }}/csi-operator.yaml"
                regexp: 'openebs.io/version: dev'
                replace: "openebs.io/version: {{ image_tag }}"
              
@@ -89,7 +89,7 @@
 
            - name: Change the OpenEBS component labels to desired version csi provisioner spec
              replace:
-               path: "{{ cstor_operator }}"
+               path: "{{ playbook_dir }}/csi-operator-ubuntu-18.04.yaml"
                regexp: 'openebs.io/version: dev'
                replace: "openebs.io/version: {{ image_tag }}"               
 
