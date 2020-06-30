@@ -16,47 +16,47 @@
           vars:
             status: 'SOT'
 
-        - name: Check if the cStor cvc operator is in expected version
-          shell: >
-            kubectl get deploy -n {{ operator_ns }}
-            -o jsonpath='{.items[?(@.metadata.labels.name=="cvc-operator")].metadata.labels.openebs\.io\/version}'
-          args:
-            executable: /bin/bash
-          register: cvc_version
-          failed_when: "cvc_version.stdout != from_version"
-
-        - name: Check if the cStor cspc operator is in expected version
-          shell: >
-            kubectl get deploy -n {{ operator_ns }}
-            -o jsonpath='{.items[?(@.metadata.labels.name=="cspc-operator")].metadata.labels.openebs\.io\/version}'
-          args:
-            executable: /bin/bash
-          register: cspc_version
-          failed_when: "cspc_version.stdout != from_version"
-
-        - name: Check if the csi daemonset is in expected version
-          shell: >
-            kubectl get daemonset -n kube-system
-            -o jsonpath='{.items[?(@.metadata.labels.app=="openebs-cstor-csi-node")].metadata.labels.openebs\.io\/version}'
-          args:
-            executable: /bin/bash
-          register: csi_dm_version
-          failed_when: "csi_dm_version.stdout != from_version"
-
-        - name: Check if the csi controller is in expected version
-          shell: >
-            kubectl get sts -n kube-system
-            -o jsonpath='{.items[?(@.metadata.labels.name=="openebs-cstor-csi-controller")].metadata.labels.openebs\.io\/version}'
-          args:
-            executable: /bin/bash
-          register: csi_sts_version
-          failed_when: "csi_sts_version.stdout != from_version"
-
         - block:
+
+            - name: Check if the cStor cvc operator is in expected version
+              shell: >
+                kubectl get deploy -n {{ operator_ns }}
+                -o jsonpath='{.items[?(@.metadata.labels.name=="cvc-operator")].metadata.labels.openebs\.io\/version}'
+              args:
+                executable: /bin/bash
+              register: cvc_version
+              failed_when: "cvc_version.stdout != from_version"
+
+            - name: Check if the cStor cspc operator is in expected version
+              shell: >
+                kubectl get deploy -n {{ operator_ns }}
+                -o jsonpath='{.items[?(@.metadata.labels.name=="cspc-operator")].metadata.labels.openebs\.io\/version}'
+              args:
+                executable: /bin/bash
+              register: cspc_version
+              failed_when: "cspc_version.stdout != from_version"
+
+            - name: Check if the csi daemonset is in expected version
+              shell: >
+                kubectl get daemonset -n kube-system
+                -o jsonpath='{.items[?(@.metadata.labels.app=="openebs-cstor-csi-node")].metadata.labels.openebs\.io\/version}'
+              args:
+                executable: /bin/bash
+              register: csi_dm_version
+              failed_when: "csi_dm_version.stdout != from_version"
+
+            - name: Check if the csi controller is in expected version
+              shell: >
+                kubectl get sts -n kube-system
+                -o jsonpath='{.items[?(@.metadata.labels.name=="openebs-cstor-csi-controller")].metadata.labels.openebs\.io\/version}'
+              args:
+                executable: /bin/bash
+              register: csi_sts_version
+              failed_when: "csi_sts_version.stdout != from_version"        
 
             - name: Downloading cstor Operator
               get_url:
-                url: "{{ cstor_operator_link }}"
+                url: "{{ new_cstor_operator }}"
                 dest: "{{ playbook_dir }}/{{ cstor_operator }}"
                 force: yes
               register: operator_file
@@ -69,7 +69,7 @@
 
                 - name: Downloading cstor Operator
                   get_url:
-                    url: "{{ new_cstor_operator }}"
+                    url: "{{ cstor_operator_link }}"
                     dest: "{{ playbook_dir }}/{{ cstor_operator }}"
                     force: yes
                   register: result
@@ -92,7 +92,7 @@
               when: "'OK' not in operator_file.msg"
 
             - name: Applying cspc operator
-              shell: "kubectl  apply -f {{ cspc_operator }}"
+              shell: "kubectl apply -f {{ cstor_operator }}"
               args:
                 executable: /bin/bash
 
@@ -113,24 +113,6 @@
               until: "'Running' in cspc_status.stdout"
               delay: 5
               retries: 120
-
-            - name: Check if the cStor cvc operator is updated to new version
-              shell: >
-                kubectl get deploy -n {{ operator_ns }}
-                -o jsonpath='{.items[?(@.metadata.labels.name=="cvc-operator")].metadata.labels.openebs\.io\/version}'
-              args:
-                executable: /bin/bash
-              register: new_cvc_version
-              failed_when: "new_cvc_version.stdout != to_version"
-
-            - name: Check if the cStor cspc operator is updated to new version
-              shell: >
-                kubectl get deploy -n {{ operator_ns }}
-                -o jsonpath='{.items[?(@.metadata.labels.name=="cspc-operator")].metadata.labels.openebs\.io\/version}'
-              args:
-                executable: /bin/bash
-              register: new_cspc_version
-              failed_when: "new_cspc_version.stdout != to_version"
 
             - block:
               - name: Downloading the csi-operator file
@@ -199,25 +181,6 @@
 
               when: node_os == "ubuntu-18.04"
 
-              # By default, volume mount is disabled. When it is enabled, the below patching tasks should be ignored.
-
-            - name: Identify the patch to be invoked
-              template:
-                src: patch.j2
-                dest: patch.yml
-
-            - name: Patching openebs cstor csi-driver statefulset to allow volume remount
-              shell: >
-                kubectl patch statefulset openebs-cstor-csi-controller -n kube-system --patch "$(cat patch.yml)"
-              register: patch_status
-              failed_when: "'patched' not in patch_status.stdout"
-
-            - name: Patching openebs cstor csi-driver daemonset to allow volume remount
-              shell: >
-                kubectl patch daemonset openebs-cstor-csi-node -n kube-system --patch "$(cat patch.yml)"
-              register: patch_status
-              failed_when: "'patched' not in patch_status.stdout"
-
             - name: check if csi-controller pod is running
               shell: >
                 kubectl get pods -n kube-system -l app=openebs-cstor-csi-controller
@@ -248,25 +211,43 @@
               delay: 5
               retries: 50
 
-            - name: Check if the csi daemonset is updated to new version
-              shell: >
-                kubectl get daemonset -n kube-system
-                -o jsonpath='{.items[?(@.metadata.labels.app=="openebs-cstor-csi-node")].metadata.labels.openebs\.io\/version}'
-              args:
-                executable: /bin/bash
-              register: new_csi_dm_version
-              failed_when: "new_csi_dm_version.stdout != to_version"
-
-            - name: Check if the csi controller is updated to new version
-              shell: >
-                kubectl get sts -n kube-system
-                -o jsonpath='{.items[?(@.metadata.labels.name=="openebs-cstor-csi-controller")].metadata.labels.openebs\.io\/version}'
-              args:
-                executable: /bin/bash
-              register: new_csi_sts_version
-              failed_when: "new_csi_sts_version.stdout != to_version"
-
           when: cstor_operator_upgrade == "true"
+
+        - name: Check if the cStor cvc operator is updated to new version
+          shell: >
+            kubectl get deploy -n {{ operator_ns }}
+            -o jsonpath='{.items[?(@.metadata.labels.name=="cvc-operator")].metadata.labels.openebs\.io\/version}'
+          args:
+            executable: /bin/bash
+          register: new_cvc_version
+          failed_when: "new_cvc_version.stdout != to_version"
+
+        - name: Check if the cStor cspc operator is updated to new version
+          shell: >
+            kubectl get deploy -n {{ operator_ns }}
+            -o jsonpath='{.items[?(@.metadata.labels.name=="cspc-operator")].metadata.labels.openebs\.io\/version}'
+          args:
+            executable: /bin/bash
+          register: new_cspc_version
+          failed_when: "new_cspc_version.stdout != to_version"
+
+        - name: Check if the csi daemonset is updated to new version
+          shell: >
+            kubectl get daemonset -n kube-system
+            -o jsonpath='{.items[?(@.metadata.labels.app=="openebs-cstor-csi-node")].metadata.labels.openebs\.io\/version}'
+          args:
+            executable: /bin/bash
+          register: new_csi_dm_version
+          failed_when: "new_csi_dm_version.stdout != to_version"
+
+        - name: Check if the csi controller is updated to new version
+          shell: >
+            kubectl get sts -n kube-system
+            -o jsonpath='{.items[?(@.metadata.labels.name=="openebs-cstor-csi-controller")].metadata.labels.openebs\.io\/version}'
+          args:
+            executable: /bin/bash
+          register: new_csi_sts_version
+          failed_when: "new_csi_sts_version.stdout != to_version"          
 
         - name: Obtain the service account name
           shell: kubectl get deploy -n {{ operator_ns }} -l name=maya-apiserver -o jsonpath="{.items[*].spec.template.spec.serviceAccount}"
@@ -335,7 +316,12 @@
                 path: ./cstor-cspc-upgrade-job.yml
                 insertbefore: '"--v=4"'
                 line: '        - "--to-version-image-tag={{ upgrade_to_ci }}"'
-              when: upgrade_to_ci is defined
+              when: upgrade_to_ci != ""
+
+            - name: Display cspc.yml for verification
+              debug: var=item
+              with_file:
+              - "cstor-cspc-upgrade-job.yml"
 
             - name: Create the job to upgrade the CSPC pool
               shell: kubectl apply -f cstor-cspc-upgrade-job.yml
@@ -397,13 +383,13 @@
 
             - name: Store name of all cspi in the list
               set_fact:
-                csp_list: "{{ cspi_list + item.stdout_lines }}"
+                cspi_list: "{{ cspi_list + item.stdout_lines }}"
               with_items:
                 - "{{ cspi_name.results }}"
 
             - name: Check if the CSPI resources are upgraded to newer version
               shell: kubectl get cspi {{ item }} -n {{ operator_ns }} -o custom-columns=:.versionDetails.status.current --no-headers
-              register: csp_version
+              register: cspi_version
               failed_when: "cspi_version.stdout != to_version"
               with_items:
                   - "{{ cspi_list }}"
@@ -442,7 +428,7 @@
                 path: ./cstor-csi-volume-upgrade-job.yml
                 insertbefore: '"--v=4"'
                 line: '        - "--to-version-image-tag={{ upgrade_to_ci }}"'
-              when: upgrade_to_ci is defined
+              when: upgrade_to_ci != ""
 
             - name: Create the job to upgrade the cstor volume
               shell: kubectl apply -f cstor-csi-volume-upgrade-job.yml

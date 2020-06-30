@@ -1,6 +1,7 @@
 ---
 apiVersion: batch/v1
 kind: Job
+metadata:
   name: cstor-cspc-upgrade
   namespace: {{ operator_ns }}
 spec:
@@ -12,8 +13,8 @@ spec:
       - name: upgrade
         args:
         - "cstor-cspc"
-        - "--from-version={{ old_version }}"
-        - "--to-version={{ new_version }}"
+        - "--from-version={{ from_version }}"
+        - "--to-version={{ to_version }}"
         - "--v=4"
         # DO NOT CHANGE BELOW PARAMETERS
         env:

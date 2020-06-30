@@ -52,7 +52,7 @@ spec:
             value: ""
 
             # set to "true" if you want to upgrade CSI volumes        
-          - name: CSPC_VOLUME_UPGRADE
+          - name: CSI_VOLUME_UPGRADE
             value: ""
 
             # set to "true" to upgrade CSTOR OPERATOR  plane
