@@ -34,6 +34,12 @@
                regexp: "cstor-csi-driver:ci"
                replace: "cstor-csi-driver:{{ image_tag }}"
 
+           - name: Change the OpenEBS component labels to desired version csi provisioner spec
+             replace:
+               path: "{{ cstor_operator }}"
+               regexp: 'openebs.io/version: dev'
+               replace: "openebs.io/version: {{ image_tag }}"
+             
            - name: Deploy CSI Driver if OS is either centos or ubuntu-16.04
              shell: >
                kubectl apply -f csi-operator.yaml
@@ -80,6 +86,12 @@
                path: "{{ playbook_dir }}/csi-operator-ubuntu-18.04.yaml"
                regexp: "cstor-csi-driver:ci"
                replace: "cstor-csi-driver:{{ image_tag }}"
+
+           - name: Change the OpenEBS component labels to desired version csi provisioner spec
+             replace:
+               path: "{{ cstor_operator }}"
+               regexp: 'openebs.io/version: dev'
+               replace: "openebs.io/version: {{ image_tag }}"               
 
            - name: Deploy CSI Driver if OS is either centos or ubuntu-16.04
              shell: >

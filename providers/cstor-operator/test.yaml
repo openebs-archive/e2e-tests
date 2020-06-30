@@ -126,6 +126,12 @@
                 replace: openebs/cstor-webhook-amd64:{{ lookup('env','CSPC_OPERATOR_IMAGE') }}
               when: lookup('env','CSPC_OPERATOR_IMAGE') | length > 0
 
+            - name: Change the OpenEBS component labels to desired version in Operator yaml
+              replace:
+                path: "{{ cstor_operator }}"
+                regexp: 'openebs.io/version: dev'
+                replace: "openebs.io/version: {{ image_tag }}"
+
             - name: Applying cspc operator
               shell: "kubectl  apply -f {{ cspc_operator }}"
               args:
