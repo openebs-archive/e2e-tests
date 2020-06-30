@@ -128,7 +128,7 @@
 
             - name: Change the OpenEBS component labels to desired version in Operator yaml
               replace:
-                path: "{{ cstor_operator }}"
+                path: "{{ cspc_operator }}"
                 regexp: 'openebs.io/version: dev'
                 replace: "openebs.io/version: {{ image_tag }}"
 
