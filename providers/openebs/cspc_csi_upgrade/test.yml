@@ -189,7 +189,7 @@
                   regexp: "openebs.io/version: dev"
                   replace: "openebs.io/version: {{ to_version }}"
 
-              - name: Deploy CSI Driver if OS is either centos or ubuntu-16.04
+              - name: Deploy CSI Driver if OS is either centos or ubuntu-18.04
                 shell: >
                   kubectl apply -f csi-operator-ubuntu-18.04.yaml
                 args:
@@ -280,7 +280,7 @@
               register: cspc_name
               failed_when: 'cspc_name.stdout == ""'
 
-            - name: Check if the CSPC pool pods is in running state before upgrade the pool
+            - name: Check if the CSPC pool pods are in running state before upgrade the pool
               shell: >
                 kubectl get pods -n {{ operator_ns }}
                 -l openebs.io/cstor-pool-cluster={{ item }} -o custom-columns=:.status.phase --no-headers
@@ -291,7 +291,7 @@
               with_items:
                  - "{{ cspc_name.stdout_lines }}"
 
-            - name: Check the cspi is in ONLINE state before upgrade the pool
+            - name: Check the cspi are in ONLINE state before upgrade the pool
               shell: >
                 kubectl get cspi -n openebs -l openebs.io/cstor-pool-cluster={{ item }} -o custom-columns=:.status.phase --no-headers
               register: cspi_status
@@ -330,7 +330,7 @@
               with_items:
                 - "{{ cspc_name.stdout_lines }}"
 
-            - name: Adding imgae tag to upgrade the pools into CSPC job spec
+            - name: Adding image tag to upgrade the pools into CSPC job spec
               lineinfile:
                 path: ./cstor-cspc-upgrade-job.yml
                 insertbefore: '"--v=4"'
@@ -342,7 +342,7 @@
               args:
                 executable: /bin/bash
 
-            - name: Check if the upgrade jobs been completed
+            - name: Check if the upgrade job has been completed
               shell: >
                 kubectl get pods -n {{ operator_ns }}
                 -l job-name=cstor-cspc-upgrade -o custom-columns=:.status.phase --no-headers
@@ -351,7 +351,7 @@
               delay: 10
               retries: 60
 
-            - name: Check if the CSPC pool pods is in running state after upgrade the pool
+            - name: Check if the CSPC pool pods are in running state after upgrade the pool
               shell: >
                 kubectl get pods -n {{ operator_ns }}
                 -l openebs.io/cstor-pool-cluster={{ item }} -o custom-columns=:.status.phase --no-headers
@@ -362,7 +362,7 @@
               with_items:
                  - "{{ cspc_name.stdout_lines }}"
 
-            - name: Check the cspi is in ONLINE state after upgrade the pool
+            - name: Check the cspi are in ONLINE state after upgrade the pool
               shell: >
                 kubectl get cspi -n {{ operator_ns }} -l openebs.io/cstor-pool-cluster={{ item }} -o custom-columns=:.status.phase --no-headers
               register: aft_cspi_status
@@ -372,7 +372,7 @@
               with_items:
                  - "{{ cspc_name.stdout_lines }}"
 
-            - name: Check the cspi is not in readOnly state after upgrade the pool
+            - name: Check the cspi are not in readOnly state after upgrade the pool
               shell: >
                 kubectl get cspi -n {{ operator_ns }} -l openebs.io/cstor-pool-cluster={{ item }} -o custom-columns=:.status.readOnly --no-headers
               register: aft_cspi_ro_status
