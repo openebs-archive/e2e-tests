@@ -98,7 +98,7 @@
 
             - name: Checking OpenEBS-CVC-Operator is running
               shell: >
-                kubectl get pods -n {{ namespace }}
+                kubectl get pods -n {{ operator_ns }} 
                 -o jsonpath='{.items[?(@.metadata.labels.name=="cvc-operator")].status.phase}'
               register: cvc_status
               until: "'Running' in cvc_status.stdout"
@@ -107,7 +107,7 @@
 
             - name: Checking OpenEBS-CSPC-Operator is running
               shell: >
-                kubectl get pods -n {{ namespace }}
+                kubectl get pods -n {{ operator_ns }}
                 -o jsonpath='{.items[?(@.metadata.labels.name=="cspc-operator")].status.phase}'
               register: cspc_status
               until: "'Running' in cspc_status.stdout"
@@ -364,7 +364,7 @@
 
             - name: Check the cspi is in ONLINE state after upgrade the pool
               shell: >
-                kubectl get cspi -n openebs -l openebs.io/cstor-pool-cluster={{ item }} -o custom-columns=:.status.phase --no-headers
+                kubectl get cspi -n {{ operator_ns }} -l openebs.io/cstor-pool-cluster={{ item }} -o custom-columns=:.status.phase --no-headers
               register: aft_cspi_status
               until: "((aft_cspi_status.stdout_lines|unique)|length) == 1 and 'ONLINE' in aft_cspi_status.stdout"
               retries: 30
@@ -374,7 +374,7 @@
 
             - name: Check the cspi is not in readOnly state after upgrade the pool
               shell: >
-                kubectl get cspi -n openebs -l openebs.io/cstor-pool-cluster={{ item }} -o custom-columns=:.status.readOnly --no-headers
+                kubectl get cspi -n {{ operator_ns }} -l openebs.io/cstor-pool-cluster={{ item }} -o custom-columns=:.status.readOnly --no-headers
               register: aft_cspi_ro_status
               until: "((aft_cspi_ro_status.stdout_lines|unique)|length) == 1 and 'false' in aft_cspi_ro_status.stdout"
               retries: 30
@@ -384,7 +384,7 @@
 
             - name: Obtain the CSPI name to check the version
               shell: >
-                 kubectl get cspi -n  {{ operator_ns }} -l openebs.io/cstor-pool-cluster={{ item }}
+                 kubectl get cspi -n {{ operator_ns }} -l openebs.io/cstor-pool-cluster={{ item }}
                  -o=jsonpath='{range .items[*]}{.metadata.name}{"\n"}{end}'
               register: cspi_name
               failed_when: 'cspi_name.stdout == ""'
@@ -488,7 +488,7 @@
                   - "{{ pv_name.stdout_lines }}"
 
             - name: Verify the cstor replicas are upgraded to new version
-              include_tasks: cstor_replica_version.yml
+              include_tasks: cstor_replica_version_check.yml
               with_items: "{{ pv_name.stdout_lines }}"
               loop_control:
                 loop_var: outer_item
