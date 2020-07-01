@@ -74,6 +74,15 @@
        - set_fact:
            pv_name: "{{ result.stdout }}"
 
+       - name: Get controller svc
+         shell: >
+           kubectl get svc -l openebs.io/controller-service=jiva-controller-svc,openebs.io/persistent-volume={{ pv_name }} 
+           -n {{ operator_ns }} --no-headers -o custom-columns=:spec.clusterIP
+         args:
+           executable: /bin/bash
+         register: controller_svc
+         failed_when: controller_svc.stdout == ""
+
        - name: Replace the data sample size with the provider sample size in {{ fio_write_yml }}
          replace:
            path: "{{ fio_write_yml }}"
@@ -111,10 +120,14 @@
 
        - name: Include replica restart test
          include: "{{ replica_restart_yml }}"
+         vars:
+           controller_service: "{{ controller_svc.stdout }}"
          with_items: "{{ iterator.stdout_lines }}"
 
        - name: Include replica count test
          include: "{{ check_replica_cnt_yml }}"
+         vars:
+           controller_service: "{{ controller_svc.stdout }}"
 
        - name: Check if fio write job is completed
          shell: >
