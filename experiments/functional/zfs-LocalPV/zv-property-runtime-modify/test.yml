@@ -17,6 +17,11 @@
             status: 'SOT'
         
         - block:
+          - name: Update the daemonset spec template with test specific values
+            template:
+              src: zv_property_ds.j2
+              dest: zv_property_ds.yml
+
           - name: Create a daemonset with privileged access to verify zvol properties at node level
             shell: >
               kubectl create -f ./zv_property_ds.yml
@@ -25,7 +30,7 @@
 
           - name: Confirm that the ds pods are running on all nodes
             shell: >
-              kubectl get pod -l app=zv-property-modify
+              kubectl get pod -l app=zv-property-modify-{{ fs_type }}
               --no-headers -o custom-columns=:status.phase | sort | uniq
             args: 
               executable: /bin/bash
@@ -44,7 +49,7 @@
 
           - name: Get the daemonset pod name which is scheduled on the same node as of application node
             shell: >
-              kubectl get pod -l app=zv-property-modify --no-headers
+              kubectl get pod -l app=zv-property-modify-{{ fs_type }} --no-headers
               -o jsonpath='{.items[?(@.spec.nodeName=="{{ app_node_name.stdout }}")].metadata.name}' 
             args: 
               executable: /bin/bash

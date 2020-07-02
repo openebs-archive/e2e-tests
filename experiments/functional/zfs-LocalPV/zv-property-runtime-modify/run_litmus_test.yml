@@ -26,6 +26,9 @@ spec:
           - name: APP_LABEL  ## Application label
             value: ''
 
+          - name: FILE_SYSTEM_TYPE
+            value: ''
+
           - name: OPERATOR_NAMESPACE ## Namespace in which all the resources created by zfs driver will be present
             value: ''                ## for e.g. zfsvolume (zv) will be in this namespace         
          
