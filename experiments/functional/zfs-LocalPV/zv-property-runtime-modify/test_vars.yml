@@ -4,6 +4,8 @@ app_ns: "{{ lookup('env','APP_NAMESPACE') }}"
 
 app_label: "{{ lookup('env','APP_LABEL') }}"
 
+fs_type: "{{ lookup('env','FILE_SYSTEM_TYPE') }}"
+
 operator_ns: "{{ lookup('env','OPERATOR_NAMESPACE') }}"
 
 pvc_name: "{{ lookup('env','APP_PVC') }}"

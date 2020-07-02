@@ -2,15 +2,15 @@
     apiVersion: apps/v1
     kind: DaemonSet
     metadata:
-      generateName: zv-property-modify-
+      generateName: zv-property-modify-{{ fs_type }}-
     spec:
       selector:
         matchLabels:
-          app: zv-property-modify
+          app: zv-property-modify-{{ fs_type }}
       template:
         metadata:
           labels:
-            app: zv-property-modify
+            app: zv-property-modify-{{ fs_type }}
         spec:
           containers:
           - name: zfsutils
