@@ -60,6 +60,26 @@ volumeBindingMode: WaitForFirstConsumer
 ##  - key: kubernetes.io/hostname
 ##    values:
 
+
+---
+apiVersion: storage.k8s.io/v1
+kind: StorageClass
+metadata:
+  name: "{{ storage_class }}-btrfs"
+parameters:
+  volblocksize: "{{ record_size }}"
+  compression: "{{ compress }}" 
+  dedup: "{{ de_dup }}"
+  fstype: "btrfs"
+  poolname: "{{ pool_name }}"
+provisioner: zfs.csi.openebs.io
+volumeBindingMode: WaitForFirstConsumer
+## To create ZPOOL on only some of the node then mention node names in values with allowedTopologies 
+##allowedTopologies:
+##- matchLabelExpressions:
+##  - key: kubernetes.io/hostname
+##    values:
+
 ---
 apiVersion: storage.k8s.io/v1
 kind: StorageClass
