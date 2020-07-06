@@ -1,0 +1,47 @@
+---
+            - name: create job yaml spec for migrating cstor volume
+              template:
+                src: ./cstor-volume-migrating-job.j2
+                dest: ./cstor-volume-migrating-job-{{ outer_item }}.yml
+
+            - name: Replacing the pv name in migrating cstor volume job spec
+              replace:
+                path: ./cstor-volume-migrating-job-{{ outer_item}}.yml
+                regexp: "cstor_volume_name"
+                replace: "{{ outer_item }}"
+
+            - name: Replacing the service Account name in migrating cstor volume job spec
+              replace:
+                path: ./cstor-volume-migrating-job-{{ outer_item }}.yml
+                regexp: "service_account"
+                replace: "{{ service_account.stdout }}"
+
+            - name: Create the job to migratio the cstor volume
+              shell: kubectl apply -f cstor-volume-migrating-job-{{ outer_item}}.yml
+              args:
+                executable: /bin/bash
+
+            - name: Check if the migrating jobs have been completed
+              shell: kubectl get pods -n {{ operator_ns }} -l job-name={{ outer_item}} -o custom-columns=:.status.phase --no-headers
+              register: job_status
+              until: "'Succeeded' in job_status.stdout"
+              delay: 10
+              retries: 60
+
+            - name: Check if the target pod is in Running state
+              shell: >
+                kubectl get pods -n {{ operator_ns }} -l openebs.io/persistent-volume={{ outer_item }}
+                -o custom-columns=:.status.phase --no-headers
+              register: target_status
+              until: "((target_status.stdout_lines|unique)|length) == 1 and 'Running' in target_status.stdout"
+              retries: 30
+              delay: 10
+
+            - name: Check if the CVRs are in Healthy state
+              shell: >
+                kubectl get cvr -n {{ operator_ns }} -l openebs.io/persistent-volume={{ outer_item }}
+                -o custom-columns=:.status.phase --no-headers
+              register: cvr_status
+              until: "((cvr_status.stdout_lines|unique)|length) == 1 and 'Healthy' in cvr_status.stdout"
+              retries: 45
+              delay: 5
