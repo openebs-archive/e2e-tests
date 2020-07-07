@@ -23,7 +23,6 @@
           args:
             executable: /bin/bash
           register: cvc_version
-          failed_when: "cvc_version.stdout != from_version"
 
         - name: Check if the cStor cspc operator is in expected version
           shell: >
@@ -32,7 +31,6 @@
           args:
             executable: /bin/bash
           register: cspc_version
-          failed_when: "cspc_version.stdout != from_version"
 
         - name: Check if the csi daemonset is in expected version
           shell: >
@@ -41,7 +39,6 @@
           args:
             executable: /bin/bash
           register: csi_dm_version
-          failed_when: "csi_dm_version.stdout != from_version"
 
         - name: Check if the csi controller is in expected version
           shell: >
@@ -50,7 +47,11 @@
           args:
             executable: /bin/bash
           register: csi_sts_version
-          failed_when: "csi_sts_version.stdout != from_version"
+
+        - name: Obtain the service account name
+          shell: kubectl get deploy -n {{ operator_ns }} -l name=maya-apiserver -o jsonpath="{.items[*].spec.template.spec.serviceAccount}"
+          register: service_account
+          failed_when: 'service_account.stdout == ""'          
 
         - block:
             - name: Obtain the SPC name

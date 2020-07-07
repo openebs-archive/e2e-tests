@@ -1,23 +1,23 @@
 ---
             - name: create job yaml spec for migrate cstor volume
               template:
-                src: ./cstor-pool-migration-job.j2
-                dest: ./cstor-pool-migration-job-{{ outer_item }}.yml
+                src: ./cstor-spc-migration-job.j2
+                dest: ./cstor-spc-migration-job-{{ outer_item }}.yml
 
             - name: Replacing the pool name in migrating cstor pool job spec
               replace:
-                path: ./cstor-pool-migration-job-{{ outer_item}}.yml
+                path: ./cstor-spc-migration-job-{{ outer_item}}.yml
                 regexp: "pool_name"
                 replace: "{{ outer_item }}"
 
             - name: Replacing the service Account name in migrate cstor pool job spec
               replace:
-                path: ./cstor-pool-migration-job-{{ outer_item }}.yml
+                path: ./cstor-spc-migration-job-{{ outer_item }}.yml
                 regexp: "service_account"
                 replace: "{{ service_account.stdout }}"
 
             - name: Create the job to migrate the cstor pool
-              shell: kubectl apply -f cstor-volume-upgrade-job-{{ outer_item}}.yml
+              shell: kubectl apply -f cstor-spc-migration-job-{{ outer_item}}.yml
               args:
                 executable: /bin/bash
 

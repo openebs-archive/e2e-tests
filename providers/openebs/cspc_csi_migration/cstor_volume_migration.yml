@@ -45,3 +45,12 @@
               until: "((cvr_status.stdout_lines|unique)|length) == 1 and 'Healthy' in cvr_status.stdout"
               retries: 45
               delay: 5
+
+            - name: Check if the CVC is getting created 
+              shell: >
+                kubectl get cvc -n {{ operator_ns }} --no-headers | grep {{ outer_item }} | awk '{print $1}'
+              register: cvc
+              until: "outer_item in cvc.stdout"
+              retries: 45
+              delay: 5
+              
