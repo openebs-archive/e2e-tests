@@ -3,6 +3,7 @@
 ## Description
    - This test case is capable of Migrating the OpenEBS SPC pool and cStor volume components into CSPC pool and CSI volume
    - Before migrating the pool we have to provision the cStor opertor. 
+   - FOr Migrate the volumes applications need to be scaled down
    - This test constitutes the below files.
      - cstor-volume-migration-job.j2 - Volume migration job template which has to be populated with the given variables.
      - cstor-spc-migration-job.j2 - Pool migration job template which has to be populated with the given variables.

@@ -22,7 +22,7 @@
                 executable: /bin/bash
 
             - name: Check if the migration jobs have been completed
-              shell: kubectl get pods -n {{ operator_ns }} -l job-name={{ outer_item}} -o custom-columns=:.status.phase --no-headers
+              shell: kubectl get pods -n {{ operator_ns }} -l job-name=migrate-{{ outer_item}} -o custom-columns=:.status.phase --no-headers
               register: job_status
               until: "'Succeeded' in job_status.stdout"
               delay: 10

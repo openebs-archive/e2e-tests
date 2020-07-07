@@ -1,28 +1,69 @@
 ---
+            - name: Obtain the application namespace to scaledown the application
+              shell: >
+                 kubectl get pvc --all-namespaces --no-headers | grep {{ outer_item }} | awk '{print $1}'
+              args:
+                executable: /bin/bash
+              register: app_ns
+
+            - name: Obtain the application deployment name to scaledown the application
+              shell: >
+                 kubectl get deploy -n {{ app_ns.stdout }} --no-headers  -o custom-columns=:.metadata.name
+              args:
+                executable: /bin/bash
+              register: app_deploy_name
+
+            - name: Scaledown the application
+              shell: >
+                 kubectl scale deploy -n {{ app_ns.stdout }} {{ app_deploy_name.stdout }} --replicas=0
+              args:
+                executable: /bin/bash
+              register: scale_down_status
+              
+            - name: Verify if the application scaled down successfully
+              shell: >
+                 kubectl get deploy -n {{ app_ns.stdout }} --no-headers -o custom-columns=:.spec.replicas
+              args:
+                executable: /bin/bash
+              register: deploy_status
+              until: deploy_status.stdout|int == 0
+              delay: 2
+              retries: 30
+
+            - name: check if the application pod is deleted
+              shell: >
+                kubectl get pod -n {{ app_ns.stdout }} --no-headers -o custom-columns=:.status.phase
+              args:
+                executable: /bin/bash
+              register: status
+              until: "status.stdout == ''"
+              delay: 10
+              retries: 30              
+            
             - name: create job yaml spec for migrating cstor volume
               template:
-                src: ./cstor-volume-migrating-job.j2
-                dest: ./cstor-volume-migrating-job-{{ outer_item }}.yml
+                src: ./cstor-volume-migration-job.j2
+                dest: ./cstor-volume-migration-job-{{ outer_item }}.yml
 
             - name: Replacing the pv name in migrating cstor volume job spec
               replace:
-                path: ./cstor-volume-migrating-job-{{ outer_item}}.yml
+                path: ./cstor-volume-migration-job-{{ outer_item}}.yml
                 regexp: "cstor_volume_name"
                 replace: "{{ outer_item }}"
 
             - name: Replacing the service Account name in migrating cstor volume job spec
               replace:
-                path: ./cstor-volume-migrating-job-{{ outer_item }}.yml
+                path: ./cstor-volume-migration-job-{{ outer_item }}.yml
                 regexp: "service_account"
                 replace: "{{ service_account.stdout }}"
 
             - name: Create the job to migratio the cstor volume
-              shell: kubectl apply -f cstor-volume-migrating-job-{{ outer_item}}.yml
+              shell: kubectl apply -f cstor-volume-migration-job-{{ outer_item}}.yml
               args:
                 executable: /bin/bash
 
             - name: Check if the migrating jobs have been completed
-              shell: kubectl get pods -n {{ operator_ns }} -l job-name={{ outer_item}} -o custom-columns=:.status.phase --no-headers
+              shell: kubectl get pods -n {{ operator_ns }} -l job-name=migrate-cstor-{{ outer_item}} -o custom-columns=:.status.phase --no-headers
               register: job_status
               until: "'Succeeded' in job_status.stdout"
               delay: 10
@@ -53,4 +94,31 @@
               until: "outer_item in cvc.stdout"
               retries: 45
               delay: 5
-              
+
+            - name: Scale the application after migration
+              shell: >
+                 kubectl scale deploy -n {{ app_ns.stdout }} {{ app_deploy_name.stdout }} --replicas=1
+              args:
+                executable: /bin/bash
+              register: scale_status
+
+            - name: Verify if the application scaled down successfully
+              shell: >
+                 kubectl get deploy -n {{ app_ns.stdout }} --no-headers -o custom-columns=:.spec.replicas
+              args:
+                executable: /bin/bash
+              register: deploy_rep_status
+              until: deploy_rep_status.stdout|int == 1
+              delay: 2
+              retries: 30
+            
+            - name: check if the application pod is in running state
+              shell: >
+                kubectl get pod -n {{ app_ns.stdout }} --no-headers -o custom-columns=:.status.phase
+              args:
+                executable: /bin/bash
+              register: pod_status
+              until: "'Running' in pod_status.stdout"
+              delay: 10
+              retries: 30
+
