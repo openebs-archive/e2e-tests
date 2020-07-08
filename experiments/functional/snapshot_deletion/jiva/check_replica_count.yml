@@ -1,17 +1,9 @@
-- name: Get controller svc
-  shell: >
-    kubectl get svc -l openebs.io/controller-service=jiva-controller-svc,openebs.io/persistent-volume={{ pv_name }} 
-    -n {{ operator_ns }} --no-headers -o custom-columns=:spec.clusterIP
-  args:
-    executable: /bin/bash
-  register: controller_svc
-  failed_when: controller_svc.stdout == ""
-
+---
 - name: Get total replica count from controller
   vars:
     replicas_endpoint: "9501/v1/volumes"
   uri:
-    url: "http://{{ controller_svc.stdout }}:{{ replicas_endpoint }}"
+    url: "http://{{ controller_service }}:{{ replicas_endpoint }}"
     method: GET
     return_content: yes
     status_code: 200
@@ -20,14 +12,14 @@
     body_format: json
   register: json_response
   until: json_response.json.data[0].replicaCount == 3
-  retries: 10
-  delay: 5
+  retries: 15
+  delay: 10
 
 - name: Get rw replica status from controller
   vars:
     replicas_endpoint: "9501/v1/replicas"
   uri:
-    url: "http://{{ controller_svc.stdout }}:{{ replicas_endpoint }}"
+    url: "http://{{ controller_service }}:{{ replicas_endpoint }}"
     method: GET
     return_content: yes
     status_code: 200
