@@ -65,6 +65,39 @@
                 executable: /bin/bash
               register: snapshot_class_status
               failed_when: "snapshot_class not in snapshot_class_status.stdout"
+            
+            - name: Get the application deployment name
+              shell: >
+                 kubectl get deployment -n {{ app_ns }} -l {{ app_label }} --no-headers
+                 -o custom-columns=:.metadata.name
+              args:
+                executable: /bin/bash
+              register: app_deployment_name
+
+            - name: Get the replica count for application deployment
+              shell: >
+                kubectl get deployment {{ app_deployment_name.stdout }} -n {{ app_ns }} --no-headers
+                -o custom-columns=:.spec.replicas
+              args:
+                executable: /bin/bash
+              register: replica_count
+
+            - name: Scale down the application before taking the zfs vol-snapshot
+              shell: >
+                kubectl scale deployment/{{ app_deployment_name.stdout }} -n {{ app_ns }} --replicas=0
+              args:
+                executable: /bin/bash
+              
+            - name: Verify that modified replica count is zero
+              shell: >
+                kubectl get deployment {{ app_deployment_name.stdout }} -n {{ app_ns }} --no-headers
+                -o custom-columns=:.spec.replicas
+              args:
+                executable: /bin/bash
+              register: modify_replica_count
+              until: "modify_replica_count.stdout == \"0\""
+              delay: 2
+              retries: 20
 
             - name: create snapshot   
               shell: >
@@ -106,7 +139,24 @@
               until: "zfssnap_status.stdout == 'Ready'"
               delay: 5
               retries: 30
+
+            - name: Scale up the application deployment after taking zfs-volume-snapshot
+              shell: >
+                kubectl scale deployment/{{ app_deployment_name.stdout }} -n {{ app_ns }} --replicas={{ replica_count.stdout}}
+              args: 
+                executable: /bin/bash
               
+            - name: Verify that all the replicas are ready of application deployment
+              shell: > 
+                kubectl get deployment {{ app_deployment_name.stdout }} -n {{ app_ns }} --no-headers
+                -o custom-columns=:.status.readyReplicas
+              args:
+                executable: /bin/bash
+              register: ready_replica_count
+              until: ready_replica_count.stdout == replica_count.stdout
+              delay: 2
+              retries: 20
+
           when: action == 'provision' 
            
         - block:
