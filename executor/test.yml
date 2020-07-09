@@ -1,6 +1,7 @@
 ---
 - hosts: localhost
   connection: local
+  gather_facts: False
 
   vars:
     c_engine: "{{ lookup('env','CHAOSENGINE') }}"

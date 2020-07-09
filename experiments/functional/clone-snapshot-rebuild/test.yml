@@ -26,6 +26,7 @@
 
 - hosts: localhost
   connection: local
+  gather_facts: False
 
   vars_files:
     - test_vars.yml
