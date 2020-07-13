@@ -88,7 +88,9 @@
           args:
             executable: /bin/bash
           register: snap_list
-          failed_when: "snapshot_name not in snap_list.stdout"
+          until: "snapshot_name in snap_list.stdout"
+          delay: 5
+          retries: 30
           with_items:
             - "{{ pool_pods.results }}"
 
