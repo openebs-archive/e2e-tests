@@ -58,13 +58,13 @@
 
            - name: Patching openebs cstor csi-driver statefulset to allow volume remount
              shell: >
-               kubectl patch statefulset openebs-cstor-csi-controller -n kube-system --patch "$(cat patch.yml)"
+               kubectl patch statefulset openebs-cstor-csi-controller -n {{ operator_ns }} --patch "$(cat patch.yml)"
              register: patch_status
              failed_when: "'patched' not in patch_status.stdout"
 
            - name: Patching openebs cstor csi-driver daemonset to allow volume remount
              shell: >
-               kubectl patch daemonset openebs-cstor-csi-node -n kube-system --patch "$(cat patch.yml)"
+               kubectl patch daemonset openebs-cstor-csi-node -n {{ operator_ns }} --patch "$(cat patch.yml)"
              register: patch_status
              failed_when: "'patched' not in patch_status.stdout"
 
@@ -111,13 +111,13 @@
 
            - name: Patching openebs cstor csi-driver statefulset to allow volume remount
              shell: >
-               kubectl patch statefulset openebs-cstor-csi-controller -n kube-system --patch "$(cat patch.yml)"
+               kubectl patch statefulset openebs-cstor-csi-controller -n {{ operator_ns }} --patch "$(cat patch.yml)"
              register: patch_status
              failed_when: "'patched' not in patch_status.stdout"
 
            - name: Patching openebs cstor csi-driver daemonset to allow volume remount
              shell: >
-               kubectl patch daemonset openebs-cstor-csi-node -n kube-system --patch "$(cat patch.yml)"
+               kubectl patch daemonset openebs-cstor-csi-node -n {{ operator_ns }} --patch "$(cat patch.yml)"
              register: patch_status
              failed_when: "'patched' not in patch_status.stdout"
 
@@ -125,7 +125,7 @@
 
         - name: check if csi-controller pod is running
           shell: >
-            kubectl get pods -n kube-system -l app=openebs-cstor-csi-controller
+            kubectl get pods -n {{ operator_ns }} -l app=openebs-cstor-csi-controller
             --no-headers -o custom-columns=:status.phase
           args:
             executable: /bin/bash
@@ -136,7 +136,7 @@
 
         - name: Obtain the desired number of openebs-csi-node pods
           shell: >
-            kubectl get ds -n kube-system openebs-cstor-csi-node --no-headers
+            kubectl get ds -n {{ operator_ns }} openebs-cstor-csi-node --no-headers
             -o custom-columns=:status.desiredNumberScheduled
           args:
             executable: /bin/bash
@@ -144,7 +144,7 @@
 
         - name: Check if the desired count matches the ready pods
           command: >
-            kubectl get ds -n kube-system openebs-cstor-csi-node --no-headers
+            kubectl get ds -n {{ operator_ns }} openebs-cstor-csi-node --no-headers
             -o custom-columns=:status.numberReady
           args:
             executable: /bin/bash

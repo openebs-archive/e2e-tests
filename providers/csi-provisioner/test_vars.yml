@@ -15,3 +15,5 @@ node_os: "{{ lookup('env','NODE_OS') }}"
 image_tag: "{{ lookup('env','IMAGE_TAG') }}"
 
 snapshot_class: "{{ lookup('env','SNAPSHOT_CLASS') }}"
+
+operator_ns: "{{ lookup('env','OPERATOR_NS') }}"
