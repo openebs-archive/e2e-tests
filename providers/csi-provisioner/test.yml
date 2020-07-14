@@ -53,13 +53,6 @@
             dest: patch.yml
 
         # By default, volume mount is disabled. When it is enabled, the below patching tasks should be ignored.
-
-        - name: Patching openebs cstor csi-driver statefulset to allow volume remount
-          shell: >
-            kubectl patch statefulset openebs-cstor-csi-controller -n {{ operator_ns }} --patch "$(cat patch.yml)"
-          register: patch_status
-          failed_when: "'patched' not in patch_status.stdout"
-
         - name: Patching openebs cstor csi-driver daemonset to allow volume remount
           shell: >
             kubectl patch daemonset openebs-cstor-csi-node -n {{ operator_ns }} --patch "$(cat patch.yml)"
