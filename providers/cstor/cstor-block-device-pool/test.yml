@@ -35,115 +35,114 @@
                 regexp: "thickProvisioning: false"
                 replace: "thickProvisioning: true"
               when: "{{ lookup('env', 'THICK_PROVISIONING') }} == true"
+
+            - block: 
             
-            - block:
+                - block:
 
-              - name: Getting the Unclaimed block-device from each node when pool type is STRIPE
-                shell: kubectl get blockdevice -n openebs -l kubernetes.io/hostname={{ item }} -o jsonpath='{.items[?(@.status.claimState=="Unclaimed")].metadata.name}' | tr " " "\n" | grep -v sparse | head -n 1
-                register: blockDevice
-                with_items: "{{ nodes.stdout_lines }}"
+                  - name: Getting the Unclaimed block-device from each node when pool type is STRIPE
+                    shell: kubectl get blockdevice -n {{ operator_ns }} -l kubernetes.io/hostname={{ item }} -o jsonpath='{.items[?(@.status.claimState=="Unclaimed")].metadata.name}' | tr " " "\n" | grep -v sparse | head -n 1
+                    register: blockDevice
+                    with_items: "{{ nodes.stdout_lines }}"
 
-              - name: Initialize an empty list to store block device names
-                set_fact:
-                  bd_names: []
+                  - name: Initialize an empty list to store block device names
+                    set_fact:
+                      bd_names: []
 
-              - name: Store name of all block devices in the list 
-                set_fact:
-                  bd_names: "{{ bd_names + item.stdout_lines }}"
-                with_items:
-                  - "{{ blockDevice.results }}"
+                  - name: Store name of all block devices in the list 
+                    set_fact:
+                      bd_names: "{{ bd_names + item.stdout_lines }}"
+                    with_items:
+                      - "{{ blockDevice.results }}"
+                      
+                  - name: Adding discovered block device into SPC spec
+                    lineinfile:
+                      path: "./spc.yml"
+                      insertafter: 'blockDeviceList:'
+                      line: '    - {{ item }}'
+                    with_items: "{{ bd_names }}"
+        
+                  when: pool_type == "striped" 
+
+                - block:
+
+                  - name: Getting the Unclaimed block-devices from each node when pool type is MIRROR 
+                    shell: kubectl get blockdevice -n {{ operator_ns }} -l kubernetes.io/hostname={{ item }} -o jsonpath='{.items[?(@.status.claimState=="Unclaimed")].metadata.name}' | tr " " "\n" | grep -v sparse | head -n 2
+                    register: blockDevice
+                    with_items: "{{ nodes.stdout_lines }}" 
                   
-              - name: Adding discovered block device into SPC spec
-                lineinfile:
-                  path: "./spc.yml"
-                  insertafter: 'blockDeviceList:'
-                  line: '    - {{ item }}'
-                with_items: "{{ bd_names }}"
-    
-              when: pool_type == "striped" 
+                  - name: Initialize an empty list to store block device names
+                    set_fact:
+                      bd_names: []
 
-            - block:
+                  - name: Store name of all block devices in the list 
+                    set_fact:
+                      bd_names: "{{ bd_names + item.stdout_lines }}"
+                    with_items:
+                      - "{{ blockDevice.results }}"
+                  
+                  - name: Adding discovered block devices into SPC spec
+                    lineinfile:
+                      path: "./spc.yml"
+                      insertafter: 'blockDeviceList:'
+                      line: '    - {{ item }}'
+                    with_items: "{{ bd_names }}"
 
-              ## TODO : Obatin the blockDecice list with Inactive state also
+                  when: pool_type == "mirrored"
 
-              - name: Getting the Unclaimed block-devices from each node when pool type is MIRROR 
-                shell: kubectl get blockdevice -n openebs -l kubernetes.io/hostname={{ item }} -o jsonpath='{.items[?(@.status.claimState=="Unclaimed")].metadata.name}' | tr " " "\n" | grep -v sparse | head -n 2
-                register: blockDevice
-                with_items: "{{ nodes.stdout_lines }}" 
-              
-              - name: Initialize an empty list to store block device names
-                set_fact:
-                  bd_names: []
+                - block:
 
-              - name: Store name of all block devices in the list 
-                set_fact:
-                  bd_names: "{{ bd_names + item.stdout_lines }}"
-                with_items:
-                  - "{{ blockDevice.results }}"
-              
-              - name: Adding discovered block devices into SPC spec
-                lineinfile:
-                  path: "./spc.yml"
-                  insertafter: 'blockDeviceList:'
-                  line: '    - {{ item }}'
-                with_items: "{{ bd_names }}"
+                  - name: Getting the Unclaimed block-devices from each node when pool type is RAIDZ1
+                    shell: kubectl get blockdevice -n {{ operator_ns }} -l kubernetes.io/hostname={{ item }} -o jsonpath='{.items[?(@.status.claimState=="Unclaimed")].metadata.name}' | tr " " "\n" | grep -v sparse | head -n 3
+                    register: blockDevice
+                    with_items: "{{ nodes.stdout_lines }}"
 
-              when: pool_type == "mirrored"
+                  - name: Initialize an empty list to store block device names
+                    set_fact:
+                      bd_names: []
 
-            - block:
+                  - name: Store name of all block devices in the list
+                    set_fact:
+                      bd_names: "{{ bd_names + item.stdout_lines }}"
+                    with_items:
+                      - "{{ blockDevice.results }}"
 
-              - name: Getting the Unclaimed block-devices from each node when pool type is RAIDZ1
-                shell: kubectl get blockdevice -n openebs -l kubernetes.io/hostname={{ item }} -o jsonpath='{.items[?(@.status.claimState=="Unclaimed")].metadata.name}' | tr " " "\n" | grep -v sparse | head -n 3
-                register: blockDevice
-                with_items: "{{ nodes.stdout_lines }}"
+                  - name: Adding discovered block device into SPC spec
+                    lineinfile:
+                      path: "./spc.yml"
+                      insertafter: 'blockDeviceList:'
+                      line: '    - {{ item }}'
+                    with_items: "{{ bd_names }}"
 
-              - name: Initialize an empty list to store block device names
-                set_fact:
-                  bd_names: []
+                  when: pool_type == "raidz"
 
-              - name: Store name of all block devices in the list
-                set_fact:
-                  bd_names: "{{ bd_names + item.stdout_lines }}"
-                with_items:
-                  - "{{ blockDevice.results }}"
+                - block:
 
-              - name: Adding discovered block device into SPC spec
-                lineinfile:
-                  path: "./spc.yml"
-                  insertafter: 'blockDeviceList:'
-                  line: '    - {{ item }}'
-                with_items: "{{ bd_names }}"
+                  - name: Getting the Unclaimed block-device from each node when pool type is RAIDZ2
+                    shell: kubectl get blockdevice -n {{ operator_ns }} -l kubernetes.io/hostname={{ item }} -o jsonpath='{.items[?(@.status.claimState=="Unclaimed")].metadata.name}' | tr " " "\n" | grep -v sparse | head -n 6
+                    register: blockDevice
+                    with_items: "{{ nodes.stdout_lines }}"
 
-              when: pool_type == "raidz"
+                  - name: Initialize an empty list to store block device names
+                    set_fact:
+                      bd_names: []
 
-            - block:
+                  - name: Store name of all block devices in the list
+                    set_fact:
+                      bd_names: "{{ bd_names + item.stdout_lines }}"
+                    with_items:
+                      - "{{ blockDevice.results }}"
+                    
+                  - name: Adding discovered block device into SPC spec
+                    lineinfile:
+                      path: "./spc.yml"
+                      insertafter: 'blockDeviceList:'
+                      line: '    - {{ item }}'
+                    with_items: "{{ bd_names }}" 
+                  
+                  when: pool_type == "raidz2"  
 
-              - name: Getting the Unclaimed block-device from each node when pool type is RAIDZ2
-                shell: kubectl get blockdevice -n openebs -l kubernetes.io/hostname={{ item }} -o jsonpath='{.items[?(@.status.claimState=="Unclaimed")].metadata.name}' | tr " " "\n" | grep -v sparse | head -n 6
-                register: blockDevice
-                with_items: "{{ nodes.stdout_lines }}"
-
-              - name: Initialize an empty list to store block device names
-                set_fact:
-                  bd_names: []
-
-              - name: Store name of all block devices in the list
-                set_fact:
-                  bd_names: "{{ bd_names + item.stdout_lines }}"
-                with_items:
-                  - "{{ blockDevice.results }}"
-                
-              - name: Adding discovered block device into SPC spec
-                lineinfile:
-                  path: "./spc.yml"
-                  insertafter: 'blockDeviceList:'
-                  line: '    - {{ item }}'
-                with_items: "{{ bd_names }}" 
-              
-              when: pool_type == "raidz2"  
-
-            - set_fact:
-                device_count: "{{ blockDevice|length}}"  
+              when: "maxpool_count == '0'"
 
             - name: Replacing the pool name in SPC spec
               replace:
@@ -156,6 +155,7 @@
                 path: ./spc.yml
                 regexp: "maxpool-count"
                 replace: "{{ maxpool_count }}"
+              when: "maxpool_count != '0'"
 
             - name: Replacing the storage class name in SPC spec
               replace:
@@ -184,13 +184,6 @@
               retries: 30
               delay: 10
 
-            - name: Obtain the maxPool clount from spc
-              shell: >
-                kubectl get spc -o jsonpath='{.items[?(@.metadata.name=="{{ pool_name }}")].spec.maxPools}'
-              args:
-                executable: /bin/bash
-              register: maxPool_count
-
             - name: Get cStor Disk Pool names to verify the container statuses
               shell: >
                 kubectl get pods -n {{ operator_ns }} -l openebs.io/storage-pool-claim={{ pool_name }}
@@ -199,7 +192,7 @@
                 executable: /bin/bash
               register: cstor_pool_pod
 
-            - name: Get the runningStatus of pool pod
+            - name: Get the running status of pool pod containers
               shell: >
                 kubectl get pod {{ item }} -n {{ operator_ns }}
                 -o=jsonpath='{range .status.containerStatuses[*]}{.state}{"\n"}{end}' |
@@ -208,7 +201,7 @@
                 executable: /bin/bash
               register: runningStatusCount
               with_items: "{{ cstor_pool_pod.stdout_lines }}"
-              until: "runningStatusCount.stdout == device_count"
+              until: "runningStatusCount.stdout == '3'"
               delay: 30
               retries: 10
 

@@ -36,18 +36,22 @@ spec:
           - name: STORAGE_CLASS
             value: openebs-cstor-disk
 
+            ## Namespace where the openebs is deployed
           - name: OPERATOR_NS
             value: openebs
 
-          - name: DEVICE_CAPACITY
-            value: "20Gi"
-
+            # Maimum number of pool to be created
+            # If the value is set it will screate a pool according to that
+            # If the max pool value is set to '0' it will create pool on each node
           - name: SPC_MAXPOOL_COUNT
-            value: "3"
+            value: "0"
 
+            # To create a pool value is create
+            # To remove a pool valus is delete
           - name: DEPLOY_MODE
             value: create
 
+            # If want to disable the thick provisioning value must be 'false'
           - name: THICK_PROVISIONING
             value: "false"
         
