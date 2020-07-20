@@ -1,0 +1,54 @@
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: zfspv-shared-mount
+  namespace: litmus
+data:
+  parameters.yml: |
+
+---
+apiVersion: batch/v1
+kind: Job
+metadata:
+  generateName: zfspv-shared-mount-
+  namespace: litmus
+spec:
+  template:
+    metadata:
+      labels:
+        name: shared-mount-volume
+    spec:
+      serviceAccountName: litmus
+      restartPolicy: Never
+      containers:
+      - name: ansibletest
+        image: openebs/ansible-runner:ci
+        imagePullPolicy: IfNotPresent
+        env:
+          - name: ANSIBLE_STDOUT_CALLBACK
+            #value: log_plays  #value: actionable
+            value: default
+
+          - name: APP_NAMESPACE      ## Namespace in which application is deployed
+            value: '' 
+          
+          - name: APP_PVC            ## PVC name of the application
+            value: ''
+
+          - name: STORAGE_CLASS      ## Give the storage class supporting shared volume mount
+            value: ''
+
+          - name: DATA_PERSISTENCE   ## Give values according to the application
+            value: ''                ## For `Busybox` : `busybox`
+
+        command: ["/bin/bash"]
+        args: ["-c", "ansible-playbook ./experiments/functional/zfs-LocalPV/zfspv-shared-mount/test.yml -i /etc/ansible/hosts -vv; exit 0"]
+
+        volumeMounts:
+        - name: parameters
+          mountPath: /mnt/
+      volumes:
+        - name: parameters
+          configMap:
+            name: zfspv-shared-mount

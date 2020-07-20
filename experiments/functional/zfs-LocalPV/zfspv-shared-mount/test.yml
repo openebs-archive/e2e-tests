@@ -1,0 +1,142 @@
+- hosts: localhost
+  connection: local
+  gather_facts: False
+
+
+  vars_files:
+    - test_vars.yml
+    - /mnt/parameters.yml
+    
+  tasks:
+    - block:
+
+        ## Generating the testname for deployment
+        - include_tasks: /utils/fcm/create_testname.yml
+
+        ## RECORD START-OF-TEST IN LITMUS RESULT CR
+        - include_tasks: "/utils/fcm/update_litmus_result_resource.yml"
+          vars:
+            status: 'SOT'
+        
+        - block: 
+           
+            - name: Create application namespace
+              shell: >
+                kubectl create ns {{ app_ns }}
+              args:
+                executable: /bin/bash
+
+            - name: Update the busybox application template with test specific values
+              template:
+                src: busybox_share.j2
+                dest: busybox_share.yml
+
+            - name: Deploy the busybox application using above storage-class
+              shell: >
+                kubectl apply -f busybox_share.yml
+              args:
+                executable: /bin/bash
+
+            - name: Check the pvc status
+              shell: >
+                kubectl get pvc -n {{ app_ns }} --no-headers -o custom-columns=:.status.phase
+              args:
+                executable: /bin/bash
+              register: pvc_status
+              until: pvc_status.stdout == 'Bound'
+              delay: 2
+              retries: 20
+
+            - name: Get the application deployment name
+              shell: >
+                kubectl get deploy -n {{ app_ns }} --no-headers -o custom-columns=:.metadata.name
+              args:
+                executable: /bin/bash
+              register: app_deploy_name
+
+            - name: Get the application pod name
+              shell: >
+                kubectl get pod -n {{ app_ns }} -l app=shared-mount --no-headers -o custom-columns=:.metadata.name
+              args:
+                executable: /bin/bash
+              register: app_pod_name
+
+            - name: Check if the application pod is running
+              shell: >
+                kubectl get pod {{ app_pod_name.stdout }} -n {{ app_ns }} --no-headers -o custom-columns=:.status.phase
+              args:
+                executable: /bin/bash
+              register: app_pod_status
+              until: "app_pod_status.stdout == 'Running'"
+              delay: 3
+              retries: 30
+
+            - name: Create some test data into the application pod
+              include_tasks: "/utils/scm/applications/busybox/busybox_data_persistence.yml"
+              vars:
+                status: 'LOAD'
+                ns: "{{ app_ns }}"
+                pod_name: "{{ app_pod_name.stdout }}"
+
+            - name: Scale the deployment replicas to use shared mount volume by multiple pods
+              shell: >
+                kubectl scale deploy/{{ app_deploy_name.stdout }} -n {{ app_ns }} --replicas=2
+              args:
+                executable: /bin/bash
+
+            - name: Check the no of replicas in deployment spec
+              shell: >
+                kubectl get deploy/{{ app_deploy_name.stdout }} -n {{ app_ns }} --no-headers
+                -o custom-columns=:.status.readyReplicas
+              args: 
+                executable: /bin/bash
+              register: replica_count
+              until: "replica_count.stdout == '2'"
+
+            - name: Get the new application pod name after scaling the deployment replicas
+              shell: >
+                kubectl get pod -n {{ app_ns }} -l app=shared-mount --no-headers
+                -o custom-columns=:.metadata.name | grep -v {{ app_pod_name.stdout }}
+              args:
+                executable: /bin/bash
+              register: scaled_app_pod_name
+
+            - name: Check the container-status of the new application pod
+              shell: >
+                kubectl get pod {{ scaled_app_pod_name.stdout }} -n {{ app_ns }} --no-headers
+                -o jsonpath='{.status.containerStatuses[].state}' | grep running
+              args:
+                executable: /bin/bash
+              register: containerStatus
+              until: "'running' in containerStatus.stdout"
+              delay: 2
+              retries: 50
+
+            - name: Label the scaled application pod
+              shell: >
+                kubectl label pod {{ scaled_app_pod_name.stdout }} -n {{ app_ns }} share=mount
+              args:
+                executable: /bin/bash
+
+            - name: Verify if the shared volume data is accessible from both the application pods
+              include_tasks: "/utils/scm/applications/busybox/busybox_data_persistence.yml"
+              vars:
+                status: 'VERIFY'
+                ns: "{{ app_ns }}"
+                label: share=mount
+                pod_name: "{{ app_pod_name.stdout }}"
+
+        - set_fact:
+            flag: "Pass"
+      
+      rescue:
+        - set_fact:
+            flag: "Fail"
+      
+      always:
+        ## RECORD END-OF-TEST IN LITMUS RESULT CR
+        - include_tasks: /utils/fcm/update_litmus_result_resource.yml
+          vars:
+            status: 'EOT'
+
+              
