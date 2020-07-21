@@ -39,8 +39,14 @@ spec:
           - name: STORAGE_CLASS      ## Give the storage class supporting shared volume mount
             value: ''
 
+          - name: OPERATOR_NAMESPACE ## Namespace in which all the resources created by zfs driver will be present
+            value: ''                ## for e.g. zfsvolume (zv) will be in this namespace
+
           - name: DATA_PERSISTENCE   ## Give values according to the application
             value: ''                ## For `Busybox` : `busybox`
+
+          - name: ACTION             ## `provision` OR `deprovision`
+            value: ''
 
         command: ["/bin/bash"]
         args: ["-c", "ansible-playbook ./experiments/functional/zfs-LocalPV/zfspv-shared-mount/test.yml -i /etc/ansible/hosts -vv; exit 0"]

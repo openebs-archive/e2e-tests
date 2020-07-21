@@ -178,6 +178,57 @@
                 ns: "{{ app_ns }}"
                 label: name=previous-pod
                 pod_name: "{{ scaled_app_pod_name.stdout }}"
+          
+          when: action == 'provision'
+
+        - block: 
+
+          - name: Get the zvolume name from the pvc name
+            shell: >
+              kubectl get pvc {{ app_pvc }} -n {{ app_ns }} -o jsonpath='{.spec.volumeName}'
+            args:
+              executable: /bin/bash
+            register: zvol_name
+
+          - name: Update the busybox deployment template with test specific values
+            template:
+              src: busybox_share.j2
+              dest: busybox_share.yml
+
+          - name: Delete the application deployment
+            shell: >
+              kubectl delete -f busybox_share.yml
+            args:
+              executable: /bin/bash
+            register: status
+            
+          - name: Verify that application pods have been deleted successfully
+            shell: >
+              kubectl get pods -n {{ app_ns }}
+            args:
+              executable: /bin/bash
+            register: app_pod_status
+            failed_when: "'No resources found' in app_pod_status.stdout"
+          
+          - name: Verify the successful deletion of pvc in {{ app_ns }} namespaces
+            shell: >
+              kubectl get pvc -n {{ app_ns }}
+            args: 
+              executable: /bin/bash
+            register: pvc_status
+            failed_when: "app_pvc in pvc_status.stdout"
+
+          - name: Verify the successful deletion of zvolume
+            shell: >
+              kubectl get zv -n {{ operator_ns }}
+            args:
+              executable: /bin/bash
+            register: zv_status
+            until: "zvol_name.stdout not in zv_status.stdout"
+            delay: 3
+            retries: 30
+
+          when: action == 'deprovision'
                 
         - set_fact:
             flag: "Pass"
