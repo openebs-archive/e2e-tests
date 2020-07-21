@@ -133,7 +133,7 @@
             - name: Delete the dumped data files from scaled application pod
               shell: >
                 kubectl exec -ti {{ scaled_app_pod_name.stdout }} -n {{ app_ns }} -- sh -c
-                'rm -f /busybox/*'
+                'rm -rf /busybox/*'
               args:
                 executable: /bin/bash
               register: status
@@ -157,6 +157,16 @@
               shell: >
                 kubectl label pod {{ app_pod_name.stdout }} -n {{ app_ns }} name=previous-pod
               args: 
+                executable: /bin/bash
+              register: status
+              failed_when: "status.rc != 0"
+             
+              ## To keep the application pod label and deployment label same we label the deployment as well
+              ## This will help in filtering while running volume-snapshot test.
+            - name: Label the application deployment
+              shell: >
+                kubectl label deploy/{{ app_deploy_name.stdout }} -n {{ app_ns }} name=previous-pod
+              args:
                 executable: /bin/bash
               register: status
               failed_when: "status.rc != 0"
