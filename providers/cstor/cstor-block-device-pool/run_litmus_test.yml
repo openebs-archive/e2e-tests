@@ -40,8 +40,8 @@ spec:
           - name: OPERATOR_NS
             value: openebs
 
-            # Maimum number of pool to be created
-            # If the value is set it will screate a pool according to that
+            # Maximum number of pool to be created
+            # If the value is set it will create a pool according to that
             # If the max pool value is set to '0' it will create pool on each node
           - name: SPC_MAXPOOL_COUNT
             value: "0"
