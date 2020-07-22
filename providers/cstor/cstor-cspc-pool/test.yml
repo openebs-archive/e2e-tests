@@ -178,6 +178,24 @@
 
         - block:
 
+            - name: Obtain the CSPI list to verify the existence of replicas
+              shell: 
+                 kubectl get cspi -n {{ operator_ns }} -l openebs.io/cstor-pool-cluster={{ pool_name }} 
+                 -o custom-columns=:.metadata.name --no-headers
+              args:
+                executable: /bin/bash
+              register: cspi_list
+               
+            - name: Verify if the replicas are removed
+              shell: >
+                 kubectl get cspi -n {{ operator_ns }} {{ item }}
+                 -o custom-columns=:.status.provisionedReplicas --no-headers
+              args:
+                executable: /bin/bash
+              register: cspi_rep_status
+              with_items: "{{ cspi_list.stdout_lines }}"
+              failed_when: "cspi_rep_status.stdout != '0'"
+               
             - name: Remove the CStor Pool Cluster
               shell: >
                 kubectl delete cspc {{ pool_name }} -n {{ operator_ns }}
