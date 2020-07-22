@@ -17,29 +17,6 @@
           vars:
             status: 'SOT'
 
-        - name: Obtain the list of nodes
-          shell: kubectl get nodes --no-headers | grep -v master | awk '{print $1}'
-          args:
-            executable: /bin/bash
-          register: nodes
-
-        - name: Getting the Unclaimed block-device from each node
-          shell: >
-            kubectl get blockdevice -n {{ operator_ns }} -l kubernetes.io/hostname={{ item }}
-            -o jsonpath='{.items[?(@.status.claimState=="Unclaimed")].metadata.name}' | tr " " "\n" | head -n 1
-          register: blockDevice
-          with_items:
-            - "{{ nodes.stdout_lines }}"
-
-        - name: Label the selected block devices
-          shell: >
-            kubectl label bd -n "{{ operator_ns }}" "{{ item.stdout }}" openebs.io/block-device-tag="{{ device_tag }}"
-          args:
-            executable: /bin/bash
-          register: bd_result
-          with_items:
-            - "{{ blockDevice.results }}"
-
         - name: Forming storage class manifest from template
           template:
             src: storage_class.j2
@@ -64,34 +41,126 @@
           register: ns_status
           failed_when: ns_status.rc != 0
 
-        - name: Deploying application
-          shell: kubectl apply -f percona.yml -n "{{ namespace }}"
-          args:
-            executable: /bin/bash
-          register: app_status
-          failed_when: "app_status.rc != 0"
+        - block:
 
-        - name: Check if the PVC is bound
-          shell: >
-            kubectl get pvc -n {{ namespace }} {{ pvc_name }} --no-headers
-            -o custom-columns=:status.phase
-          args:
-            executable: /bin/bash
-          register: pvc_status
-          until: "'Bound' in pvc_status.stdout"
-          delay: 10
-          retries: 20
+          - name: Obtain the list of nodes
+            shell: kubectl get nodes --no-headers | grep -v master | awk '{print $1}'
+            args:
+              executable: /bin/bash
+            register: nodes
 
-        - name: Check if the application is running
-          shell: >
-            kubectl get pods -n {{ namespace }} -l name=percona 
-            --no-headers -o custom-columns=:status.phase
-          args:
-            executable: /bin/bash
-          register: app_state
-          until: "'Running' in app_state.stdout"
-          delay: 5
-          retries: 50
+          - name: Getting the Unclaimed block-device from each node
+            shell: >
+              kubectl get blockdevice -n {{ operator_ns }} -l kubernetes.io/hostname={{ item }},openebs\.io/block-device-tag!={{ device_tag }}
+              -o jsonpath='{.items[?(@.status.claimState=="Unclaimed")].metadata.name}' | tr " " "\n" | head -n 1
+            register: blockDevice
+            with_items:
+              - "{{ nodes.stdout_lines }}"
+
+          - name: Label the selected block devices
+            shell: >
+              kubectl label bd -n "{{ operator_ns }}" "{{ item.stdout }}" openebs.io/block-device-tag="{{ device_tag }}"
+            args:
+              executable: /bin/bash
+            register: bd_result
+            with_items:
+              - "{{ blockDevice.results }}"
+
+          - name: Deploying application
+            shell: kubectl apply -f percona.yml -n "{{ namespace }}"
+            args:
+              executable: /bin/bash
+            register: app_status
+            failed_when: "app_status.rc != 0"
+
+          - name: Check if the PVC is bound
+            shell: >
+              kubectl get pvc -n {{ namespace }} {{ pvc_name }} --no-headers
+              -o custom-columns=:status.phase
+            args:
+              executable: /bin/bash
+            register: pvc_status
+            until: "'Bound' in pvc_status.stdout"
+            delay: 2
+            retries: 30
+
+          - name: Check if the application is running
+            shell: >
+              kubectl get pods -n {{ namespace }} -l name=percona 
+              --no-headers -o custom-columns=:status.phase
+            args:
+              executable: /bin/bash
+            register: app_state
+            until: "'Running' in app_state.stdout"
+            delay: 5
+            retries: 50
+          
+          when: test_case_type == 'positive'
+
+        - block:
+
+          - name: Obtain the list of nodes
+            shell: kubectl get nodes --no-headers | grep -v master | awk '{print $1}'
+            args:
+              executable: /bin/bash
+            register: nodes
+
+          - name: Getting the Unclaimed block-device from each node
+            shell: >
+              kubectl get blockdevice -n {{ operator_ns }} -l kubernetes.io/hostname={{ item }},openebs\.io/block-device-tag!={{ device_tag }}
+              -o jsonpath='{.items[?(@.status.claimState=="Unclaimed")].metadata.name}' | tr " " "\n" | head -n 1
+            register: blockDevice
+            with_items:
+              - "{{ nodes.stdout_lines }}"
+
+          - name: Deploying application
+            shell: kubectl apply -f percona.yml -n "{{ namespace }}"
+            args:
+              executable: /bin/bash
+            register: app_status
+            failed_when: "app_status.rc != 0"
+
+          - name: Check if the PVC is in pending state
+            shell: >
+              kubectl get pvc -n {{ namespace }} {{ pvc_name }} --no-headers
+              -o custom-columns=:status.phase
+            args:
+              executable: /bin/bash
+            register: pvc_status
+            failed_when: "'Pending' not in pvc_status.stdout"
+
+          - name: Label the selected block devices
+            shell: >
+              kubectl label bd -n "{{ operator_ns }}" "{{ item.stdout }}" openebs.io/block-device-tag="{{ device_tag }}"
+            args:
+              executable: /bin/bash
+            register: bd_result
+            with_items:
+              - "{{ blockDevice.results }}"
+
+          - name: Check if the PVC is in Bound
+            shell: >
+              kubectl get pvc -n {{ namespace }} {{ pvc_name }} --no-headers
+              -o custom-columns=:status.phase
+            args:
+              executable: /bin/bash
+            register: pvc_status
+            until: "'Bound' in pvc_status.stdout"
+            delay: 2
+            retries: 30
+
+          - name: Check if the application is running
+            shell: >
+              kubectl get pods -n {{ namespace }} -l name=percona 
+              --no-headers -o custom-columns=:status.phase
+            args:
+              executable: /bin/bash
+            register: app_state
+            until: "'Running' in app_state.stdout"
+            delay: 5
+            retries: 50
+          
+          when: test_case_type == 'negative'
 
         - name: Getting PV name from PVC
           shell: >
