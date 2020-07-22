@@ -106,7 +106,7 @@
               args:
                 executable: /bin/bash
               register: app_pod_status
-              until: "app_pod_name.stdout not in app_pod_status.stdout"
+              until: "'No resources found' in app_pod_status.stdout"
               delay: 2
               retries: 20
 
