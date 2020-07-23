@@ -24,7 +24,7 @@ spec:
             #value: log_plays, actionable, default
             value: default
 
-            # Provide name POOL_NAME for the cstor-pool [SPC NAME]
+            # Provide name POOL_NAME for the cstor-pool 
           - name: POOL_NAME
             value: cstor-sparse-pool
 
