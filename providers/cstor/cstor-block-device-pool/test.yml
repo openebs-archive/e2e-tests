@@ -150,11 +150,20 @@
                 regexp: "pool-name"
                 replace: "{{ pool_name }}"
 
-            - name: Replacing the maxPool count in SPC spec
-              replace:
-                path: ./spc.yml
-                regexp: "maxpool-count"
-                replace: "{{ maxpool_count }}"
+            - block: 
+
+                - name: Inserting the maxpool count in spc spec
+                  lineinfile:
+                    path: ./spc.yml
+                    insertafter: 'type: disk'
+                    line: "  maxPools: maxpool-count"
+
+                - name: Replacing the maxPool count value in SPC spec
+                  replace:
+                    path: ./spc.yml
+                    regexp: "maxpool-count"
+                    replace: "{{ maxpool_count }}"
+
               when: "maxpool_count != '0'"
 
             - name: Replacing the storage class name in SPC spec
