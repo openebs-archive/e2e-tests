@@ -1,0 +1,49 @@
+---
+apiVersion: batch/v1
+kind: Job
+metadata:
+  generateName: cstor-cspc-pool-provision-
+  namespace: litmus
+spec:
+  template:
+    metadata:
+      name: litmus
+      labels:
+        app: cstor-cspc-pool-provision
+    spec:
+      serviceAccountName: litmus
+      restartPolicy: Never
+      containers:
+      - name: ansibletest
+        image: openebs/ansible-runner:ci
+        imagePullPolicy: IfNotPresent
+
+        env:
+          - name: ANSIBLE_STDOUT_CALLBACK
+            #value: log_plays, actionable, default
+            value: default
+
+            # Provide name POOL_NAME for the cstor-pool
+          - name: POOL_NAME
+            value: cstor-cspc-disk-pool
+
+           # Provide the value for POOL_TYPE 
+           # stripe, mirror, raidz, raidz2
+          - name: POOL_TYPE
+            value: stripe
+
+           # Namespace where the OpenEBS components are deployed
+          - name: OPERATOR_NS
+            value: openebs
+
+           # For creating pools value is "create"
+           # For removing cstor pools value is "delete"
+          - name: DEPLOY_MODE
+            value: create
+
+           # Pool count to create the required number of pools
+          - name: POOL_COUNT
+            value: '3'
+
+        command: ["/bin/bash"]
+        args: ["-c", "ansible-playbook ./experiments/functional/cspc-pool/block-creation-with-claimed-bd/test.yml -i /etc/ansible/hosts -v; exit 0"]
