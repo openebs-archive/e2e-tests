@@ -89,3 +89,36 @@ allowVolumeExpansion: true
 parameters:
   poolname: "{{ pool_name }}"
 provisioner: zfs.csi.openebs.io
+
+---
+apiVersion: storage.k8s.io/v1
+kind: StorageClass
+metadata:
+  name: "{{ storage_class }}-zfs-shared"
+parameters:
+  shared: "yes"
+  fstype: "zfs"
+  poolname: "{{ pool_name }}"
+provisioner: zfs.csi.openebs.io
+
+---
+apiVersion: storage.k8s.io/v1
+kind: StorageClass
+metadata:
+  name: "{{ storage_class }}-xfs-shared"
+parameters:
+  shared: "yes"
+  fstype: "xfs"
+  poolname: "{{ pool_name }}"
+provisioner: zfs.csi.openebs.io
+
+---
+apiVersion: storage.k8s.io/v1
+kind: StorageClass
+metadata:
+  name: "{{ storage_class }}-ext4-shared"
+parameters:
+  shared: "yes"
+  fstype: "ext4"
+  poolname: "{{ pool_name }}"
+provisioner: zfs.csi.openebs.io
