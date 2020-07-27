@@ -22,4 +22,4 @@ Note: For running this experiment above storage-class should be present. This st
 1. First deploy the busybox application using `shared: yes` enabled storage-class
 2. Then we dump some dummy data into the application pod mount point.
 3. Scale the busybox deployment replicas so that multiple pods (here replicas = 2) can share the volume.
-4. After that data consistencty is verified from the scaled application pod in the way that data is accessible from both the pods and after restarting the application pod data consistency should be maintained.
+4. After that data consistency is verified from the scaled application pod in the way that data is accessible from both the pods and after restarting the application pod data consistency should be maintained.
