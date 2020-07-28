@@ -148,13 +148,13 @@
           args:
             executable: /bin/bash
           register: cspc_name
-          until: "pool_name in cspc_name.stdout"
+          until: "cspc_pool_name in cspc_name.stdout"
           delay: 30
           retries: 10
 
         - name: Verify the status of CSPI
           shell: >
-            kubectl get cspi -n {{ operator_ns}} -l openebs.io/cstor-pool-cluster={{ cspc_pool_name }}
+            kubectl get cspi -n {{ operator_ns }} -l openebs.io/cstor-pool-cluster={{ cspc_pool_name }}
             -o custom-columns=:.status.phase --no-headers
           args:
             executable: /bin/bash
@@ -165,7 +165,7 @@
 
         - name: Obtain the CSPI name to verify the status
           shell: >
-            kubectl get cspi -n {{ operator_ns}} -l openebs.io/cstor-pool-cluster={{ cspc_pool_name }}
+            kubectl get cspi -n {{ operator_ns }} -l openebs.io/cstor-pool-cluster={{ cspc_pool_name }}
             -o custom-columns=:.metadata.name --no-headers
           args:
             executable: /bin/bash
@@ -183,7 +183,15 @@
           retries: 30
           delay: 10
 
-        - name: Get the runningStatus of pool pod
+        - name: Get cStor Pool pod names to verify the container statuses.
+          shell: >
+            kubectl get pods -n {{ operator_ns }} -l openebs.io/cstor-pool-cluster={{ cspc_pool_name }}
+            --no-headers -o=custom-columns=NAME:".metadata.name"
+          args:
+            executable: /bin/bash
+          register: cstor_pool_pod
+
+        - name: Get the runningStatus of pool pod containers
           shell: >
             kubectl get pod {{ item }} -n {{ operator_ns }}
             -o=jsonpath='{range .status.containerStatuses[*]}{.state}{"\n"}{end}' |
@@ -192,7 +200,7 @@
             executable: /bin/bash
           register: runningStatusCount
           with_items: "{{ cstor_pool_pod.stdout_lines }}"
-          until: "runningStatusCount.stdout == 3"
+          until: "runningStatusCount.stdout == '3'"
           delay: 30
           retries: 10
             
