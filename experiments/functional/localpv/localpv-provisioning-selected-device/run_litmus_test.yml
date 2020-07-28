@@ -36,5 +36,11 @@ spec:
           - name: PVC
             value: ''
 
+            ## In positive case type first blockdevice is labeled and then pv is created
+            ## In negative case type first pv creation is done, pvc remains in pending state
+            ## and then we label the blockdevice. In this way successful reconcilation is verified.
+          - name: TEST_CASE_TYPE      ## `positive` OR `negative`
+            value: ''
+
         command: ["/bin/bash"]
         args: ["-c", "ansible-playbook ./experiments/functional/localpv/localpv-provisioning-selected-device/test.yml -i /etc/ansible/hosts -v; exit 0"]
