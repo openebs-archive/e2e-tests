@@ -1,7 +1,7 @@
 ## Test Case to validate the deletion of cspc pool is blocked if the pool has volumes.
 
 ## Description
-   - This test case is capable of validate the pool deletion is blocked if the volumes are present in the pool
+   - This test case is capable of validating if the pool deletion is blocked when it has volumes.
    - This test constitutes the below files.
      - test_vars.yml - This test_vars file has the list of test specific variables used in LitmusBook.
      - test.yml - Playbook where the test logic is built to validate the cspc pool deletion.

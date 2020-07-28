@@ -17,7 +17,7 @@
           vars:
             status: 'SOT'
 
-        - name: Check the application is in running status
+        - name: Check if the application is in running status
           shell: >
             kubectl get pods -n {{ app_ns }} -l {{ app_label }} --no-headers
             -o custom-columns=:status.phase
@@ -35,16 +35,13 @@
           register: pv
           failed_when: 'pv.stdout == ""'
 
-        - name: Check if the CVRs are in healthy state
+        - name: Check if the CVRs status before deleting the pool
           shell: >
             kubectl get cvr -n {{ operator_ns }} -l openebs.io/persistent-volume={{ pv.stdout }}
             -o custom-columns=:.status.phase --no-headers
           args:
             executable: /bin/bash
           register: cvr_status
-          until: "((cvr_status.stdout_lines|unique)|length) == 1 and 'Healthy' in cvr_status.stdout"
-          retries: 12
-          delay: 5
 
         - name: Obtain the cspi name from the volume replicas
           shell: >
@@ -72,7 +69,7 @@
           args:
             executable: /bin/bash
           register: cspc_status
-          failed_when: "'deleted' in cspc_status.stdout"
+          failed_when: "'volume still exists on pool' not in cspc_status.stderr"
 
         - name: Check the status of CStorPoolInstance
           shell: >
