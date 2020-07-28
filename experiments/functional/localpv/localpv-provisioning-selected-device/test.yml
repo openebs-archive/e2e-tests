@@ -120,6 +120,19 @@
             register: app_status
             failed_when: "app_status.rc != 0"
 
+          - name: Get the application pod name
+            shell: kubectl get pod -n {{ namespace }} -l name=percona --no-headers -o custom-columns=:.metadata.name
+            args:
+              executable: /bin/bash
+            register: app_pod_name
+
+          - name: Check the application pod status
+            shell: kubectl get pod -n {{ namespace }} -l name=percona --no-headers -o custom-columns=:.status.phase
+            args: 
+              executable: /bin/bash
+            register: app_pod_status
+            failed_when: "'Pending' not in app_pod_status.stdout"
+
           - name: Check if the PVC is in pending state
             shell: >
               kubectl get pvc -n {{ namespace }} {{ pvc_name }} --no-headers
@@ -138,7 +151,7 @@
             with_items:
               - "{{ blockDevice.results }}"
 
-          - name: Check if the PVC is in Bound
+          - name: Check if the PVC is in Bound state
             shell: >
               kubectl get pvc -n {{ namespace }} {{ pvc_name }} --no-headers
               -o custom-columns=:status.phase
