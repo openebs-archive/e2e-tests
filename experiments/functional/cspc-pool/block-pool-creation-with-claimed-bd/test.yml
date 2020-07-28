@@ -74,12 +74,6 @@
             regexp: "pool-type"
             replace: "{{ pool_type }}"
 
-        - name: Replacing the storage class name in CSPC spec
-          replace:
-            path: ./cspc.yml
-            regexp: "sc-name"
-            replace: "{{ sc_name }}"
-
         - name: Display cspc.yml for verification
           debug: var=item
           with_file:
@@ -90,7 +84,7 @@
           args:
             executable: /bin/bash
           register: cspc_status
-          failed_when: "'created' in cspc_status.stdout_lines"
+          failed_when: "'use claimed blockdevice' not in cspc_status.stderr and cspc_status.rc == 0"
  
         - set_fact:
             flag: "Pass"

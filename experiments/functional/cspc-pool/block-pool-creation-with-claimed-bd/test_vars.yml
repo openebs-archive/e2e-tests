@@ -1,9 +1,8 @@
 # Test-specific parameters
 operator_ns: "{{ lookup('env','OPERATOR_NS') }}"
-test_name: cstor-pool-provision
+test_name: block-pool-creation-with-claimed-bd
 pool_name: "{{ lookup('env','POOL_NAME') }}"
 pool_type: "{{ lookup('env','POOL_TYPE') }}"
-deploy_mode: "{{ lookup('env','DEPLOY_MODE') }}"
 pool_count: "{{ lookup('env','POOL_COUNT') }}"
 
 bd_count:
