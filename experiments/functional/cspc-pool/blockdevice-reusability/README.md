@@ -2,7 +2,8 @@
 
 ## Description
    - This test is capable of validate the blockdevice reusability. 
-   - First it will get the list of blockdevices used for SPC pool and then delete the SPC pool and the same blockdevices used for creating the cspc pool
+   - First it will get the list of blockdevices used for existing SPC pool or the CSPC pool
+   - And then delete the SPC pool and CSPC pool then the same blockdevices obtained from existing SPC and CSPC pool used for creating the new cspc pool.
    - This test constitutes the below files.
      - test_vars.yml - This test_vars file has the list of test specific variables used in this test case.
      - test.yml - Playbook where the test logic is to validate the blockdevice reusability.
