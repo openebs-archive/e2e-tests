@@ -110,12 +110,6 @@
               delay: 2
               retries: 20
 
-              ## As we are checking the status of only one pod if is terminated successfully
-              ## but in case of shared mount support other pods may not be terminate at the same time
-              ## to avoid such condition here we have manual wait for 30 seconds.
-            - name: Manual wait for some time
-              shell: sleep 30
-
             - name: create snapshot   
               shell: >
                 kubectl create -f snapshot.yml
