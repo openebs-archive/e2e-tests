@@ -123,6 +123,7 @@
          include: "{{ replica_restart_yml }}"
          vars:
            controller_service: "{{ controller_svc.stdout }}"
+           action: "{{ lookup('env','REPLICA_RESTART') }}"
          with_items: "{{ iterator.stdout_lines }}"
 
        - name: Include replica count test

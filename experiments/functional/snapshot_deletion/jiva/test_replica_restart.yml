@@ -1,46 +1,66 @@
-# - name: Get the name of replica pods
-#   shell: >
-#     kubectl get pods -l openebs.io/replica=jiva-replica,openebs.io/persistent-volume={{ pv_name }} -n {{ operator_ns }} --sort-by=.metadata.creationTimestamp -o jsonpath='{range .items[*]}{.metadata.name}{"\n"}{end}}'
-#   args:
-#     executable: /bin/bash
-#   register: replica_pod
+- block:
 
-# - name: Set the replica pod name to variable based on latest creation timestamp
-#   set_fact:
-#     replica_name: "{{ replica_pod.stdout_lines[2].split()[0] }}"
+   - name: Get the name of replica pods
+     shell: >
+       kubectl get pods -l openebs.io/replica=jiva-replica,openebs.io/persistent-volume={{ pv_name }} -n {{ operator_ns }} --sort-by=.metadata.creationTimestamp -o jsonpath='{range .items[*]}{.metadata.name}{"\n"}{end}}'
+     args:
+       executable: /bin/bash
+     register: replica_pod_name
 
-- name: Get replica json response from controller
-  vars:
-    replicas_endpoint: "9501/v1/replicas"
-  uri:
-    url: "http://{{ controller_service }}:{{ replicas_endpoint }}"
-    method: GET
-    return_content: yes
-    status_code: 200
-    headers:
-      Content-Type: "application/json"
-    body_format: json
-  register: json_response
+   - name: Set the replica pod name to variable based on latest creation timestamp
+     set_fact:
+       replica_pod: "{{ replica_pod_name.stdout_lines[2].split()[0] }}"
 
-- name: Set master replica ip
-  set_fact:
-          replica_ip: "{{ json_response.json.data[0].address | regex_replace('tcp://') | regex_replace(':9502') }}"
+   - name: Delete random replica
+     shell: >
+       kubectl delete pod {{ replica_pod.stdout }} -n {{ operator_ns }}
+     args:
+       executable: /bin/bash
 
-- debug:
-    var: "replica_ip"
+   # Pausing replica to distribute the data among the new snapshots
+   # created after the restarts
+   - name: Pause for some time for a new replica to come up
+     pause:
+       minutes: 1
 
-- name: Getting the master replica pod name corresponding to the IP
-  shell: kubectl get pod -l openebs.io/replica=jiva-replica,openebs.io/persistent-volume={{ pv_name }} -n {{ operator_ns }} --no-headers -o jsonpath='{.items[?(@.status.podIP=="{{ replica_ip }}")].metadata.name}'
-  register: replica_name
+  when: action == "RANDOM"
 
-- name: Delete master replica
-  shell: >
-    kubectl delete pod {{ replica_name.stdout }} -n {{ operator_ns }}
-  args:
-    executable: /bin/bash
+- block:
 
-# Pausing replica to distribute the data among the new snapshots
-# created after the restarts
-- name: Pause for some time for a new replica to come up
-  pause:
-    minutes: 1
+   - name: Get replica json response from controller
+     vars:
+       replicas_endpoint: "9501/v1/replicas"
+     uri:
+       url: "http://{{ controller_service }}:{{ replicas_endpoint }}"
+       method: GET
+       return_content: yes
+       status_code: 200
+       headers:
+         Content-Type: "application/json"
+       body_format: json
+     register: json_response
+
+   - name: Set master replica ip
+     set_fact:
+             replica_ip: "{{ json_response.json.data[0].address | regex_replace('tcp://') | regex_replace(':9502') }}"
+
+   - debug:
+       var: "replica_ip"
+
+   - name: Getting the master replica pod name corresponding to the IP
+     shell: kubectl get pod -l openebs.io/replica=jiva-replica,openebs.io/persistent-volume={{ pv_name }} -n {{ operator_ns }} --no-headers -o jsonpath='{.items[?(@.status.podIP=="{{ replica_ip }}")].metadata.name}'
+     register: replica_name
+
+   - name: Delete master replica
+     shell: >
+       kubectl delete pod {{ replica_name.stdout }} -n {{ operator_ns }}
+     args:
+       executable: /bin/bash
+
+   # Pausing replica to distribute the data among the new snapshots
+   # created after the restarts
+   - name: Pause for some time for a new replica to come up
+     pause:
+       minutes: 1
+
+  when: action == "LEADER"
