@@ -2,14 +2,14 @@
 apiVersion: batch/v1
 kind: Job
 metadata:
-  generateName: block-pool-creation-with-claimed-bd-
+  generateName: cstor-pool-creation-with-claimed-bd-
   namespace: litmus
 spec:
   template:
     metadata:
       name: litmus
       labels:
-        app: block-pool-creation-with-claimed-bd
+        app: cstor-pool-creation-with-claimed-bd
     spec:
       serviceAccountName: litmus
       restartPolicy: Never

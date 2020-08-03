@@ -1,7 +1,7 @@
-# Test Case to validate the cspc pool creation is failed when the bloxkdevice is already claimed.
+# Test Case to validate the cspc pool creation is failed when the blockdevice is already claimed.
 
 ## Description
-   - This test is capable of validate the pool creation is failed when the blockdevice is claimed. 
+   - This test is capable of validating if the pool creation is failed when the specified blockdevices are already claimed
    - This test constitutes the below files.
      - test_vars.yml - This test_vars file has the list of test specific variables used in this test case.
      - test.yml - Playbook where the test logic is to validate the blockdevice reusability.
