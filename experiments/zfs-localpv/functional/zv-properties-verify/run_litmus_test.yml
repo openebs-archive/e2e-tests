@@ -30,5 +30,5 @@ spec:
             value: ''
           
         command: ["/bin/bash"]
-        args: ["-c", "ansible-playbook ./experiments/functional/zfs-LocalPV/zv-properties-verify/test.yml -i /etc/ansible/hosts -vv; exit 0"]
+        args: ["-c", "ansible-playbook ./experiments/zfs-localpv/functional/zv-properties-verify/test.yml -i /etc/ansible/hosts -vv; exit 0"]
 
