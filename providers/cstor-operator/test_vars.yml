@@ -1,0 +1,9 @@
+namespace: openebs
+cspc_operator_link: https://raw.githubusercontent.com/openebs/cstor-operators/master/deploy/cstor-operator.yaml
+cspc_rbac_link: https://raw.githubusercontent.com/openebs/cstor-operators/master/deploy/rbac.yaml
+all_crd_link: https://raw.githubusercontent.com/openebs/cstor-operators/master/deploy/crds/all_cstor_crds.yaml
+cspc_operator: cstor-operator.yaml
+cspc_rbac: rbac.yaml
+release_branch: "{{ lookup('env','RELEASE_BRANCH') }}"
+cspc_image_tag: "{{ lookup('env','CSPC_OPERATOR_IMAGE') }}"
+test_name: "openebs-cstor-operator-{{ lookup('env','Action') }}"
