@@ -4,6 +4,10 @@ cspc_rbac_link: https://raw.githubusercontent.com/openebs/cstor-operators/master
 all_crd_link: https://raw.githubusercontent.com/openebs/cstor-operators/master/deploy/crds/all_cstor_crds.yaml
 cspc_operator: cstor-operator.yaml
 cspc_rbac: rbac.yaml
+cspc_crd: all_cstor_crds.yaml
 release_branch: "{{ lookup('env','RELEASE_BRANCH') }}"
-cspc_image_tag: "{{ lookup('env','CSPC_OPERATOR_IMAGE') }}"
-test_name: "openebs-cstor-operator-{{ lookup('env','Action') }}"
+release_version: "{{ lookup('env','RELEASE_VERSION') }}"
+cspc_image_tag: "{{ lookup('env','CSTOR_OPERATOR_IMAGE') }}"
+webhook_policy: "{{ lookup('env','WEBHOOK_FAILURE_POLICY') }}"
+test_name: "openebs-cstor-operator-{{ lookup('env','ACTION') }}"
+#cstor_file_name: "cstor-operator-{{ lookup('env','CSTOR_OPERATOR_IMAGE') }}.yaml"

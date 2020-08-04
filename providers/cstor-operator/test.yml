@@ -18,19 +18,16 @@
           vars:
             status: 'SOT'
 
-        - block:
-
-            - name: Downloading openebs cspc-operator.yaml
-              get_url:
-                url: https://raw.githubusercontent.com/openebs/charts/{{ release_branch }}/{{ cspc_image_tag }}/cstor-operator-{{ cspc_image_tag }}.yaml
-                dest: "{{ playbook_dir }}/{{ cspc_operator }}"
-                force: yes
-              register: release
-              until:  "'OK' in release.msg"
-              delay: 5
-              retries: 3        
-
-          when: cspc_image_tag == "1.11.0" or cspc_image_tag == "1.12.0"
+        - name: Downloading openebs cStor operator from charts
+          get_url:
+            url: https://raw.githubusercontent.com/openebs/charts/{{ release_branch }}/{{ release_version }}/cstor-operator-{{ cspc_image_tag }}.yaml
+            dest: "{{ playbook_dir }}/{{ cspc_operator }}"
+            force: yes
+          register: release
+          until:  "'OK' in release.msg"
+          delay: 5
+          retries: 3
+          ignore_errors: true
 
         - block:
 
@@ -44,7 +41,7 @@
               delay: 5
               retries: 3
 
-            - name: Downloading cspc operator yaml
+            - name: Downloading rbac for cstor operator
               get_url:
                 url: "{{ cspc_rbac_link }}"
                 dest: "{{ playbook_dir }}/{{ cspc_rbac }}"
@@ -126,13 +123,21 @@
                   replace:
                     path: "{{ cspc_operator }}"
                     regexp: 'openebs.io/version: dev'
-                    replace: "openebs.io/version: {{ image_tag }}"
+                    replace: "openebs.io/version: {{ cspc_image_tag }}"
          
-              when: cspc_image_tag != 'ci'
+              when: release_version != "master"
 
           when: "'OK' not in release.msg"
 
         - block: 
+
+            - name: Change the value for admission server failure policy
+              replace:
+                path: "{{ cspc_operator }}"
+                regexp: 'value: "Fail"'
+                after: '- name: ADMISSION_WEBHOOK_FAILURE_POLICY'
+                replace: 'value: "{{ webhook_policy }}"'
+              when: lookup('env','WEBHOOK_FAILURE_POLICY') != ''
 
             - name: Applying cspc operator
               shell: "kubectl  apply -f {{ cspc_operator }}"
@@ -180,7 +185,7 @@
               delay: 5
               retries: 120                       
 
-          when: lookup('env','Action') == "provision"
+          when: lookup('env','ACTION') == "provision"
 
         - block:
               - name: Cleaning cspc operator
@@ -202,10 +207,11 @@
                 delay: 30
                 retries: 10
 
-          when: lookup('env','Action') == "deprovision"
+          when: lookup('env','ACTION') == "deprovision"
 
         - set_fact:
             flag: "Pass"
+
       rescue:
         - set_fact:
             flag: "Fail"

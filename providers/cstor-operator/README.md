@@ -10,7 +10,8 @@
         - CSPC_OPERATOR_IMAGE: Release image tag for the cstor CSPC and CVC operator.
         - RELEASE_BRANCH: Branch name where to take the cstor provsioner spec
         - RELEASE_VERSION: Version Tag for the cstor operator
-        - OPERATOR_NS: Namespace where the cstor cspc and cvc plugins are deployed
+        - ACTION: Values should be provision for deploy, to remove the operator value should be deprovision.
+        - WEBHOOK_FAILURE_POLICY: value for the webhook failure policy.
 
 ### csi-cstor-sc.j2
    - The storage class template which has to be populated with the given variables
