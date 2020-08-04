@@ -1,14 +1,13 @@
----
 apiVersion: batch/v1
 kind: Job
 metadata:
-  generateName: zfspv-block-volume-
+  generateName: zfs-controller-high-availability-
   namespace: litmus
 spec:
   template:
     metadata:
       labels:
-        name: zfspv-block-volume
+        name: zfs-controller-high-availability
     spec:
       serviceAccountName: litmus
       restartPolicy: Never
@@ -23,17 +22,5 @@ spec:
             #value: actionable
             value: default
 
-          - name: APP_NAMESPACE
-            value: ''
-            
-          - name: STORAGE_CLASS
-            value: ''
-   
-          - name: PVC_SIZE
-            value: ''
-
-          - name: OPERATOR_NAMESPACE
-            value: ''
-
         command: ["/bin/bash"]
-        args: ["-c", "ansible-playbook ./experiments/functional/zfs-LocalPV/zfspv-raw-block-volume/test.yml -i /etc/ansible/hosts -vv; exit 0"]
+        args: ["-c", "ansible-playbook ./experiments/zfs-localpv/functional/zfs-controller-high-availability/test.yml -i /etc/ansible/hosts -vv; exit 0"]

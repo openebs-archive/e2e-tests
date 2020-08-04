@@ -55,7 +55,7 @@ spec:
             value: ''                ## For `Busybox` : `busybox`  &  For `Percona` : `mysql`
 
         command: ["/bin/bash"]
-        args: ["-c", "ansible-playbook ./experiments/functional/zfs-LocalPV/zfspv-snapshot/test.yml -i /etc/ansible/hosts -vv; exit 0"]
+        args: ["-c", "ansible-playbook ./experiments/zfs-localpv/functional/zfspv-snapshot/test.yml -i /etc/ansible/hosts -vv; exit 0"]
 
         volumeMounts:
         - name: parameters

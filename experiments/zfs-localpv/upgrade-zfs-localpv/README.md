@@ -1,14 +1,19 @@
-## Experiment Metadata
+## About this experiment
 
-| Type       | Description                                             |  K8s Platform and OS        |
-| ---------- | --------------------------------------------------------|  ----------------------     |
-| Upgrade    | Upgrade the zfs-driver for zfs-localpv                  | K8s 1.14 + and Ubuntu 18.04 |
+This experiment upgrades the zfs-localpv components from any previous version to the latest desired stable version or to the master branch ci images. 
+
+## Supported platforms:
+
+K8S : 1.14+
+
+OS : Ubuntu 18.04, Ubuntu 16.04
+
+ZFS : 0.7, 0.8
 
 ## Entry-Criteria
 
 - K8s nodes should be ready.
-- Application should be deployed succesfully if there any consuming the ZFS-localPV storage.
-- ZFS-controller and node-agent daemonset pods should be in running state.
+- Do not provision/deprovision any volumes during the upgrade, if we can not control it, then we can scale down the openebs-zfs-controller stateful set to zero replica which will pause all the provisioning/deprovisioning request. And once upgrade is done, the upgraded Driver will continue the provisioning/deprovisioning process.
 
 ## Exit-Criteria
 
@@ -18,14 +23,17 @@
 - All the zfs volumes should be healthy and data prior to the upgrade should not be impacted.
 - After upgrade we should be able to provision the volume and other related task with no regressions.
 
-## Notes
+## How to run
 
-- This upgrade test upgrade the zfs-driver to the desired latest version.
-- This litmusbook accepts the parameters in form of job environmental variables.
-- For running this litmus experiment of upgrade test give the required env's in the run_litmus_test.yml file and create the kubernetes job.
+- This experiment accepts the parameters in form of job environmental variables.
+- For running this experiment of upgrading zfs-localpv, clone openens/e2e-tests repo and then first apply the rbac and crds.
+```
+kubectl apply -f e2e-tests/hack/rbac.yaml
+kubectl apply -f e2e-tests/hack/crds.yaml
+```
+then update the needed test specific values in run_litmus_test.yml file and create the kubernetes job. All the env variables description is provided with the comments in the same file.
 
-
-## Litmusbook Environment Variables
+## Experiment job env's
 
 | Parameters    | Description                                            |
 | ------------- | ------------------------------------------------------ |
