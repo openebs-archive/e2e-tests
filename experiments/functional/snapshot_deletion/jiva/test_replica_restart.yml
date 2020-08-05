@@ -1,3 +1,4 @@
+---
 - block:
 
    - name: Get the name of replica pods
