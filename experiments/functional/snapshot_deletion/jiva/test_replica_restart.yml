@@ -40,6 +40,9 @@
          Content-Type: "application/json"
        body_format: json
      register: json_response
+     until: json_response.json.data[0].address != ""
+     delay: 10
+     retries: 5
 
    - name: Set master replica ip
      set_fact:
