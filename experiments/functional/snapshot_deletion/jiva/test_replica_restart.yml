@@ -13,7 +13,7 @@
 
    - name: Delete random replica
      shell: >
-       kubectl delete pod {{ replica_pod.stdout }} -n {{ operator_ns }}
+       kubectl delete pod {{ replica_pod }} -n {{ operator_ns }}
      args:
        executable: /bin/bash
 
