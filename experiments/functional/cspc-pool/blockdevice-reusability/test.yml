@@ -79,6 +79,12 @@
             regexp: "pool-type"
             replace: "{{ pool_type }}"
 
+        - name: Replacing the storage class name in CSPC spec
+          replace:
+            path: ./cspc.yml
+            regexp: "sc-name"
+            replace: "{{ sc_name }}"
+
         - name: Display cspc.yml for verification
           debug: var=item
           with_file:
