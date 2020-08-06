@@ -40,6 +40,10 @@ spec:
           - name: POOL_TYPE
             value: ""
 
+           # Provide the name of STORAGE_CLASS 	
+          - name: STORAGE_CLASS	
+            value: openebs-bd-reusability-sc
+
            # Namespace where the OpenEBS components are deployed
           - name: OPERATOR_NS
             value: openebs
