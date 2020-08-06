@@ -17,47 +17,126 @@
           vars:
             status: 'SOT'
 
-        - name: Downloading the csi-operator file
-          get_url:
-            url: "https://raw.githubusercontent.com/openebs/cstor-operators/master/deploy/csi-operator.yaml"
-            dest: "{{ playbook_dir }}/csi-operator.yaml"
-            force: yes
-          register: status
-          until:  "'OK' in status.msg"
-          delay: 5
-          retries: 3
+        - block:
+            - name: Downloading the csi-operator file
+              get_url:
+                url: "https://raw.githubusercontent.com/openebs/cstor-csi/v1.10.x/deploy/csi-operator.yaml"
+                dest: "{{ playbook_dir }}/csi-operator.yaml"
+                force: yes
+              register: csi_status
+              until:  "'OK' in csi_status.msg"
+              delay: 5
+              retries: 3
+              when: node_os == "ubuntu-16.04" or node_os == "centos"
 
-        - name: Update the desired image tag for openebs-plugin
-          replace:
-            path: "{{ playbook_dir }}/csi-operator.yaml"
-            regexp: "cstor-csi-driver:ci"
-            replace: "cstor-csi-driver:{{ image_tag }}"
+            - name: Downloading the csi-operator file
+              get_url:
+                url: "https://raw.githubusercontent.com/openebs/cstor-csi/v1.10.x/deploy/csi-operator-ubuntu-18.04.yaml"
+                dest: "{{ playbook_dir }}/csi-operator.yaml"
+                force: yes
+              register: csi_status
+              until:  "'OK' in csi_status.msg"
+              delay: 5
+              retries: 3
+              when: node_os == "ubuntu-18.04"
 
-        - name: Change the OpenEBS component labels to desired version csi provisioner spec
-          replace:
-            path: "{{ playbook_dir }}/csi-operator.yaml"
-            regexp: 'openebs.io/version: dev'
-            replace: "openebs.io/version: {{ image_tag }}"
-          
-        - name: Deploy CSI Driver 
+            - name: Update the desired image tag for openebs-plugin
+              replace:
+                path: "{{ playbook_dir }}/csi-operator.yaml"
+                regexp: "cstor-csi-driver:ci"
+                replace: "cstor-csi-driver:{{ release_tag }}"
+
+            - name: Change the OpenEBS component labels to desired version csi provisioner spec
+              replace:
+                path: "{{ playbook_dir }}/csi-operator.yaml"
+                regexp: 'openebs.io/version: dev'
+                replace: "openebs.io/version: {{ release_tag }}"
+
+          when: "release_tag == '1.10.0'"
+
+        - block:
+
+            - block:
+                - name: Downloading the csi-operator file
+                  get_url:
+                    url: "https://raw.githubusercontent.com/openebs/charts/{{ release_branch }}/{{ release_version }}/csi-operator-{{ release_tag }}.yaml"
+                    dest: "{{ playbook_dir }}/csi-operator.yaml"
+                    force: yes
+                  register: status
+                  until:  "'OK' in status.msg"
+                  delay: 5
+                  retries: 3
+                  when: node_os == "ubuntu-16.04" or node_os == "centos"
+
+                - name: Downloading the csi-operator file
+                  get_url:
+                    url: "https://raw.githubusercontent.com/openebs/charts/{{ release_branch }}/{{ release_version }}/csi-operator-{{ release_tag }}-ubuntu-18.04.yaml"
+                    dest: "{{ playbook_dir }}/csi-operator.yaml"
+                    force: yes
+                  register: status
+                  until:  "'OK' in status.msg"
+                  delay: 5
+                  retries: 3
+                  when: node_os == "ubuntu-18.04"
+
+              when: release_tag == "1.11.0" or release_tag == "1.12.0"  
+
+            - block:
+                - block: 
+                    - name: Downloading the csi operator yaml spec from charts
+                      get_url:
+                        url: "https://raw.githubusercontent.com/openebs/charts/{{ release_branch }}/{{ release_version }}/csi-operator-{{ release_tag }}.yaml"
+                        dest: "{{ playbook_dir }}/csi-operator.yaml"
+                        force: yes
+                      register: operator_file
+                      ignore_errors: true
+                      until:  "'OK' in operator_file.msg"
+                      delay: 5
+                      retries: 3
+
+                    - block:
+
+                        - name: Downloading the csi operator yaml spec from charts
+                          get_url:
+                            url: "https://raw.githubusercontent.com/openebs/cstor-operators/{{ release_branch }}/deploy/csi-operator.yaml"
+                            dest: "{{ playbook_dir }}/csi-operator.yaml"
+                            force: yes
+                          register: charts_file
+                          until:  "'OK' in charts_file.msg"
+                          delay: 5
+                          retries: 3
+
+                        - block:
+
+                            - name: Update the desired image tag for openebs-plugin
+                              replace:
+                                path: "{{ playbook_dir }}/csi-operator.yaml"
+                                regexp: "cstor-csi-driver:ci"
+                                replace: "cstor-csi-driver:{{ release_tag }}"
+
+                            - name: Change the OpenEBS component labels to desired version csi provisioner spec
+                              replace:
+                                path: "{{ playbook_dir }}/csi-operator.yaml"
+                                regexp: 'openebs.io/version: dev'
+                                replace: "openebs.io/version: {{ release_tag }}"
+
+                          when: release_version != 'master'
+
+                      when: "'OK' not in operator_file.msg"
+
+                  when: release_tag != '1.12.0'
+
+              when: release_tag != '1.11.0'
+
+          when: release_tag != '1.10.0'
+
+        - name: Deploy CSI Driver
           shell: >
-            kubectl apply -f csi-operator.yaml --validate=false
+            kubectl apply -f csi-operator.yaml
           args:
             executable: /bin/bash
           register: deploy_status
           failed_when: "deploy_status.rc != 0"
-
-        - name: Identify the patch to be invoked
-          template:
-            src: patch.j2
-            dest: patch.yml
-
-        # By default, volume mount is disabled. When it is enabled, the below patching tasks should be ignored.
-        - name: Patching openebs cstor csi-driver daemonset to allow volume remount
-          shell: >
-            kubectl patch daemonset openebs-cstor-csi-node -n {{ operator_ns }} --patch "$(cat patch.yml)"
-          register: patch_status
-          failed_when: "'patched' not in patch_status.stdout"
 
         - name: check if csi-controller pod is running
           shell: >
@@ -89,29 +168,29 @@
           delay: 5
           retries: 50
 
-        - name: Update the storage class template with the variables.
+        - name: Identify the patch to be invoked
           template:
-            src: csi-cstor-sc.j2
-            dest: csi-cstor-sc.yml
+            src: patch.j2
+            dest: patch.yml
 
-        - name: Create Storageclass
-          shell: kubectl apply -f csi-cstor-sc.yml
+        # By default, volume mount is disabled. When it is enabled, the below patching tasks should be ignored.
+        - name: Patching openebs cstor csi-driver daemonset to allow volume remount
+          shell: >
+            kubectl patch daemonset openebs-cstor-csi-node -n {{ operator_ns }} --patch "$(cat patch.yml)"
+          register: patch_status
+          failed_when: "'patched' not in patch_status.stdout"
+          when: release_tag != "1.11.0"
+
+        - name: Check if the desired count matches the ready pods after patching the daemonset
+          command: >
+            kubectl get ds -n {{ operator_ns }} openebs-cstor-csi-node --no-headers
+            -o custom-columns=:status.numberReady
           args:
             executable: /bin/bash
-          register: sc_result
-          failed_when: "sc_result.rc != 0"
-
-        - name: Update the storage class template with the variables for FSType xfs.
-          template:
-            src: csi-cstor-xfs-sc.j2
-            dest: csi-cstor-xfs-sc.yml
-
-        - name: Create Storageclass for xfs FSType
-          shell: kubectl apply -f csi-cstor-xfs-sc.yml
-          args:
-            executable: /bin/bash
-          register: xfs_sc_result
-          failed_when: "xfs_sc_result.rc != 0"
+          register: ready_pods
+          until: "desired_count.stdout == ready_pods.stdout"
+          delay: 5
+          retries: 50
 
         - name: Update the volume snapshotclass template with the variables
           template:

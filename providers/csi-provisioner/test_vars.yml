@@ -4,14 +4,14 @@
 
 test_name: "csi-provision"
 
-cspc: "{{ lookup('env','CSPC') }}"
-
-storage_class: "{{ lookup('env','PROVIDER_STORAGE_CLASS') }}"
-
-replica_count: "{{ lookup('env','REPLICA_COUNT') }}"
-
-image_tag: "{{ lookup('env','IMAGE_TAG') }}"
+release_tag: "{{ lookup('env','IMAGE_TAG') }}"
 
 snapshot_class: "{{ lookup('env','SNAPSHOT_CLASS') }}"
 
 operator_ns: "{{ lookup('env','OPERATOR_NS') }}"
+
+release_branch: "{{ lookup('env','RELEASE_BRANCH') }}"
+
+node_os: "{{ lookup('env','NODE_OS') }}"
+
+release_version: "{{ lookup('env','RELEASE_VERSION') }}"

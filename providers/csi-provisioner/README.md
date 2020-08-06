@@ -7,10 +7,12 @@
 
 ### run_litmus_test.yml
    - This includes the litmus job which triggers the test execution. The pod includes several environmental variables such as 
-        - PROVIDER_STORAGE_CLASS : The name of storageclass using csi provisioner
-        - REPLICA_COUNT : The number of volume replicas to be created.
         - NODE_OS : The operating system of worker nodes.
-        - SPC : The SPC to be used by storage class.
+        - IMAGE_TAG: Release image tag for the cstor csi provisioner.
+        - RELEASE_BRANCH: Branch name where to take the csi provsioner spec
+        - RELEASE_VERSION: Version Tag for the csi plugins
+        - OPERATOR_NS: Namespace where the csi plugins are deployed
+        - SNAPSHOT_CLASS: Name of the snapshot class.
 
 ### csi-cstor-sc.j2
    - The storage class template which has to be populated with the given variables
