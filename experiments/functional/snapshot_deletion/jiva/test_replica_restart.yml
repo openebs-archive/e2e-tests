@@ -47,7 +47,7 @@
    - name: Getting master replica IP
      vars:
        replicas_endpoint: "9501/v1/replicas"
-     shell: curl http://{{ controller_service }}:{{ replicas_endpoint }} | jq '.json.data[0].address'
+     shell: curl http://{{ controller_service }}:{{ replicas_endpoint }} | jq '.data[0].address'
      register: json_response
      until: "'tcp' in json_response.stdout" 
      delay: 15
