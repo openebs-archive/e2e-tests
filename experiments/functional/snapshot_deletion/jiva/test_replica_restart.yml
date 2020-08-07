@@ -28,20 +28,29 @@
 
 - block:
 
-   - name: Get replica json response from controller
+  #  - name: Get replica json response from controller
+  #    vars:
+  #      replicas_endpoint: "9501/v1/replicas"
+  #    uri:
+  #      url: "http://{{ controller_service }}:{{ replicas_endpoint }}"
+  #      method: GET
+  #      return_content: yes
+  #      status_code: 200
+  #      headers:
+  #        Content-Type: "application/json"
+  #      body_format: json
+  #    register: json_response
+  #    until: json_response.json.data[0].address != ""
+  #    delay: 10
+  #    retries: 5
+
+   - name: Getting master replica IP
      vars:
        replicas_endpoint: "9501/v1/replicas"
-     uri:
-       url: "http://{{ controller_service }}:{{ replicas_endpoint }}"
-       method: GET
-       return_content: yes
-       status_code: 200
-       headers:
-         Content-Type: "application/json"
-       body_format: json
+     shell: curl http://{{ controller_service }}:{{ replicas_endpoint }} | jq '.json.data[0].address'
      register: json_response
-     until: json_response.json.data[0].address != ""
-     delay: 10
+     until: "'tcp' in json_response.stdout" 
+     delay: 15
      retries: 5
 
    - name: Set master replica ip
