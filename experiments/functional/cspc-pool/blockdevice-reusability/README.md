@@ -19,5 +19,6 @@
 | OPERATOR_NS             | Namespace where the openebs is deployed                                           |
 | SPC_POOL_NAME           | Name of the spc pool                                                              |
 | CSPC_POOL_NAME          | Name of the cspc Pool                                                             |
-| POOL_TYPE               | Type of the pool to create, supported values are striped, mirror, raidz ,raidz2 |
+| POOL_TYPE               | Type of the pool to create, supported values are striped, mirror, raidz ,raidz2   |
 | STORAGE_CLASS           | Name of the storage class to deploy the application                               |
+| ACTION                  | Value to provision or deprovision the pool                                        |
