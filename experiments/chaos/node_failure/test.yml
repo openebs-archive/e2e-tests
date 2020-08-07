@@ -74,8 +74,8 @@
 
         - name: Obtain PVC name from the application mount
           shell: >
-            kubectl get pods "{{ app_pod_name.stdout }}" -n "{{ namespace }}"
-            -o yaml | grep claimName | awk '{print $2}'
+            kubectl get pods "{{ app_pod_name.stdout }}" -n "{{ namespace }}" 
+            -o custom-columns=:.spec.volumes[*].persistentVolumeClaim.claimName --no-headers
           args:
             executable: /bin/bash
           register: pvc
