@@ -112,8 +112,19 @@
           delay: 5
           retries: 20
 
+        - name: Check the container status
+          shell: >
+            kubectl get pods {{ item }} -n {{ app_ns }}-immediate --no-headers -o custom-columns=:.status.containerStatuses[*].state
+          args: 
+            executable: /bin/bash
+          register: container_status
+          with_items: "{{ app_pod_list.stdout_lines }}"
+          until: "'running' in container_status.stdout"
+          delay: 2
+          retries: 30
+
         - name: Verify that application pod is scheduled on node on which custom label is applied
-          shell: kubectl get pods {{ item }} -n {{ app_ns }}-immmediate --no-headers -o custom-columns=:.spec.nodeName
+          shell: kubectl get pods {{ item }} -n {{ app_ns }}-immediate --no-headers -o custom-columns=:.spec.nodeName
           args: 
             executable: /bin/bash
           register: node_name
@@ -178,7 +189,9 @@
           args: 
             executable: /bin/bash
           register: csi_node_keys
-          failed_when: "'{{ lkey }}' not in csi_node_keys.stdout"
+          until: "'{{ lkey }}' in csi_node_keys.stdout"
+          delay: 2
+          retries: 20
           with_items: "{{ node_list.stdout_lines }}"
 
         - name: Get the pvc list
