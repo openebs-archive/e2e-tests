@@ -38,14 +38,100 @@
           args:
             executable: /bin/bash
           register: no_of_Schedulable_nodes
+
+        - name: scale down the replicas to zero of zfs-controller statefulset
+          shell: >
+            kubectl scale sts openebs-zfs-controller -n kube-system --replicas=0
+          args:
+            executable: /bin/bash
+          register: status
+          failed_when: "status.rc != 0"
+
+        - name: check that zfs-controller pods has been terminated successfully
+          shell: >
+            kubectl get pods -n kube-system -l app=openebs-zfs-controller
+          args:
+            executable: /bin/bash
+          register: ctrl_pods
+          until: "'No resources found' in ctrl_pods.stderr"
+          delay: 3
+          retries: 25
+
+        - name: Provision volume when zfs-controller is not active
+          shell: >
+            kubectl apply -f busybox_app.yml
+          args: 
+            executable: /bin/bash
+       
+        - name: check the pvc status, it should be in pending state
+          shell: >
+            kubectl get pvc pvcha -n litmus -o jsonpath='{.status.phase}'
+          args:
+            executable: /bin/bash
+          register: pvc_status
+          failed_when: "'Pending' not in pvc_status.stdout"
+
+        - name: Manual wait for 15 seconds, in case if pvc gets bound
+          shell: sleep 15
+
+        - name: again check the pvc status
+          shell: >
+            kubectl get pvc pvcha -n litmus -o jsonpath='{.status.phase}'
+          args:
+            executable: /bin/bash
+          register: pvc_status
+          failed_when: "'Pending' not in pvc_status.stdout"
         
-        - name: scale the replicas of zfs-controller statefulset
+        - name: scale up the zfs-controller statefulset replica
           shell: >
             kubectl scale sts openebs-zfs-controller -n kube-system
             --replicas="{{ zfs_ctrl_replicas.stdout|int + 1 }}"
           args:
             executable: /bin/bash
-          when: "{{ zfs_ctrl_replicas.stdout|int + 1 }} <= {{no_of_Schedulable_nodes.stdout|int}}"
+          failed_when: "{{ zfs_ctrl_replicas.stdout|int + 1 }} > {{no_of_Schedulable_nodes.stdout|int}}"
+
+        - name: check that zfs-controller statefulset replicas are up and running
+          shell: >
+            kubectl get pods -n kube-system -l app=openebs-zfs-controller --no-headers 
+            -o custom-columns=:.status.phase | grep Running | wc -l
+          args:
+            executable: /bin/bash
+          register: ready_replicas
+          until: "{{ ready_replicas.stdout|int }} == {{ zfs_ctrl_replicas.stdout|int + 1 }}"
+          delay: 3
+          retries: 30
+
+        - name: check the pvc status after zfs controller is up and running
+          shell: >
+            kubectl get pvc pvcha -n litmus -o jsonpath='{.status.phase}'
+          args:
+            executable: /bin/bash
+          register: pvc_status
+          until: "'Bound' in pvc_status.stdout"
+          delay: 5
+          retries: 30
+
+        - name: Get the application pod name
+          shell: >
+            kubectl get pods -n litmus -o jsonpath='{.items[?(@.metadata.labels.app=="test_ha")].metadata.name}'
+          args:
+            executable: /bin/bash
+          register: app_pod_name
+                    
+        - name: Check if the application pod is in running state.
+          shell: >
+            kubectl get pods -n litmus -o jsonpath='{.items[?(@.metadata.labels.app=="test_ha")].status.phase}'
+          register: pod_status
+          until: "'Running' in pod_status.stdout"
+          delay: 5
+          retries: 20
+
+        - name: Get the zvolume name from the pvc name
+          shell: >
+            kubectl get pvc pvcha -n litmus -o jsonpath='{.spec.volumeName}'
+          args:
+            executable: /bin/bash
+          register: zvol_name
 
         - name: Get the name of the controller pod replica which is active as master at present
           shell: >
@@ -83,29 +169,41 @@
           delay: 5
           until: active_replica_name.stdout != new_active_replica.stdout
 
-        - name: Provision volume to check zfs-controller in HA working fine when one replica is down
+        - name: Deprovision the application
           shell: >
-            kubectl apply -f busybox_app.yml
-          args: 
+            kubectl delete -f busybox_app.yml
+          args:
             executable: /bin/bash
           
-        - name: Check if the PVC is Bound
+        - name: Verify that application pods have been deleted successfully 
           shell: >
-            kubectl get pvc pvcha -n litmus -o jsonpath='{.status.phase}'
+            kubectl get pods -n litmus
+          args:
+            executable: /bin/bash
+          register: app_pod
+          until: "'{{ app_pod_name.stdout }}' not in app_pod.stdout"
+          delay: 3
+          retries: 30
+          
+        - name: verify that pvc has been deleted successfully
+          shell: >
+            kubectl get pvc -n litmus
           args:
             executable: /bin/bash
           register: pvc_status
-          until: "'Bound' in pvc_status.stdout"
+          until: "'pvcha' not in pvc_status.stdout"
           delay: 5
           retries: 30
           
-        - name: Check if the application pod is in running state.
+        - name: verify that zvol has been deleted successfully
           shell: >
-            kubectl get pods -n litmus -o jsonpath='{.items[?(@.metadata.labels.app=="test_ha")].status.phase}'
-          register: pod_status
-          until: "'Running' in pod_status.stdout"
-          delay: 5
-          retries: 20
+            kubectl get zv -n openebs
+          args:
+            executable: /bin/bash
+          register: zv_status
+          until: "zvol_name.stdout not in zv_status.stdout"
+          delay: 3
+          retries: 30
 
         - set_fact:
             flag: "Pass"
