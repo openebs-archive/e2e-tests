@@ -6,4 +6,4 @@ new_cspc_pool: "{{ lookup('env','NEW_CSPC_POOL_NAME') }}"
 spc_pool_name: "{{ lookup('env','SPC_POOL_NAME') }}"
 pool_type: "{{ lookup('env','POOL_TYPE') }}"
 sc_name: "{{ lookup('env', 'STORAGE_CLASS') }}"
-
+action: "{{ lookup('env', 'ACTION') }}"
