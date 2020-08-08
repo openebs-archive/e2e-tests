@@ -198,10 +198,10 @@
                 executable: /bin/bash
               register: desired_count
 
-            - name: Verify readily availabe daemonset is equal to desired count
+            - name: Verify readily available daemonset is equal to desired count
               shell: >
                 kubectl get daemonset -n {{ namespace }} -l name=openebs-ndm
-                -o custom-columns=:.status.desiredNumberScheduled --no-headers
+                -o custom-columns=:.status.numberReady --no-headers
               args:
                 executable: /bin/bash
               register: ready_count
