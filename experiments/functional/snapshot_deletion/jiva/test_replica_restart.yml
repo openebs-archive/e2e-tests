@@ -47,7 +47,7 @@
    - name: Getting master replica IP
      vars:
        replicas_endpoint: "9501/v1/replicas"
-     shell: curl http://{{ controller_service }}:{{ replicas_endpoint }} | jq '.data[0].address'
+     shell: curl http://{{ controller_service }}:{{ replicas_endpoint }} | jq '.data[0].address' | sed -e 's/^"//' -e 's/"$//'
      register: json_response
      until: "'tcp' in json_response.stdout" 
      delay: 15
@@ -55,7 +55,7 @@
 
    - name: Set master replica ip
      set_fact:
-             replica_ip: "{{ json_response.json.data[0].address | regex_replace('tcp://') | regex_replace(':9502') }}"
+          replica_ip: "{{ json_response.stdout | regex_replace('tcp://') | regex_replace(':9502') }}"
 
    - debug:
        var: "replica_ip"
