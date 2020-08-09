@@ -66,14 +66,6 @@
           set_fact:
             cvc_name: "{{ pv.stdout }}"
 
-        - name: Obtain the CVC manifest into two files
-          shell: >
-            kubectl get cvc "{{ cvc_name }}" -n "{{ openebs_ns }}" -o yaml | tee cvc1.yml cvc2.yml
-          args:
-            executable: /bin/bash
-          register: result
-          failed_when: "result.rc != 0"
-
         - name: Get the current replica count
           shell: >
             kubectl get cvc "{{ cvc_name }}" -n "{{ openebs_ns }}" --no-headers
@@ -82,31 +74,25 @@
             executable: /bin/bash
           register: current_replica
 
-        - name: Remove couple of pool instances from cvc manifest
-          shell: sed -i '/replicaPoolInfo\:/{n;N;N;d}' cvc2.yml
+        ## openebs admission server should block the scale down process because only one replica should be allowed to delete.
+
+        - name: Try to scale down couple of replicas
+          shell: >
+             kubectl patch cvc {{ cvc_name }} 
+             -n {{ openebs_ns }} --type='json' -p='[{"op": "remove", "path": "/spec/policy/replicaPoolInfo"}]'
           args:
             executable: /bin/bash
+          register: multiple_rep
+          failed_when: "'more than one replica scale down requested' not in multiple_rep.stderr"
 
-        ## openebs admission server should block the scale down process because only one replica should be aloowed to delete.
-
-        - name: Try to scale down couple of replicas by applying above manifest
-          shell: kubectl apply -f cvc2.yml
+        - name: Try to scale down only one of replica
+          shell: >
+            kubectl patch cvc {{ cvc_name }} 
+            -n {{ openebs_ns }} --type='json' -p='[{"op": "remove", "path": "/spec/policy/replicaPoolInfo/1"}]'
           args:
             executable: /bin/bash
-          register: state
-          failed_when: state.rc == 0
-
-        - name: Remove one pool instance info from cvc manifest
-          shell: sed -i '/replicaPoolInfo:/{N;s/\n.*//;}' cvc1.yml
-          args:
-            executable: /bin/bash
-
-        - name: Scale down the replicas by configuring cvc
-          shell: kubectl apply -f cvc1.yml
-          args:
-            executable: /bin/bash
-          register: result
-          failed_when: result.rc != 0
+          register: single_rep
+          failed_when: "'patched' not in single_rep.stdout"
 
         - name: Check the replica count in cvc
           shell: >
@@ -129,38 +115,13 @@
           until: "current_replica.stdout > rep_count.stdout"
           delay: 10
           retries: 20
-        
-        - name: Delete the application pod
-          shell: kubectl delete pod "{{ app_pod_name.stdout }}" -n "{{ namespace }}"
-          args:
-            executable: /bin/bash
-          register: result
-          failed_when: "result.rc != 0"
-
-        - name: Get the application pod name
-          shell: >
-            kubectl get pod -n {{ namespace }} -l {{ label }} --no-headers -o custom-columns=:.metadata.name
-          args:
-            executable: /bin/bash
-          register: rescheduled_pod_name
-
-        - name: Check if the application pod is in running state
-          shell: >
-            kubectl get pods "{{ rescheduled_pod_name.stdout }}" -n "{{ namespace }}"
-            --no-headers -o custom-columns=:.status.phase
-          args:
-            executable: /bin/bash
-          register: pod_status
-          until: "'Running' in pod_status.stdout"
-          delay: 10
-          retries: 30
 
         - name: Verify application data persistence
           include: "{{ data_consistency_util_path }}"
           vars:
             status: 'VERIFY'
             ns: "{{ namespace }}"
-            pod_name: "{{ rescheduled_pod_name.stdout }}"
+            pod_name: "{{ app_pod_name.stdout }}"
           when: data_persistence != ''
 
         - set_fact:
