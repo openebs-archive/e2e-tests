@@ -12,5 +12,5 @@
     executable: /bin/bash
   register: snapshot_number
   until: "((snapshot_number.stdout)|int) <= 13"
-  delay: 5
+  delay: 10
   retries: 50
