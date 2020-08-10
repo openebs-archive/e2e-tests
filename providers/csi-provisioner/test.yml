@@ -102,6 +102,7 @@
                             dest: "{{ playbook_dir }}/csi-operator.yaml"
                             force: yes
                           register: charts_file
+                          ignore_errors: true
                           until:  "'OK' in charts_file.msg"
                           delay: 5
                           retries: 3
