@@ -12,8 +12,8 @@
     body_format: json
   register: json_response
   until: json_response.json.data[0].replicaCount == 3
-  retries: 15
-  delay: 10
+  retries: 20
+  delay: 15
 
 - name: Get rw replica status from controller
   vars:
