@@ -70,112 +70,112 @@
                         - name: Change the Maya API server Image
                           replace:
                             path: "{{ openebs_operator }}"
-                            regexp: quay.io/openebs/m-apiserver:ci
+                            regexp: openebs/m-apiserver:ci
                             replace: "{{ lookup('env','OPENEBS_MAYA_APISERVER_IMAGE') }}"
                           when: lookup('env','OPENEBS_MAYA_APISERVER_IMAGE') | length > 0
 
                         - name: Change the OpenEBS k8s provisioner Image
                           replace:
                             path: "{{ openebs_operator }}"
-                            regexp: quay.io/openebs/openebs-k8s-provisioner:ci
+                            regexp: openebs/openebs-k8s-provisioner:ci
                             replace: "{{ lookup('env','OPENEBS_PROVISIONER_IMAGE') }}"
                           when: lookup('env','OPENEBS_PROVISIONER_IMAGE') | length > 0
 
                         - name: Change the OpenEBS Snapshot Controller Image
                           replace:
                             path: "{{ openebs_operator }}"
-                            regexp: quay.io/openebs/snapshot-controller:ci
+                            regexp: openebs/snapshot-controller:ci
                             replace: "{{ lookup('env','OPENEBS_SNAPSHOT_CONTROLLER_IMAGE') }}"
                           when: lookup('env','OPENEBS_SNAPSHOT_CONTROLLER_IMAGE') | length > 0
 
                         - name: Change the OpenEBS Snapshot provisioner Image
                           replace:
                             path: "{{ openebs_operator }}"
-                            regexp: quay.io/openebs/snapshot-provisioner:ci
+                            regexp: openebs/snapshot-provisioner:ci
                             replace: "{{ lookup('env','OPENEBS_SNAPSHOT_PROVISIONER_IMAGE') }}"
                           when: lookup('env','OPENEBS_SNAPSHOT_PROVISIONER_IMAGE') | length > 0
 
                         - name: Change the OpenEBS JIVA Controller and Replica Image
                           replace:
                             path: "{{ openebs_operator }}"
-                            regexp: quay.io/openebs/jiva:ci
+                            regexp: openebs/jiva:ci
                             replace: "{{ lookup('env','OPENEBS_IO_JIVA_IMAGE') }}"
                           when: lookup('env','OPENEBS_IO_JIVA_IMAGE') | length > 0
 
                         - name: Change the Maya Exporter Image
                           replace:
                             path: "{{ openebs_operator }}"
-                            regexp: quay.io/openebs/m-exporter:ci
+                            regexp: openebs/m-exporter:ci
                             replace: "{{ lookup('env','OPENEBS_MAYA_EXPORTER_IMAGE') }}"
                           when: lookup('env','OPENEBS_MAYA_EXPORTER_IMAGE') | length > 0
 
                         - name: Change the Node Disk Manager Image
                           replace:
                             path: "{{ openebs_operator }}"
-                            regexp: quay.io/openebs/node-disk-manager-amd64:ci
+                            regexp: openebs/node-disk-manager:ci
                             replace: "{{ lookup('env','OPENEBS_NODE_DISK_MANAGER_IMAGE') }}"
                           when: lookup('env','OPENEBS_NODE_DISK_MANAGER_IMAGE') | length > 0
 
                         - name: Change the Node Disk Operator Image
                           replace:
                             path: "{{ openebs_operator }}"
-                            regexp: quay.io/openebs/node-disk-operator-amd64:ci
+                            regexp: openebs/node-disk-operator:ci
                             replace: "{{ lookup('env','OPENEBS_NODE_DISK_OPERATOR_IMAGE') }}"
                           when: lookup('env','OPENEBS_NODE_DISK_OPERATOR_IMAGE') | length > 0
 
                         - name: Change the OpenEBS cStor Target Image
                           replace:
                             path: "{{ openebs_operator }}"
-                            regexp: quay.io/openebs/cstor-istgt:ci
+                            regexp: openebs/cstor-istgt:ci
                             replace: "{{ lookup('env','OPENEBS_IO_CSTOR_TARGET_IMAGE') }}"
                           when: lookup('env','OPENEBS_IO_CSTOR_TARGET_IMAGE') | length > 0
 
                         - name: Change the OpenEBS cStor Pool Image
                           replace:
                             path: "{{ openebs_operator }}"
-                            regexp: quay.io/openebs/cstor-pool:ci
+                            regexp: openebs/cstor-pool:ci
                             replace: "{{ lookup('env','OPENEBS_IO_CSTOR_POOL_IMAGE') }}"
                           when: lookup('env','OPENEBS_IO_CSTOR_POOL_IMAGE') | length > 0
 
                         - name: Change the OpenEBS cStor Pool-mgmt Image
                           replace:
                             path: "{{ openebs_operator }}"
-                            regexp: quay.io/openebs/cstor-pool-mgmt:ci
+                            regexp: openebs/cstor-pool-mgmt:ci
                             replace: "{{ lookup('env','OPENEBS_IO_CSTOR_POOL_MGMT_IMAGE') }}"
                           when: lookup('env','OPENEBS_IO_CSTOR_POOL_MGMT_IMAGE') | length > 0
 
                         - name: Change the OpenEBS cStor Volume mgmt Image
                           replace:
                             path: "{{ openebs_operator }}"
-                            regexp: quay.io/openebs/cstor-volume-mgmt:ci
+                            regexp: openebs/cstor-volume-mgmt:ci
                             replace: "{{ lookup('env','OPENEBS_IO_CSTOR_VOLUME_MGMT_IMAGE') }}"
                           when: lookup('env','OPENEBS_IO_CSTOR_VOLUME_MGMT_IMAGE') | length > 0
 
                         - name: Change the OpenEBS LocalPV Provisioner Image
                           replace:
                             path: "{{ openebs_operator }}"
-                            regexp: quay.io/openebs/provisioner-localpv:ci
+                            regexp: openebs/provisioner-localpv:ci
                             replace: "{{ lookup('env','OPENEBS_LOCALPV_PROVISIONER_IMAGE') }}"
                           when: lookup('env','OPENEBS_LOCALPV_PROVISIONER_IMAGE') | length > 0
 
                         - name: Change the OpenEBS Admission Server Image
                           replace:
                             path: "{{ openebs_operator }}"
-                            regexp: quay.io/openebs/admission-server:ci
+                            regexp: openebs/admission-server:ci
                             replace: "{{ lookup('env','OPENEBS_ADMISSION_SERVER_IMAGE') }}"
                           when: lookup('env','OPENEBS_ADMISSION_SERVER_IMAGE') | length > 0
 
                         - name: Change the OpenEBS CleanUp Job Image
                           replace:
                             path: "{{ openebs_operator }}"
-                            regexp: quay.io/openebs/linux-utils:1.4.0
+                            regexp: openebs/linux-utils:ci
                             replace: "{{ lookup('env','OPENEBS_CLEANUP_JOB_IMAGE') }}"
                           when: lookup('env','OPENEBS_CLEANUP_JOB_IMAGE') | length > 0
 
                         - name: Change the OpenEBS CleanUP Job Image
                           replace:
                             path: "{{ openebs_operator }}"
-                            regexp: quay.io/openebs/linux-utils:1.9.0
+                            regexp: openebs/linux-utils:ci
                             replace: "{{ lookup('env','OPENEBS_CLEANUP_JOB_IMAGE') }}"
                           when: lookup('env','OPENEBS_CLEANUP_JOB_IMAGE') | length > 0
 
