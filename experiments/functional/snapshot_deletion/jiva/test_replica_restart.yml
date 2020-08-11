@@ -50,8 +50,8 @@
      shell: curl http://{{ controller_service }}:{{ replicas_endpoint }} | jq '.data[0].address' | sed -e 's/^"//' -e 's/"$//'
      register: json_response
      until: "'tcp' in json_response.stdout" 
-     delay: 10
-     retries: 12
+     delay: 15
+     retries: 24
 
    - name: Set master replica ip
      set_fact:
