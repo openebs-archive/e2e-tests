@@ -67,57 +67,57 @@
                   replace:
                     path: "{{ cspc_operator }}"
                     regexp: openebs/cspc-operator-amd64:ci
-                    replace: openebs/cspc-operator-amd64:{{ lookup('env','CSPC_OPERATOR_IMAGE') }}
-                  when: lookup('env','CSPC_OPERATOR_IMAGE') | length > 0
+                    replace: openebs/cspc-operator-amd64:{{ lookup('env','CSTOR_OPERATOR_IMAGE') }}
+                  when: lookup('env','CSTOR_OPERATOR_IMAGE') | length > 0
 
                 - name: Change CSTOR POOL MANAGER image
                   replace:
                     path: "{{ cspc_operator }}"
                     regexp: openebs/cstor-pool-manager-amd64:ci
-                    replace: openebs/cstor-pool-manager-amd64:{{ lookup('env','CSPC_OPERATOR_IMAGE') }}
-                  when: lookup('env','CSPC_OPERATOR_IMAGE') | length > 0
+                    replace: openebs/cstor-pool-manager-amd64:{{ lookup('env','CSTOR_OPERATOR_IMAGE') }}
+                  when: lookup('env','CSTOR_OPERATOR_IMAGE') | length > 0
 
                 - name: Change OPENEBS_IO_CSTOR_POOL image
                   replace:
                     path: "{{ cspc_operator }}"
                     regexp: openebs/cstor-pool:ci
-                    replace: openebs/cstor-pool:{{ lookup('env','CSPC_OPERATOR_IMAGE') }}
-                  when: lookup('env','CSPC_OPERATOR_IMAGE') | length > 0
+                    replace: openebs/cstor-pool:{{ lookup('env','CSTOR_OPERATOR_IMAGE') }}
+                  when: lookup('env','CSTOR_OPERATOR_IMAGE') | length > 0
 
                 - name: Change OPENEBS_IO_CSTOR_POOL_EXPORTER image
                   replace:
                     path: "{{ cspc_operator }}"
                     regexp: openebs/m-exporter:ci
-                    replace: openebs/m-exporter:{{ lookup('env','CSPC_OPERATOR_IMAGE') }}
-                  when: lookup('env','CSPC_OPERATOR_IMAGE') | length > 0
+                    replace: openebs/m-exporter:{{ lookup('env','CSTOR_OPERATOR_IMAGE') }}
+                  when: lookup('env','CSTOR_OPERATOR_IMAGE') | length > 0
 
                 - name: Change openebs cvc operator image
                   replace:
                     path: "{{ cspc_operator }}"
                     regexp: openebs/cvc-operator-amd64:ci
-                    replace: openebs/cvc-operator-amd64:{{ lookup('env','CSPC_OPERATOR_IMAGE') }}
-                  when: lookup('env','CSPC_OPERATOR_IMAGE') | length > 0
+                    replace: openebs/cvc-operator-amd64:{{ lookup('env','CSTOR_OPERATOR_IMAGE') }}
+                  when: lookup('env','CSTOR_OPERATOR_IMAGE') | length > 0
 
                 - name: Change openebs CSTOR ISTGT image
                   replace:
                     path: "{{ cspc_operator }}"
                     regexp: openebs/cstor-istgt:ci
-                    replace: openebs/cstor-istgt:{{ lookup('env','CSPC_OPERATOR_IMAGE') }}
-                  when: lookup('env','CSPC_OPERATOR_IMAGE') | length > 0
+                    replace: openebs/cstor-istgt:{{ lookup('env','CSTOR_OPERATOR_IMAGE') }}
+                  when: lookup('env','CSTOR_OPERATOR_IMAGE') | length > 0
 
                 - name: Change openebs CSTOR VOLUME MGMT image
                   replace:
                     path: "{{ cspc_operator }}"
                     regexp: openebs/cstor-volume-manager-amd64:ci
-                    replace: openebs/cstor-volume-manager-amd64:{{ lookup('env','CSPC_OPERATOR_IMAGE') }}
-                  when: lookup('env','CSPC_OPERATOR_IMAGE') | length > 0
+                    replace: openebs/cstor-volume-manager-amd64:{{ lookup('env','CSTOR_OPERATOR_IMAGE') }}
+                  when: lookup('env','CSTOR_OPERATOR_IMAGE') | length > 0
 
                 - name: Change openebs CSTOR WEBHOOK image
                   replace:
                     path: "{{ cspc_operator }}"
                     regexp: openebs/cstor-webhook-amd64:ci
-                    replace: openebs/cstor-webhook-amd64:{{ lookup('env','CSPC_OPERATOR_IMAGE') }}
-                  when: lookup('env','CSPC_OPERATOR_IMAGE') | length > 0
+                    replace: openebs/cstor-webhook-amd64:{{ lookup('env','CSTOR_OPERATOR_IMAGE') }}
+                  when: lookup('env','CSTOR_OPERATOR_IMAGE') | length > 0
 
                 - name: Change the OpenEBS component labels to desired version in Operator yaml
                   replace:
