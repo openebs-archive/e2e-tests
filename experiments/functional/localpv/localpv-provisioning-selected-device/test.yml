@@ -227,11 +227,13 @@
               executable: /bin/bash
             register: labelled_bd
 
-            ## Removing the block device tag after end of experiment, otherwise this tag
-            ## will allow to provision the volume in reconciliation test as there is a chance 
-            ## that before tagging the device it will use the already tagged device.
-            ## Using ignore_errors: yes, in case if experiment fails before tagging the devices then 
-            ## removing the empty tag will cause failure in this task.
+           ############################################################################################
+           ##  Removing the block device tag after end of experiment, otherwise this tag             ##
+           ##  will allow to provision the volume in reconciliation test as there is a chance        ##
+           ##  that before tagging the device it will use the already tagged device.                 ##
+           ##  Using ignore_errors: yes, in case if experiment fails before tagging the devices then ##
+           ##  removing the empty tag will cause failure in this task.                               ##
+           ############################################################################################
 
           - name: Remove the tag from block devices at the end of experiment
             shell: >
