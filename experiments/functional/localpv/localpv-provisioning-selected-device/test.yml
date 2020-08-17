@@ -186,7 +186,7 @@
 
         - name: Obtain the labelled BDs list
           shell: >
-            kubectl get bd -n "{{ operator_ns }}" -l ndm.io/managed=true,openebs.io/block-device-tag
+            kubectl get bd -n "{{ operator_ns }}" -l ndm.io/managed=true,openebs.io/block-device-tag={{ device_tag }}
             --no-headers -o jsonpath='{.items[*].metadata.name}'
           args:
             executable: /bin/bash
@@ -218,6 +218,31 @@
               flag: "Fail"
 
       always:
+
+          - name: Obtain the labelled BDs list
+            shell: >
+              kubectl get bd -n "{{ operator_ns }}" -l ndm.io/managed=true,openebs.io/block-device-tag={{ device_tag }}
+              --no-headers -o jsonpath='{.items[*].metadata.name}'
+            args:
+              executable: /bin/bash
+            register: labelled_bd
+
+           ############################################################################################
+           ##  Removing the block device tag after end of experiment, otherwise this tag             ##
+           ##  will allow to provision the volume in reconciliation test as there is a chance        ##
+           ##  that before tagging the device it will use the already tagged device.                 ##
+           ##  Using ignore_errors: yes, in case if experiment fails before tagging the devices then ##
+           ##  removing the empty tag will cause failure in this task.                               ##
+           ############################################################################################
+
+          - name: Remove the tag from block devices at the end of experiment
+            shell: >
+              kubectl label bd -n "{{ operator_ns }}" {{ item }} openebs.io/block-device-tag-
+            args:
+              executable: /bin/bash
+            with_items: "{{ labelled_bd.stdout_lines }}"
+            ignore_errors: yes
+
             ## RECORD END-OF-TEST IN LITMUS RESULT CR
           - include_tasks: /utils/fcm/update_litmus_result_resource.yml
             vars:
