@@ -20,13 +20,6 @@
         - include_vars:
             file: data_persistence.yml
 
-        - include_vars:
-            file: chaosutil.yml
-
-        - name: Record the chaos util path
-          set_fact:
-            chaos_util_path: "/chaoslib/{{ chaosutil }}"
-
         - name: Record the data consistency util path
           set_fact:
             data_consistency_util_path: "{{ consistencyutil }}"
@@ -39,7 +32,7 @@
         - include_tasks: /utils/fcm/update_litmus_result_resource.yml
           vars:
             status: 'SOT'
-            chaostype: "{{ chaosutil.split('.')[0] }}"
+            chaostype: target-network-loss
 
         ## DISPLAY APP INFORMATION
 
@@ -134,6 +127,13 @@
               until: "'running' in container_status.stdout"
               delay: 3
               retries: 20
+
+            - include: /chaoslib/openebs/inject_packet_loss_tc.yml
+              vars:
+                status: "induce"
+                target_pod: "{{ controller_pod.stdout }}"
+                operator_namespace: "{{ operator_ns }}"
+                containername: "{{ pv.stdout }}-ctrl-con"              
                                       
           when: 
             - stg_engine == 'jiva'
@@ -168,7 +168,7 @@
 
             - name: Check for the jiva controller container status
               shell: >
-                kubectl get pods {{ controller_pod.stdout }} -n {{ operator_ns }} 
+                kubectl get pods {{ ctrl_pod.stdout }} -n {{ operator_ns }} 
                 -o jsonpath='{.status.containerStatuses[?(@.name=="jiva-controller")].state}' | grep running
               args:
                 executable: /bin/bash
@@ -176,91 +176,61 @@
               until: "'running' in container_status.stdout"
               delay: 3
               retries: 20
-                                      
+
+            - include: /chaoslib/openebs/inject_packet_loss_tc.yml
+              vars:
+                status: "induce"
+                target_pod: "{{ ctrl_pod.stdout }}"
+                operator_namespace: "{{ operator_ns }}"
+                containername: "jiva-controller"                                      
           when: 
             - stg_engine == 'jiva'
             - stg_prov == 'jiva.csi.openebs.io'          
     
-
-        ## STORAGE FAULT INJECTION
-
-        - include: "{{ chaos_util_path }}"
-          vars:
-            app_ns: "{{ namespace }}"
-            app_pvc: "{{ pvc }}"
-            network_delay: "{{ n_delay }}"
-            chaos_duration: "{{ c_duration }}"
-          when: 
-            - cri == 'docker'
-            - stg_prov == 'openebs.io/provisioner-iscsi'
-
-        - include: "{{ chaos_util_path }}"
+        - include: /chaoslib/openebs/inject_packet_loss_tc.yml
           vars:
             status: "induce"
             target_pod: "{{ cstor_target_pod.stdout }}"
             operator_namespace: "{{ operator_ns }}"
-            containername: "cstor-istgt"
+            containername: "cstor-istgt"                  
           when: 
-            - cri == 'containerd' or cri =='cri-o'  
             - stg_engine == 'cstor'
-
-        - include: "{{ chaos_util_path }}"
-          vars:
-            status: "induce"
-            target_pod: "{{ controller_pod.stdout }}"
-            operator_namespace: "{{ operator_ns }}"
-            containername: "{{ pv.stdout }}-ctrl-con"
-          when: 
-            - cri == 'containerd' or cri =='cri-o'  
-            - stg_engine == 'jiva'
-            - stg_prov == 'openebs.io/provisioner-iscsi'
-
-        - include: "{{ chaos_util_path }}"
-          vars:
-            status: "induce"
-            target_pod: "{{ ctrl_pod.stdout }}"
-            operator_namespace: "{{ operator_ns }}"
-            containername: "jiva-controller"
-          when:   
-            - stg_engine == 'jiva'
-            - stg_prov == 'jiva.csi.openebs.io'
 
         - name: Wait for 240s post fault injection 
           wait_for:
             timeout: 240
-          when: cri == 'containerd' or cri =='cri-o' or stg_prov == 'jiva.csi.openebs.io'
 
-        - include: "{{ chaos_util_path }}"
+        - include: /chaoslib/openebs/inject_packet_loss_tc.yml
           vars:
             status: "remove"
             target_pod: "{{ cstor_target_pod.stdout }}"
             operator_namespace: "{{ operator_ns }}"
             containername: "cstor-istgt"
-          when: 
-            - cri == 'containerd' or cri =='cri-o'  
+          when:
             - stg_engine == 'cstor'
 
-        - include: "{{ chaos_util_path }}"
-          vars:
-            status: "remove"
-            target_pod: "{{ controller_pod.stdout }}"
-            operator_namespace: "{{ operator_ns }}"
-            containername: "{{ pv.stdout }}-ctrl-con"
+        - block:     
+
+            - include: /chaoslib/openebs/inject_packet_loss_tc.yml
+              vars:
+                status: "remove"
+                target_pod: "{{ controller_pod.stdout }}"
+                operator_namespace: "{{ operator_ns }}"
+                containername: "{{ pv.stdout }}-ctrl-con"
+              when: 
+                - stg_prov == 'openebs.io/provisioner-iscsi'
+
+            - include: /chaoslib/openebs/inject_packet_loss_tc.yml
+              vars:
+                status: "remove"
+                target_pod: "{{ ctrl_pod.stdout }}"
+                operator_namespace: "{{ operator_ns }}"
+                containername: "jiva-controller"
+              when:
+                - stg_prov == 'jiva.csi.openebs.io'
           when: 
-            - cri == 'containerd' or cri =='cri-o'  
             - stg_engine == 'jiva'
-            - stg_prov == 'openebs.io/provisioner-iscsi'
-
-        - include: "{{ chaos_util_path }}"
-          vars:
-            status: "remove"
-            target_pod: "{{ ctrl_pod.stdout }}"
-            operator_namespace: "{{ operator_ns }}"
-            containername: "jiva-controller"
-          when:   
-            - stg_engine == 'jiva'
-            - stg_prov == 'jiva.csi.openebs.io'
-
+            
         ## POST-CHAOS APPLICATION LIVENESS CHECK
 
         - block:
@@ -288,11 +258,14 @@
               register: newpod_name
 
             - name: Checking application pod not in running state
-              shell: kubectl get pods -n {{ namespace }} -o jsonpath='{.items[?(@.metadata.name=="{{ newpod_name.stdout }}")].status.containerStatuses[*].state}'
+              shell: >
+                kubectl get pods -n {{ namespace }} 
+                -o jsonpath='{.items[?(@.metadata.name=="{{ newpod_name.stdout }}")].status.containerStatuses[*].state}'
               register: result
               until: "'running' not in result.stdout"
               delay: 2
               retries: 150
+
           when: stg_prov == 'openebs.io/provisioner-iscsi'
 
         - block:
@@ -308,10 +281,37 @@
               delay: 5
               retries: 60
 
+            - name: Wait for 240s post fault injection 
+              wait_for:
+                 timeout: 240
+
+            - name: Kill the application pod
+              shell: >
+                kubectl delete pod {{ app_pod_name.stdout }} -n {{ namespace }}
+              args:
+                executable: /bin/bash
+
+            - name: Verify if the application pod is deleted
+              shell: >
+                kubectl get pods -n {{ namespace }}
+              args:
+                executable: /bin/bash
+              register: podstatus
+              until: '"{{ app_pod_name.stdout }}" not in podstatus.stdout'
+              retries: 2
+              delay: 150
+
+            - name: Obtain the newly created pod name for application
+              shell: >
+                kubectl get pods -n {{ namespace }} -l {{ label }} -o jsonpath='{.items[].metadata.name}'
+              args:
+                executable: /bin/bash
+              register: newpod_name
+
             - name: Verify that the AUT (Application Under Test) is running
               include_tasks: "/utils/k8s/status_app_pod.yml"
               vars:
-                app_ns: "{{namespace}}" 
+                app_ns: "{{ namespace }}" 
                 app_lkey: "{{ label.split('=')[0] }}"
                 app_lvalue: "{{ label.split('=')[1] }}"       
                 delay: 5
@@ -322,8 +322,9 @@
               vars:
                 status: 'VERIFY'
                 ns: "{{ namespace }}"
-                pod_name: "{{ app_pod_name.stdout }}"
+                pod_name: "{{ newpod_name.stdout }}"
               when: data_persistence != '' 
+
           when: stg_prov == 'cstor.csi.openebs.io'
         
         - block:
@@ -355,6 +356,7 @@
                 ns: "{{ namespace }}"
                 pod_name: "{{ app_pod_name.stdout }}"
               when: data_persistence != '' 
+
           when: stg_prov == 'jiva.csi.openebs.io'
 
         - set_fact:
@@ -371,4 +373,4 @@
         - include_tasks: /utils/fcm/update_litmus_result_resource.yml
           vars:
             status: 'EOT'
-            chaostype: "{{ chaosutil.split('.')[0] }}"
+            chaostype: target-network-loss
