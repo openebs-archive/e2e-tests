@@ -1,5 +1,5 @@
 # Litmus
-
+[![HackMD doc](https://hackmd.io/badge.svg)](https://hackmd.io/GlvlYyLBSfaPnRIlhxN7TA?view)
 [![Build Status](https://travis-ci.org/litmuschaos/litmus.svg?branch=master)](https://travis-ci.org/openebs/e2e-tests)
 [![Docker Pulls](https://img.shields.io/docker/pulls/openebs/ansible-runner.svg)](https://hub.docker.com/r/openebs/ansible-runner)
 [![CII Best Practices](https://bestpractices.coreinfrastructure.org/projects/3202/badge)](https://bestpractices.coreinfrastructure.org/projects/3202)
