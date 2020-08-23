@@ -104,7 +104,7 @@
 
          - block:
 
-            - name: Check if the new target pod is scheduled on some other node after {{ svc_type }} failure
+            - name: Check if the new target pod is scheduled after {{ svc_type }} failure
               shell: >
                 kubectl get pods -n {{ operator_ns }} -l openebs.io/persistent-volume={{ pvol_name }} --no-headers |  wc -l
               args:
@@ -138,7 +138,7 @@
 
          - block:
 
-            - name: Check if the new controller pod is scheduled on some other node after {{ svc_type }} failure
+            - name: Check if the new controller pod is scheduled after {{ svc_type }} failure
               shell: >
                 kubectl get pods -n {{ operator_ns }} 
                 -l openebs.io/controller=jiva-controller,openebs.io/persistent-volume={{ pvol_name }} --no-headers  |  wc -l
@@ -175,7 +175,7 @@
  
        - block:
 
-            - name: Check if the new target pod is scheduled on some other node after {{ svc_type }} failure
+            - name: Check if the new target pod is scheduled after {{ svc_type }} failure
               shell: >
                 kubectl get pods -n {{ operator_ns }} -l openebs.io/persistent-volume={{ pvol_name }} --no-headers |  wc -l
               args:
