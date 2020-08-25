@@ -7,7 +7,7 @@
 #    - Operation, either 'on' or 'off'
 #
 - name: Obtain the VM ID
-  shell: sshpass -p {{ esx_pwd }} ssh -o StrictHostKeyChecking=no root@{{ esx_ip }} vim-cmd vmsvc/getallvms | grep {{ target_node }} | awk '{print $1}'
+  shell: sshpass -p {{ esx_pwd }} ssh -o StrictHostKeyChecking=no root@{{ esx_ip }} vim-cmd vmsvc/getallvms | awk '{print $1 " " $2}' | grep {{ target_node }} | awk '{print $1}'
   args:
     executable: /bin/bash
   register: id

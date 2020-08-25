@@ -18,6 +18,16 @@ data:
   password:
 
 ---
+apiVersion: v1
+kind: Secret
+metadata:
+  name: node-password
+  namespace: litmus
+type: Opaque
+data:
+  password:
+
+---
 apiVersion: batch/v1
 kind: Job
 metadata:
@@ -74,6 +84,18 @@ spec:
               secretKeyRef:
                 name: host-password 
                 key: password
+
+          - name: NODE_PASSWORD
+            valueFrom:
+              secretKeyRef:
+                name: node-password
+                key: password
+
+          - name: USERNAME
+            value: ''
+
+          - name: ZPOOL_NAME
+            value: ''
 
           # Application name to pick the relevant data persistence check util
           - name: DATA_PERSISTENCE

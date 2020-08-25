@@ -8,7 +8,7 @@
     - block:
 
         - name: Getting the VM id
-          shell: ssh -o StrictHostKeyChecking=no root@{{ esx_ip }} vim-cmd vmsvc/getallvms | grep {{item}} | awk '{print $1}'
+          shell: ssh -o StrictHostKeyChecking=no root@{{ esx_ip }} vim-cmd vmsvc/getallvms | awk '{print $1 " " $2}' | grep {{item}} | awk '{print $1}'
           register: vm_id
           with_lines: cat ./vm_name.csv
 

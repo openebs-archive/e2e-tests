@@ -18,3 +18,10 @@ esx_pwd: "{{ lookup('env','ESX_PASSWORD') }}"
 data_persistence: "{{ lookup('env','DATA_PERSISTENCE') }}"
 
 operator_ns: "{{ lookup('env','OPERATOR_NS') }}"
+
+user: "{{ lookup('env','USERNAME') }}"
+
+zpool_name: "{{ lookup('env','ZPOOL_NAME') }}"
+
+node_pwd: "{{ lookup('env','NODE_PASSWORD') }}"
+
