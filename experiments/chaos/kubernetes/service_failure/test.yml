@@ -31,7 +31,6 @@
           vars:
             status: 'SOT'
 
-
         ## PRE-CHAOS APPLICATION LIVENESS CHECK
 
         - name: Verify that the AUT (Application Under Test) is running
@@ -86,7 +85,8 @@
 
           - name: Get the target pod name associated with this pv
             shell: >
-              kubectl get pods -n {{ operator_ns }} -l openebs.io/persistent-volume={{ pv_name.stdout }} --no-headers -o custom-columns=:.metadata.name
+              kubectl get pods -n {{ operator_ns }} -l openebs.io/persistent-volume={{ pv_name.stdout }} 
+              --no-headers -o custom-columns=:.metadata.name
             args:
               executable: /bin/bash
             register: target_pod_name
@@ -94,13 +94,26 @@
 
           - name: Get the controller pod name associated with this pv
             shell: >
-              kubectl get pods -n {{ operator_ns }} -l openebs.io/controller=jiva-controller,openebs.io/persistent-volume={{ pv_name.stdout }} --no-headers -o custom-columns=:.metadata.name
+              kubectl get pods -n {{ operator_ns }} -l openebs.io/controller=jiva-controller,openebs.io/persistent-volume={{ pv_name.stdout }} 
+              --no-headers -o custom-columns=:.metadata.name
             args:
               executable: /bin/bash
             register: ctrl_pod_name
             when: stg_engine == 'jiva'
         
           when: vol_provisioner == 'openebs.io/provisioner-iscsi'
+
+        - block:
+
+          - name: Get the target pod name associated with this pv
+            shell: >
+              kubectl get pods -n {{ operator_ns }} -l openebs.io/persistent-volume={{ pv_name.stdout }} 
+              --no-headers -o custom-columns=:.metadata.name
+            args:
+              executable: /bin/bash
+            register: csi_target_pod_name
+        
+          when: vol_provisioner == 'cstor.csi.openebs.io'          
 
         - name: Create some test data
           include: "{{ data_consistency_util_path }}"
@@ -118,6 +131,7 @@
             app_label: "{{ label }}"
             action: "svc_stop"
             target_pod: "{{ target_pod_name.stdout }}"
+            csi_target_pod: "{{ csi_target_pod_name.stdout }}"
             ctrl_pod: "{{ ctrl_pod_name.stdout }}"
             app_pod: "{{ app_pod_name.stdout }}"
             pvol_name: "{{ pv_name.stdout }}"
@@ -129,8 +143,8 @@
             action: "svc_start"
             target_pod: "{{ target_pod_name.stdout }}"
             ctrl_pod: "{{ ctrl_pod_name }}"
+            csi_target_pod: "{{ csi_target_pod_name.stdout }}"
             app_pod: "{{ app_pod_name.stdout }}"
-
 
         ## POST-CHAOS APPLICATION LIVENESS CHECK
 
