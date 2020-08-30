@@ -18,6 +18,16 @@ data:
   password:
 
 ---
+apiVersion: v1
+kind: Secret
+metadata:
+  name: node-password
+  namespace: litmus
+type: Opaque
+data:
+  passwordNode:
+
+---
 apiVersion: batch/v1
 kind: Job
 metadata:
@@ -75,12 +85,24 @@ spec:
                 name: host-password 
                 key: password
 
+          - name: NODE_PASSWORD
+            valueFrom:
+              secretKeyRef:
+                name: node-password
+                key: passwordNode
+
+          - name: USERNAME
+            value: ''
+
+          - name: ZPOOL_NAME
+            value: ''
+
           # Application name to pick the relevant data persistence check util
           - name: DATA_PERSISTENCE
             value: "" 
 
         command: ["/bin/bash"]
-        args: ["-c", "ansible-playbook ./experiments/chaos/node_failure/test.yml -i /etc/ansible/hosts -vv; exit 0"]
+        args: ["-c", "ANSIBLE_LOCAL_TEMP=$HOME/.ansible/tmp ANSIBLE_REMOTE_TEMP=$HOME/.ansible/tmp ansible-playbook ./experiments/chaos/node_failure/test.yml -i /etc/ansible/hosts -vv; exit 0"]
         volumeMounts:
         - name: parameters
           mountPath: /mnt/
