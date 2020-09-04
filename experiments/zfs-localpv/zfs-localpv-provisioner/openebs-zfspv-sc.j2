@@ -122,3 +122,14 @@ parameters:
   fstype: "ext4"
   poolname: "{{ pool_name }}"
 provisioner: zfs.csi.openebs.io
+
+---
+apiVersion: storage.k8s.io/v1
+kind: StorageClass
+metadata:
+  name: "{{ storage_class }}-btrfs-shared"
+parameters:
+  shared: "yes"
+  fstype: "btrfs"
+  poolname: "{{ pool_name }}"
+provisioner: zfs.csi.openebs.io
