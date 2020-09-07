@@ -33,18 +33,14 @@ spec:
             
             # Namespace where OpenEBS is deployed
           - name: OPERATOR_NS
-            value: ""
+            value: "openebs"
+
+            # Namespace where OpenEBS csi operator is deployed
+          - name: CSI_NAMESPACE
+            value: "openebs"
 
             # Image tag for Upgrade Job
           - name: UPGRADE_IMAGE_TAG
-            value: ""
- 
-            # UPGRADE TO CI image tag then the value should be v1.x.x-ci
-          - name: UPGRADE_TO_CI
-            value: ""
-
-            # SUpported os for worker nodes ubuntu-16.04, ubuntu-18-04, centos
-          - name: NODE_OS
             value: ""
              
             # set to "true" if you want to upgrade cStor CSPC pool
