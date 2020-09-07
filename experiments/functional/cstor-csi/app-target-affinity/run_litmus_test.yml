@@ -1,0 +1,49 @@
+---
+apiVersion: batch/v1
+kind: Job
+metadata:
+  generateName: csi-cstor-app-target-affinity-
+  namespace: litmus
+spec:
+  template:
+    metadata:
+      name: litmus
+      labels:
+        app: app-target-affinity
+    spec:
+      serviceAccountName: litmus
+      restartPolicy: Never
+      containers:
+      - name: ansibletest
+        image: openebs/ansible-runner:ci
+        imagePullPolicy: IfNotPresent
+
+        env:
+          - name: ANSIBLE_STDOUT_CALLBACK
+            #value: log_plays, actionable, default
+            value: default
+
+          - name: POOL_NAME
+            value: ""
+
+            # Application label
+          - name: APP_LABEL
+            value: 'app=percona'
+
+            # Application label
+          - name: PROVIDER_STORAGE_CLASS
+            value: csi-app-target-affinity
+
+          - name: APP_PVC
+            value: percona-mysql-claim-csi-cstor
+
+            # Application namespace
+          - name: APP_NAMESPACE
+            value: app-percona-ns
+
+            # Use 'deprovision' for app-clean up
+          - name: ACTION
+            value: provision
+
+        command: ["/bin/bash"]
+        args: ["-c", "ansible-playbook ./experiments/functional/cstor-csi/app-target-affinity/test.yml -i /etc/ansible/hosts -v; exit 0"]
