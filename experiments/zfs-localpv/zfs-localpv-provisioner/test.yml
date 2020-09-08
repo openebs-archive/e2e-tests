@@ -24,39 +24,16 @@
             include_tasks: /utils/zpool_creation/create_zpool.yml
             when: lookup('env','ZPOOL_CREATION') == 'true'
         
-          - name: Download OpenEBS ZFS driver file when OS is ubuntu
+          - name: Download OpenEBS ZFS-LocalPV operator file
             get_url:
               url: https://raw.githubusercontent.com/openebs/zfs-localpv/{{ zfs_branch }}/deploy/zfs-operator.yaml
               dest: ./zfs_operator.yml
               force: yes
             register: result
-            when: lookup('env','OS_NAME') == 'ubuntu'
             until: "'OK' in result.msg"
             delay: 5
             retries: 3
-
-          - name: Download OpenEBS ZFS driver file when OS is CentOS7
-            get_url:
-              url: https://raw.githubusercontent.com/openebs/zfs-localpv/{{ zfs_branch }}/deploy/operators/centos7/zfs-operator.yaml
-              dest: ./zfs_operator.yml
-              force: yes
-            register: result
-            when: lookup('env','OS_NAME') == 'centos7'
-            until: "'OK' in result.msg"
-            delay: 5
-            retries: 3
-
-          - name: Download OpenEBS ZFS driver file when OS is CentOS8
-            get_url:
-              url: https://raw.githubusercontent.com/openebs/zfs-localpv/{{ zfs_branch }}/deploy/operators/centos8/zfs-operator.yaml
-              dest: ./zfs_operator.yml
-              force: yes
-            register: result
-            when: lookup('env','OS_NAME') == 'centos8'
-            until: "'OK' in result.msg"
-            delay: 5
-            retries: 3
-    
+   
           - name: Update the openebs zfs-driver image tag
             replace:
               path: ./zfs_operator.yml

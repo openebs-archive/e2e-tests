@@ -34,13 +34,6 @@ spec:
           - name: ZFS_DRIVER_IMAGE
             value: ''
 
-            ## This env will be used to select zfs-operator file for 
-            ## specific Operating system on which k8s cluster is created
-            ## For ubuntu based cluster give value as `ubuntu` (for both either 18.04 or 16.04)
-            ## For CentOS based cluster give value as either `centos7` or `centos8` accordingly
-          - name: OS_NAME  
-            value: ''  
-
             ## If zpool need to be created on each worker node set this value as `true`
             ## If already present and no need of zpool creation then set this value as `false`
             ## If false then leave `POOL_NAME` & `POOL_TYPE` env values empty.
