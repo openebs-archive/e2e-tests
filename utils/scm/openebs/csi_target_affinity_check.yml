@@ -70,7 +70,7 @@
     executable: /bin/bash
   register: new_app_node
 
-- name: Obtain the cstor csi target network name
+- name: Obtain the cstor csi target pod name
   shell: >
     kubectl get pods -n {{ operator_ns }}
     -o jsonpath='{.items[?(@.metadata.labels.openebs\.io\/persistent-volume=="{{ pv.stdout }}")].metadata.name}'
