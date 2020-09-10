@@ -331,11 +331,6 @@
               with_items:
                 - "{{ cspc_name.stdout_lines }}"
 
-            - name: Display cspc.yml for verification
-              debug: var=item
-              with_file:
-              - "cstor-cspc-upgrade-job.yml"
-
             - name: Create the job to upgrade the CSPC pool
               shell: kubectl apply -f cstor-cspc-upgrade-job.yml
               args:
