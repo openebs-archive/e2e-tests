@@ -23,7 +23,7 @@ spec:
             fieldRef:
               fieldPath: metadata.namespace
         tty: true
-        image: "{{ upgrade_image_tag }}"
+        image: openebs/upgrade-amd64:{{ upgrade_image_tag }}
         imagePullPolicy: IfNotPresent
       restartPolicy: OnFailure
 ---
