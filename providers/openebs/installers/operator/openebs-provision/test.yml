@@ -43,39 +43,54 @@
 
                 - block:
 
-                    - name: Downloading openebs-operator.yaml
+                    - name: Downloading openebs-operator from charts
                       get_url:
-                        url: "{{ openebs_operator_link }}"
+                        url: "{{ new_operator_link }}"
                         dest: "{{ playbook_dir }}/{{ openebs_operator }}"
                         force: yes
-                      register: result
-                      until:  "'OK' in result.msg"
+                      register: new_operator
+                      ignore_errors: true
+                      until:  "'OK' in new_operator.msg"
                       delay: 5
                       retries: 3
 
-                    - name: Change the Node Disk manager Image
-                      replace:
-                        path: "{{ openebs_operator }}"
-                        regexp: openebs/node-disk-manager:ci
-                        replace: openebs/node-disk-manager:{{ ndm_tag }}
+                    - block: 
 
-                    - name: Change the Node Disk operator Image
-                      replace:
-                        path: "{{ openebs_operator }}"
-                        regexp: openebs/node-disk-operator:ci
-                        replace: openebs/node-disk-operator:{{ ndm_tag }}
+                        - name: Downloading openebs-operator.yaml
+                          get_url:
+                            url: "{{ openebs_operator_link }}"
+                            dest: "{{ playbook_dir }}/{{ openebs_operator }}"
+                            force: yes
+                          register: result
+                          until:  "'OK' in result.msg"
+                          delay: 5
+                          retries: 3
 
-                    - name: Change the OpenEBS component labels to desired version in Operator yaml
-                      replace:
-                        path: "{{ openebs_operator }}"
-                        regexp: 'openebs.io/version: dev'
-                        replace: "openebs.io/version: {{ release_version }}"
+                        - name: Change the Node Disk manager Image
+                          replace:
+                            path: "{{ openebs_operator }}"
+                            regexp: openebs/node-disk-manager:ci
+                            replace: openebs/node-disk-manager:{{ ndm_tag }}
 
-                    - name: Change the Image tag to newer version in operator yaml
-                      replace:
-                        path: "{{ openebs_operator }}"
-                        regexp: ':ci'
-                        replace: ":{{ release_version }}"
+                        - name: Change the Node Disk operator Image
+                          replace:
+                            path: "{{ openebs_operator }}"
+                            regexp: openebs/node-disk-operator:ci
+                            replace: openebs/node-disk-operator:{{ ndm_tag }}
+
+                        - name: Change the OpenEBS component labels to desired version in Operator yaml
+                          replace:
+                            path: "{{ openebs_operator }}"
+                            regexp: 'openebs.io/version: dev'
+                            replace: "openebs.io/version: {{ release_version }}"
+
+                        - name: Change the Image tag to newer version in operator yaml
+                          replace:
+                            path: "{{ openebs_operator }}"
+                            regexp: ':ci'
+                            replace: ":{{ release_version }}"
+
+                      when: "'OK' not in new_operator.msg"
 
                   when: "'OK' not in operator_file.msg"
 
