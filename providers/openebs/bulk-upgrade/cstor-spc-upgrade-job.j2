@@ -22,6 +22,6 @@ spec:
             fieldRef:
               fieldPath: metadata.namespace
         tty: true
-        image: quay.io/openebs/m-upgrade:{{ image_tag }}
+        image: openebs/m-upgrade:{{ image_tag }}
       restartPolicy: OnFailure
 ---
