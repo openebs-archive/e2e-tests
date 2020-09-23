@@ -107,7 +107,9 @@
               args:
                 executable: /bin/bash
               register: snap
-              failed_when: "snap.stdout == ''"
+              until: "snap.stdout != ''"
+              retries: 5
+              delay: 10
               with_items:
                 - "{{ pool_pods.results }}"
 
