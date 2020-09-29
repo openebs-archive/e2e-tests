@@ -7,7 +7,9 @@ cspc_rbac: rbac.yaml
 cspc_crd: all_cstor_crds.yaml
 release_branch: "{{ lookup('env','RELEASE_BRANCH') }}"
 release_version: "{{ lookup('env','RELEASE_VERSION') }}"
-cspc_image_tag: "{{ lookup('env','CSTOR_OPERATOR_IMAGE') }}"
+release_tag: "{{ lookup('env','IMAGE_TAG') }}"
 webhook_policy: "{{ lookup('env','WEBHOOK_FAILURE_POLICY') }}"
 test_name: "openebs-cstor-operator-{{ lookup('env','ACTION') }}"
-#cstor_file_name: "cstor-operator-{{ lookup('env','CSTOR_OPERATOR_IMAGE') }}.yaml"
+node_os: "{{ lookup('env','NODE_OS') }}"
+snapshot_class: "{{ lookup('env','SNAPSHOT_CLASS') }}"
+operator_ns: "{{ lookup('env','CSI_NS') }}"
