@@ -55,6 +55,17 @@ All the functional and chaos test scenarios are located inside `experiments` fol
 
 In addition to the above files, some experiments will have util files being used in the playbook.
 
+The most commonly used util files are located in the directory `utils`
+
+```
+├── fcm    # Framework common modules
+├── k8s    # set of kubernetes specific tasks
+├── scm    # Solution common modules, Application specific tasks
+│   ├── applications
+│   ├── cloud      # Public cloud specific tasks
+│   └── openebs    # OpenEBS specific tasks
+```
+
 ## Running an Experiment 
 
 Let's say, you'd like to test resiliency of a stateful application pod upon container crash
