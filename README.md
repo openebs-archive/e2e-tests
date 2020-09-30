@@ -43,27 +43,27 @@ kubectl apply -f hack/crds.yaml
 
 ## Directory structure
 
-All the functional and chaos test scenarios are located inside `experiments` folder. Each test experiment will have the below directory structure.
+- All the functional and chaos test scenarios are located inside `experiments` folder. Each test experiment will have the below directory structure.
 
 ```
-├── data_persistence.j2   # An util for verifying data persistence. It varies based on app being used
-├── README.md             # Description about the scenario
-├── run_litmus_test.yml   # The job spec
-├── test_vars.yml         # Variables used in ansible-playbook
-└── test.yml              # The test logic in the form of ansible playbook
+├── data_persistence.j2   # An util for verifying data persistence. It varies based on app being used.
+├── README.md             # Description about the scenario.
+├── run_litmus_test.yml   # The job spec.
+├── test_vars.yml         # Variables used in ansible-playbook.
+└── test.yml              # The test logic in the form of ansible playbook.
 ```
 
 In addition to the above files, some experiments will have util files being used in the playbook.
 
-The most commonly used util files are located in the directory `utils`
+- The most commonly used util files are located in the directory `utils`
 
 ```
 ├── fcm    # Framework common modules
 ├── k8s    # set of kubernetes specific tasks
 ├── scm    # Solution common modules, Application specific tasks
-│   ├── applications
-│   ├── cloud      # Public cloud specific tasks
-│   └── openebs    # OpenEBS specific tasks
+    ├── applications
+    ├── cloud      # Public cloud specific tasks
+    └── openebs    # OpenEBS specific tasks
 ```
 
 ## Running an Experiment 
@@ -79,7 +79,7 @@ Let's say, you'd like to test resiliency of a stateful application pod upon cont
 - Run the litmusbook:
 
   ```
-  kubectl create -f experiments/chaos/run_litmus_test.yml
+  kubectl create -f experiments/chaos/app_pod_failure/run_litmus_test.yml
   ```
   
 ## Get Experiment Results 
