@@ -1,0 +1,84 @@
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: configmap-zfspv-backup-store
+  namespace: litmus
+data:
+  parameters.yml: |
+    
+---
+
+apiVersion: batch/v1
+kind: Job
+metadata:
+  generateName: zfspv-velero-backup-restore-
+  namespace: litmus
+spec:
+  template:
+    metadata:
+      name: litmus
+      labels:
+        app: velero-backup-restore
+
+    spec:
+      serviceAccountName: litmus
+      restartPolicy: Never
+      containers:
+      - name: ansibletest
+        image: openebs/ansible-runner:ci
+        imagePullPolicy: IfNotPresent
+
+        env:
+          - name: ANSIBLE_STDOUT_CALLBACK
+            value: default
+
+          - name: APP_NAMESPACE
+            value: '' 
+
+          - name: APP_LABEL
+            value: ''
+
+          - name: APP_PVC
+            value: ''
+
+          - name: VELERO_BACKUP_NAME
+            value: ''
+
+          - name: VELERO_PLUGIN_NAME
+            value: ''
+
+          - name: VELERO_SCHEDULE_BACKUP_NAME
+            value: ''
+
+          - name: VELERO_VERSION
+            value: ''
+
+          - name: STORAGE_BUCKET
+            value: ''
+            
+          - name: RESTORE_IN_DIFF_NAMESPACE
+            value: ''
+
+          - name: RESTORE_NAMESPACE
+            value: ''
+
+          - name: DEPROVISION_VELERO
+            value: ''
+
+          - name: DATA_PERSISTENCE
+            value: ''
+            
+          - name: ACTION
+            value: ''
+
+        command: ["/bin/bash"]
+        args: ["-c", "ansible-playbook ./experiments/zfs-localpv/functional/backup_and_restore/test.yml -i /etc/ansible/hosts -vv; exit 0"]
+
+        volumeMounts:
+        - name: parameters
+          mountPath: /mnt/
+      volumes:
+        - name: parameters
+          configMap:
+            name: configmap-zfspv-backup-store
