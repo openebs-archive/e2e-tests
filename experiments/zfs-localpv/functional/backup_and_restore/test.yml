@@ -96,7 +96,3 @@
         - include_tasks: /utils/fcm/update_litmus_result_resource.yml
           vars:
             status: 'EOT'    
-
-        - name: Deprovisioning Velero server
-          shell: kubectl delete namespace velero 
-          when: lookup('env','DEPROVISION_VELERO') == 'true'
