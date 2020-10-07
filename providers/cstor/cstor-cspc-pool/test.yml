@@ -194,8 +194,10 @@
                 executable: /bin/bash
               register: cspi_rep_status
               with_items: "{{ cspi_list.stdout_lines }}"
-              failed_when: "cspi_rep_status.stdout != '0'"
-               
+              until: "'0' in cspi_rep_status.stdout "
+              retries: 30
+              delay: 10
+                            
             - name: Remove the CStor Pool Cluster
               shell: >
                 kubectl delete cspc {{ pool_name }} -n {{ operator_ns }}
