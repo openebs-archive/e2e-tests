@@ -1,4 +1,4 @@
-#------------------------------------------------------------------------------
+# -*- coding: utf-8 -*-
 #!/usr/bin/env python
 #description     :Test to verify the memory consumed with sample workloads. 
 #==============================================================================
