@@ -1,0 +1,98 @@
+- hosts: localhost
+  connection: local
+  gather_facts: False
+
+  vars_files:
+    - test_vars.yml
+    - /mnt/parameters.yml
+
+  tasks:
+
+    - block:
+    
+         # GENERATING THE TEST NAME
+        - include_tasks: /utils/fcm/create_testname.yml
+
+         ##  RECORD START-OF-TEST IN LITMUS RESULT CR
+        - include_tasks: "/utils/fcm/update_litmus_result_resource.yml"
+          vars:
+            status: 'SOT'
+
+        - name: Identify the data consistency util to be invoked
+          template:
+            src: data_persistence.j2
+            dest: data_persistence.yml
+
+        - include_vars:
+            file: data_persistence.yml
+
+        - name: Record the data consistency util path
+          set_fact:
+            data_consistency_util_path: "{{ consistencyutil }}"
+          when: data_persistence != ''
+
+        - name: Install velero 
+          include_tasks: "./setup_dependency.yml"
+
+        - block:
+
+          - name: Get the application pod name
+            shell: >
+              kubectl get pod -n {{ app_ns }} -l {{ app_label }} 
+              --no-headers -o custom-columns=:.metadata.name
+            args:
+              executable: /bin/bash
+            register: application_pod_name
+
+          - name: Record the application pod name
+            set_fact:
+              app_pod_name: "{{ application_pod_name.stdout }}"
+
+          - name: Check if the application pod is in running state
+            shell: >
+              kubectl get pod {{ app_pod_name }} -n {{ app_ns }} 
+              --no-headers -o custom-columns=:.status.phase
+            args:
+              executable: /bin/bash
+            register: app_pod_status
+            failed_when: "'Running' not in app_pod_status.stdout"
+
+          - name: Create some test data
+            include: "{{ data_consistency_util_path }}"
+            vars:
+              status: 'LOAD'
+              ns: "{{ app_ns }}"
+              pod_name: "{{ app_pod_name }}"
+            when: data_persistence != ''
+
+          - name: Create the backup of the namespace in which application is deployed
+            include_tasks: "./backup_restore.yml"
+
+          when: action == 'backup' or action == 'schedule_backup'
+
+
+        - block:
+
+          - name: Restore the backup
+            include_tasks: "./backup_restore.yml"
+            when: lookup('env','RESTORE_IN_DIFF_NAMESPACE') == "true"
+
+          - name: Restore the backup
+            include_tasks: "./backup_restore.yml"
+            vars:
+              app_ns_new: "{{ app_ns }}"
+            when: lookup('env','RESTORE_IN_DIFF_NAMESPACE') == "false"
+
+          when: action == 'restore'
+
+        - set_fact:
+            flag: "Pass"
+
+      rescue:
+        - set_fact:
+            flag: "Fail"
+
+      always: 
+        - include_tasks: /utils/fcm/update_litmus_result_resource.yml
+          vars:
+            status: 'EOT'    
