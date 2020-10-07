@@ -9,8 +9,7 @@
      - cstor-spc-migration-job.j2 - Pool migration job template which has to be populated with the given variables.
      - test_vars.yml - This test_vars file has the list of test specific variables used in LitmusBook.
      - test.yml - Playbook where the test logic is built to migrate the CSPC CSI components.
-     - cstor_pool_migration.yml - This file includes the task to Migrate the SPC pools into CSPC pool
-     - cstor_volume_migration - This file includes the task to Migrate the non csi volumes into csi volume
+     - application_scale.yml - This file includes the task to scaledown and scaleup the application.
    - This test case should be provided with the parameters in form of job environmental variables in run_litmus_test.yml
 
 ## Litmusbook Environment Variables
