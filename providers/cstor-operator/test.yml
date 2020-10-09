@@ -249,6 +249,16 @@
                           register: deploy_status
                           failed_when: "deploy_status.rc != 0"
 
+                        - name: Applying cspc rbac
+                          shell: "kubectl  apply -f {{ cspc_rbac }}"
+                          args:
+                            executable: /bin/bash
+
+                        - name: Applying cspc crd
+                          shell: "kubectl  apply -f {{ cspc_crd }}"
+                          args:
+                            executable: /bin/bash                          
+
                       when: "'OK' not in release.msg"
 
                   when: release_tag != '1.12.0'
@@ -271,20 +281,6 @@
               shell: "kubectl  apply -f {{ cspc_operator }}"
               args:
                 executable: /bin/bash
-
-            - block:
-
-                - name: Applying cspc rbac
-                  shell: "kubectl  apply -f {{ cspc_rbac }}"
-                  args:
-                    executable: /bin/bash
-
-                - name: Applying cspc crd
-                  shell: "kubectl  apply -f {{ cspc_crd }}"
-                  args:
-                    executable: /bin/bash
-              
-              when: "'OK' not in release.msg"
 
             - name: Checking OpenEBS-CSPC-Operator is running
               shell: >
