@@ -15,15 +15,15 @@
               args:
                 executable: /bin/bash
               register: app_deploy_name
-
-            - name: Obtain the application pod name
-              shell: >
-                kubectl get deploy -n {{ app_ns.stdout }} -o custom-columns=:.metadata.name --no-headers | grep {{ app_deploy_name.stdout }}
-              args:
-                executable: /bin/bash
-              register: pod_name
               
             - block:
+
+                - name: Obtain the application pod name
+                  shell: >
+                    kubectl get pod -n {{ app_ns.stdout }} -o custom-columns=:.metadata.name --no-headers | grep {{ app_deploy_name.stdout }}
+                  args:
+                    executable: /bin/bash
+                  register: pod_name
 
                 - name: Scaledown the application
                   shell: >
@@ -73,9 +73,16 @@
                   delay: 2
                   retries: 30
                 
+                - name: Obtain the application pod name
+                  shell: >
+                    kubectl get pod -n {{ app_ns.stdout }} -o custom-columns=:.metadata.name --no-headers | grep {{ app_deploy_name.stdout }}
+                  args:
+                    executable: /bin/bash
+                  register: new_pod_name
+
                 - name: check if the application pod is in running state
                   shell: >
-                    kubectl get pod -n {{ app_ns.stdout }} {{ pod_name.stdout }} --no-headers -o custom-columns=:.status.phase
+                    kubectl get pod -n {{ app_ns.stdout }} {{ new_pod_name.stdout }} --no-headers -o custom-columns=:.status.phase
                   args:
                     executable: /bin/bash
                   register: pod_status
