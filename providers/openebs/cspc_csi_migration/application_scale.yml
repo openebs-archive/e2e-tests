@@ -44,11 +44,11 @@
 
                 - name: check if the application pod is deleted
                   shell: >
-                    kubectl get pod -n {{ app_ns.stdout }} {{ pod_name.stdout }} --no-headers -o custom-columns=:.metadata.name
+                    kubectl get pod -n {{ app_ns.stdout }}
                   args:
                     executable: /bin/bash
                   register: status
-                  until: "status.stdout == ''"
+                  until: '"{{ pod_name.stdout }}" not in status.stdout'
                   delay: 10
                   retries: 30
 
