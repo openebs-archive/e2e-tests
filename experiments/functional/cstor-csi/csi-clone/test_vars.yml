@@ -20,4 +20,4 @@ storage_capacity: "{{ lookup('env','STORAGE_CAPACITY') }}"
 
 cloned_pvc: "{{ lookup('env','CLONED_PVC') }}"
 
-operator_ns: 'openebs'
+operator_ns: "{{ lookup('env','OPENEBS_NAMESPACE') }}"

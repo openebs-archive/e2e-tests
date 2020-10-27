@@ -32,6 +32,7 @@
                 executable: /bin/bash
               register: psp_status
               failed_when: "psp_status.rc != 0"
+              when: namespace == "openebs"
 
             - block:
                   ## Obtaining the OpenEBS operator from charts.
@@ -208,6 +209,40 @@
                   shell: "{{ kubeapply }} apply -f {{ openebs_operator }}"
                   args:
                     executable: /bin/bash
+                  when: namespace == "openebs"
+
+                - block:
+
+                    - name: Change the default namespace in security policy spec
+                      replace:
+                        path: "{{ psp_spec }}"
+                        regexp: 'namespace: openebs'
+                        replace: 'namespace: "{{ namespace }}"'
+
+                    - name: Creating pod security policy, cluster role and clusterrolebinding
+                      shell: kubectl apply -f "{{ psp_spec }}"
+                      args:
+                        executable: /bin/bash
+                      register: psp_status
+                      failed_when: "psp_status.rc != 0"  
+
+                    - name: Change the default namespace in openebs operator spec
+                      replace:
+                        path: "{{ openebs_operator }}"
+                        regexp: 'namespace: openebs'
+                        replace: 'namespace: "{{ namespace }}"'
+
+                    - name: Create the namesapce to deploy openebs
+                      shell: kubectl create namespace {{ namespace }}
+                      args:
+                        executable: /bin/bash
+     
+                    - name: Applying openebs operator
+                      shell: "{{ kubeapply }} apply -f {{ openebs_operator }}"
+                      args:
+                        executable: /bin/bash
+
+                  when: namespace != "openebs"                
 
               when:  deploy_type == "operator"
 
@@ -434,9 +469,26 @@
                 args:
                   executable: /bin/bash
                 ignore_errors: True
+                when: namespace == "openebs"
+
+                - block:
+
+                    - name: Change the default namespace
+                      replace:
+                        path: "{{ openebs_operator_link }}"
+                        regexp: 'namespace: openebs'
+                        replace: 'namespace: "{{ namespace }}"'
+     
+                    - name: Cleaning openebs operator
+                      shell: "{{ kubeapply }} delete -f {{ openebs_operator_link }}"
+                      args:
+                        executable: /bin/bash
+                      ignore_errors: True
+                        
+                  when: namespace != "openebs"                 
 
               - name: Confirm pods has been deleted
-                shell: kubectl get pods -n openebs
+                shell: kubectl get pods -n {{ namespace }}
                 args:
                   executable: /bin/bash
                 register: result

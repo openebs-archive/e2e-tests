@@ -10,4 +10,4 @@ snapshot_name: "{{ lookup('env','SNAPSHOT_NAME') }}"
 
 data_persistence: "{{ lookup('env','DATA_PERSISTENCE') }}"
 
-operator_ns: 'openebs'
+operator_ns: "{{ lookup('env','OPENEBS_NAMESPACE') }}"

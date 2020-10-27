@@ -44,6 +44,9 @@ spec:
             # Use 'deprovision' for app-clean up
           - name: ACTION
             value: provision
+            
+          - name: OPENEBS_NAMESPACE
+            value: openebs
 
         command: ["/bin/bash"]
         args: ["-c", "ansible-playbook ./experiments/functional/cstor-csi/app-target-affinity/test.yml -i /etc/ansible/hosts -v; exit 0"]

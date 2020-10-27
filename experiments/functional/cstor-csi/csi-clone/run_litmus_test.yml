@@ -66,7 +66,10 @@ spec:
             ## busybox for app busybox 
           - name: DATA_PERSISTENCE
             value: ""
-       
+
+          - name: OPENEBS_NAMESPACE
+            value: openebs
+
         command: ["/bin/bash"]
         args: ["-c", "ansible-playbook ./experiments/functional/cstor-csi/csi-clone/test.yml -i /etc/ansible/hosts -vv; exit 0"]
 

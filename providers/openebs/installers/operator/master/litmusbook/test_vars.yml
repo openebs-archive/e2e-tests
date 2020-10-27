@@ -1,5 +1,4 @@
 kubeapply: kubectl --kubeconfig /root/admin.conf
-namespace: openebs
 openebs_operator_link: "https://raw.githubusercontent.com/openebs/openebs/master/k8s/openebs-operator.yaml"
 new_operator: "https://openebs.github.io/charts/{{ lookup('env','OPENEBS_VERSION') }}/openebs-operator.yaml"
 openebs_version: "{{ lookup('env','OPENEBS_VERSION') }}"
@@ -7,6 +6,7 @@ openebs_operator: openebs-operator.yaml
 test_name: "openebs-{{ lookup('env','Action') }}"
 deploy_type: "{{ lookup('env','DEPLOY_MODE') }}"
 helm_repo: "{{ lookup('env','HELM_REPO') }}"
+namespace: "{{ lookup('env','OPERATOR_NS') }}"
 helm_branch: "{{ lookup('env','HELM_BRANCH') }}"
 psp_spec: openebs_psp.yml 
 sparse_file_count: "{{ lookup('env','SPARSE_FILE_COUNT') }}"
