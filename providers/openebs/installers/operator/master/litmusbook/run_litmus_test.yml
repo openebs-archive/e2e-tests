@@ -65,7 +65,9 @@ spec:
           - name: DEPLOY_MODE
             value: "operator"  
           - name: Action
-            value: provision   
+            value: provision
+          - name: OPERATOR_NS
+            value: "openebs"
 
         command: ["/bin/bash"]
         args: ["-c", "ansible-playbook ./providers/openebs/installers/operator/master/litmusbook/test.yml -i /etc/ansible/hosts -vv; exit 0"]

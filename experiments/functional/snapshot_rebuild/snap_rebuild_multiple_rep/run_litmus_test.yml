@@ -34,6 +34,9 @@ spec:
           - name: APP_NAMESPACE
             value: percona-cstor
 
+          - name: OPENEBS_NAMESPACE
+            value: 'openebs'
+
             # Name of snapshot
           - name: snapshot
             value: percona-snapshot

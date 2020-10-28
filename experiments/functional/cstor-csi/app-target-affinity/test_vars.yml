@@ -4,7 +4,7 @@ application_deployment: percona.yml
 affinity_policy: app-target-affinity-policy.yml
 affinity_sc: app-target-affinity-sc.yaml
 app_ns: "{{ lookup('env','APP_NAMESPACE') }}"
-operator_ns: 'openebs'
+operator_ns: "{{ lookup('env','OPENEBS_NAMESPACE') }}"
 app_label: "{{ lookup('env','APP_LABEL') }}"
 test_name: csi-app-target-affinity
 action: "{{ lookup('env','ACTION') }}"

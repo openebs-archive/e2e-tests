@@ -22,6 +22,9 @@ spec:
           - name: APP_NAMESPACE
             value: app-busybox-ns
 
+          - name: OPENEBS_NAMESPACE
+            value: 'openebs'
+
           - name: APP_LABEL
             value: app=busybox
 

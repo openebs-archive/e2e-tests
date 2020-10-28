@@ -7,7 +7,7 @@ namespace: "{{ lookup('env','APP_NAMESPACE') }}"
 
 application_label: "{{ lookup('env','APP_LABEL') }}"
 
-operator_ns: openebs
+operator_ns: "{{ lookup('env','OPENEBS_NAMESPACE') }}"
 
 snapshot_name: "{{ lookup('env','snapshot') }}"
 

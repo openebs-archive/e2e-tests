@@ -34,6 +34,9 @@ spec:
           - name: APP_NAMESPACE
             value: ""
 
+          - name: OPENEBS_NAMESPACE
+            value: "openebs"
+
           - name: APP_LABEL
             value: ""
 

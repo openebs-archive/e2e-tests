@@ -44,5 +44,8 @@ spec:
           - name: CAPACITY
             value: 5Gi
 
+          - name: OPERATOR_NAMESPACE
+            value: "openebs"
+            
         command: ["/bin/bash"]
         args: ["-c", "ansible-playbook ./experiments/functional/clone-creation/test.yml -i /etc/ansible/hosts -vv; exit 0"]

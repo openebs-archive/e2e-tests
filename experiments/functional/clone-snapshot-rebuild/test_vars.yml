@@ -13,7 +13,7 @@ clone_claim_name: "{{ lookup('env','CLONE_VOL_CLAIM') }}"
 
 cloned_app: "{{ lookup('env','CLONE_APP_NAME') }}"
 
-operator_ns: openebs
+operator_ns: "{{ lookup('env','OPERATOR_NAMESPACE') }}"
 
 storage_class: "{{ lookup('env','PROVIDER_STORAGE_CLASS') }}"
 

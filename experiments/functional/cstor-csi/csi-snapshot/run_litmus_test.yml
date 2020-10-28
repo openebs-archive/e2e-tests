@@ -34,6 +34,9 @@ spec:
           - name: APP_NAMESPACE
             value: '' 
 
+          - name: OPENEBS_NAMESPACE
+            value: 'openebs'
+
           ##Name of CSI volumesnapshotclass
           - name: SNAPSHOT_CLASS
             value: 'csi-cstor'

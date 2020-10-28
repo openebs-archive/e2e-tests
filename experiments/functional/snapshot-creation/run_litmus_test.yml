@@ -30,7 +30,10 @@ spec:
             # Application namespace
           - name: APP_NAMESPACE
             value: app-busybox-ns 
-           
+
+          - name: OPENEBS_NAMESPACE
+            value: 'openebs'
+
             # Name of snapshot
           - name: snapshot
             value: snapshot-busybox
