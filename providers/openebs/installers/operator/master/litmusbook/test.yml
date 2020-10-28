@@ -471,21 +471,21 @@
                 ignore_errors: True
                 when: namespace == "openebs"
 
-                - block:
+              - block:
 
-                    - name: Change the default namespace
-                      replace:
-                        path: "{{ openebs_operator_link }}"
-                        regexp: 'namespace: openebs'
-                        replace: 'namespace: "{{ namespace }}"'
+                  - name: Change the default namespace
+                    replace:
+                      path: "{{ openebs_operator_link }}"
+                      regexp: 'namespace: openebs'
+                      replace: 'namespace: "{{ namespace }}"'
      
-                    - name: Cleaning openebs operator
-                      shell: "{{ kubeapply }} delete -f {{ openebs_operator_link }}"
-                      args:
-                        executable: /bin/bash
-                      ignore_errors: True
+                  - name: Cleaning openebs operator
+                    shell: "{{ kubeapply }} delete -f {{ openebs_operator_link }}"
+                    args:
+                      executable: /bin/bash
+                    ignore_errors: True
                         
-                  when: namespace != "openebs"                 
+                when: namespace != "openebs"                 
 
               - name: Confirm pods has been deleted
                 shell: kubectl get pods -n {{ namespace }}
