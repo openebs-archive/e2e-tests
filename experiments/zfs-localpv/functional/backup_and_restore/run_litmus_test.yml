@@ -66,6 +66,9 @@ spec:
           - name: RESTORE_NAMESPACE  ## If `RESTORE_IN_DIFF_NAMESPACE: true` provide the namespace in which you want to restore the backup
             value: ''
 
+          - name: RESTORE_IN_DIFF_NODE  ## For restoring the backup on different nodes provide value accordingly.
+            value: ''                   ## Supported values: ( true, false)
+
           - name: DATA_PERSISTENCE  ## Supported values: (busybox, mysql)
             value: ''               ## To check data-consistency provide values accordingly. When value is set; some dummy test data will be 
                                     ## dumped in application mount point and will verify that data in restored application.
