@@ -2,7 +2,7 @@
 
 Type  |     Description                                               | Storage    | K8s Platform | 
 ------|---------------------------------------------------------------|------------|--------------|
-Chaos |Verify the BlockDevice replacement is blocked by the adminssion server if the Bd is in claimed state | OpenEBS    | Any          | 
+Functional | Verify the BlockDevice replacement is blocked by the admission server if the Bd is in claimed state | OpenEBS    | Any          | 
 
 ## Entry-Criteria
 
@@ -22,6 +22,5 @@ OPERATOR_NS   | Namespace in Which OpenEBS components are deployed
 
 ## Procedure
 
-- This chaos test checks if the cspc pool can be expanded successfully even if the respective pool pod is restarted.
 - This litmusbook accepts the parameters in form of job environmental variables.
-- This job patches the respective blockdevice can be replaced the cspc pool and verifying the BD repalcement is blocked. 
+- This job patches the respective blockdevice can be replaced by the already inused blockdevice in a cspc pool and verifying the BD repalcement is blocked. 
