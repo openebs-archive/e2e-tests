@@ -1,6 +1,6 @@
 # Test-specific parameters
 operator_ns: "{{ lookup('env','OPERATOR_NS') }}"
-test_name: fail-pool-expansion-calimed-bd
+test_name: fail-pool-expansion-claimed-bd
 pool_name: "{{ lookup('env','CSPC_NAME') }}"
 pool_type: "{{ lookup('env','POOL_TYPE') }}"
 

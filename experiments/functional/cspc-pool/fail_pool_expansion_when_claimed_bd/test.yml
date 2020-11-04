@@ -48,6 +48,30 @@
           loop_control:
             loop_var: outer_item
 
+        - name: Verify the status of CSPI 
+          shell: >
+            kubectl get cspi -n {{ operator_ns }} -o jsonpath='{.items[?(@.metadata.name=="{{ item }}")].status.phase}'
+          args:
+            executable: /bin/bash
+          register: cspi_status
+          with_items: "{{ cspi_name.stdout_lines }}"
+          until: "'ONLINE' in cspi_status.stdout"
+          delay: 5
+          retries: 30
+
+        - name: Verify if cStor Pool pods are Running
+          shell: >
+            kubectl get pods -n {{ operator_ns }} -l openebs.io/cstor-pool-instance={{ item }}
+            --no-headers -o custom-columns=:status.phase
+          args:
+            executable: /bin/bash
+          register: pool_count
+          with_items: "{{ cspi_name.stdout_lines }}"
+          until: "((pool_count.stdout_lines|unique)|length) == 1 and 'Running' in pool_count.stdout"
+          retries: 30
+          delay: 10
+
+
         - set_fact:
             flag: "Pass"
 
