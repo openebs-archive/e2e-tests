@@ -2,14 +2,14 @@
 apiVersion: batch/v1
 kind: Job
 metadata:
-  generateName: pool-expansion-with-calimed-bd-
+  generateName: pool-expansion-with-claimed-bd-
   namespace: litmus
 spec:
   template:
     metadata:
       name: litmus
       labels:
-        app: pool-expansion-with-calimed-bd
+        app: pool-expansion-with-claimed-bd
     spec:
       serviceAccountName: litmus
       restartPolicy: Never
