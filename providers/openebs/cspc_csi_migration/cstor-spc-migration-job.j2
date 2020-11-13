@@ -21,7 +21,7 @@ spec:
             fieldRef:
               fieldPath: metadata.namespace
         tty: true
-        image: openebs/migrate-amd64:{{ migration_image_tag }}
+        image: openebs/migrate:{{ migration_image_tag }}
       restartPolicy: Never
 ---
 
