@@ -15,6 +15,7 @@ spec:
         - "jiva-volume"
         - "--from-version={{ old_version }}"
         - "--to-version={{ new_version }}"
+        - "--to-version-image-prefix=openebs/"
         - "--v=4"
         env:
         - name: OPENEBS_NAMESPACE
