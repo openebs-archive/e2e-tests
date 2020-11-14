@@ -408,7 +408,7 @@
               lineinfile:
                 path: ./cstor-spc-upgrade-job.yml
                 insertbefore: '"--v=4"'
-                line: '        - "--to-version-image-tag={{ upgrade_to_ci }}"'
+                line: '        - "--to-version-image-prefix=openebs/"'
               when: upgrade_to_ci is defined
 
             - name: Create the job to upgrade the SPC pool
@@ -501,7 +501,7 @@
               lineinfile:
                 path: ./cstor-volume-upgrade-job.yml
                 insertbefore: '"--v=4"'
-                line: '        - "--to-version-image-tag={{ upgrade_to_ci }}"'
+                line: '        - "--to-version-image-prefix=openebs/"'
               when: upgrade_to_ci is defined
 
             - name: Create the job to upgrade the cstor volume
@@ -584,7 +584,7 @@
               lineinfile:
                 path: ./jiva-volume-upgrade-job.yml
                 insertbefore: '"--v=4"'
-                line: '        - "--to-version-image-tag={{ upgrade_to_ci }}"'
+                line: '        - "--to-version-image-prefix=openebs/"'
               when: upgrade_to_ci is defined
 
             - name: Create the job to upgrade the jiva volume
