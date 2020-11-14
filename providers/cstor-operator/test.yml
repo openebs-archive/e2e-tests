@@ -277,6 +277,11 @@
                 replace: 'value: "{{ webhook_policy }}"'
               when: lookup('env','WEBHOOK_FAILURE_POLICY') != ''
 
+            - name: Display cspc.yml for verification
+              debug: var=item
+              with_file:
+              - "{{ cspc_operator }}"
+
             - name: Applying cspc operator
               shell: "kubectl  apply -f {{ cspc_operator }}"
               args:
