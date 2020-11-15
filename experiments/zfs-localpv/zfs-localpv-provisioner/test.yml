@@ -37,7 +37,7 @@
           - name: Update the openebs zfs-driver image tag
             replace:
               path: ./zfs_operator.yml
-              regexp: quay.io/openebs/zfs-driver:ci
+              regexp: openebs/zfs-driver:ci
               replace: "{{ lookup('env','ZFS_DRIVER_IMAGE') }}"
             when: lookup('env','ZFS_DRIVER_IMAGE') | length > 0
 
