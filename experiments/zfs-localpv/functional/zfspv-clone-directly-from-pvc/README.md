@@ -20,7 +20,7 @@ ZFS-LocalPV version: v1.1.0+
 
 ## Steps performed
 
-This experiment consist of provisioning and deprovisioing of zfspv-clone but performs one task at a time based on ACTION env value < provision or deprovision >.
+This experiment consist of provisioning and deprovisioning of zfspv-clone but performs one task at a time based on ACTION env value < provision or deprovision >.
 
 Provision:
 
