@@ -24,7 +24,7 @@ spec:
     spec:
       containers:
       - image: gaiaadm/pumba:0.4.8
-        imagePullPolicy: Always
+        imagePullPolicy: IfNotPresent
         name: pumba
         # Pumba command: modify it to suite your needs
         # Dry run: Randomly try to kill some container every 3 minutes
