@@ -41,6 +41,18 @@
           set_fact:
             chaos_util_path: "/{{ chaosutil }}"
 
+        - name: Identify the crash util to be invoked
+          template:
+            src: crashutil.j2
+            dest: crashutil.yml
+
+        - include_vars:
+            file: crashutil.yml
+
+        - name: Record the crash util path
+          set_fact:
+            crash_util_path: "/{{ crashutil }}"
+
         - name: Identify the data consistency util to be invoked
           template:
             src: data_persistence.j2
@@ -85,7 +97,7 @@
           register: pvc
 
         ## Obtain the node where application pod is running
-        - name: Get Application pod Node to perform chaos
+        - name: Get Application pod Node to perform crash
           shell: >
             kubectl get pod {{ app_pod_name.stdout }} -n {{ namespace }}
             --no-headers -o custom-columns=:spec.nodeName
@@ -94,7 +106,7 @@
           register: app_node
 
         ## Obtain the nodeIP where application pod is running
-        - name: Get Application pod Node IP to perform chaos
+        - name: Get Application pod Node IP to perform crash
           shell: >
             kubectl get nodes {{ app_node_name }}
             -o jsonpath=\'{ $.status.addresses[?(@.type=="InternalIP")].address }\'
@@ -190,7 +202,7 @@
           register: replica3_pod_name
 
         ## Obtain the node where replica1 pod is running
-        - name: Get replica1 pod Node to perform chaos
+        - name: Get replica1 pod Node to perform crash
           shell: >
             kubectl get pod {{ replica1_pod_name.stdout }} -n {{ namespace }}
             --no-headers -o custom-columns=:spec.nodeName
@@ -199,7 +211,7 @@
           register: replica1_node
 
         ## Obtain the node where replica2 pod is running
-        - name: Get replica2 pod Node to perform chaos
+        - name: Get replica2 pod Node to perform crash
           shell: >
             kubectl get pod {{ replica2_pod_name.stdout }} -n {{ namespace }}
             --no-headers -o custom-columns=:spec.nodeName
@@ -208,7 +220,7 @@
           register: replica2_node
 
         ## Obtain the node where replica2 pod is running
-        - name: Get replica3 pod Node to perform chaos
+        - name: Get replica3 pod Node to perform crash
           shell: >
             kubectl get pod {{ replica3_pod_name.stdout }} -n {{ namespace }}
             --no-headers -o custom-columns=:spec.nodeName
@@ -226,12 +238,12 @@
             pod_name: "{{ app_pod_name.stdout }}"
           when: data_persistence != ''
 
-        ## Execute the chaos util to kill the application node
-        - include_tasks: "{{ chaos_util_path }}"
+        ## Execute the crash util to kill the application node
+        - include_tasks: "{{ crash_util_path }}"
           vars:
             node_ip_add: "{{ app_node_ip.stdout }}"
 
-        ## Application verification after injecting chaos
+        ## Application verification after injecting crash
         - name: check the application status
           shell: kubectl get pods -n {{ namespace}} -l {{ label }} --no-headers -o custom-columns=:.status.phase
           args:
@@ -259,12 +271,12 @@
             pod_name: "{{ app_pod_name.stdout }}"
           when: data_persistence != ''
 
-        ## Execute the chaos util to kill the replica1 node
-        - include_tasks: "{{ chaos_util_path }}"
+        ## Execute the crash util to kill the replica1 node
+        - include_tasks: "{{ crash_util_path }}"
           vars:
             node_ip_add: "{{ replica1_node_ip.stdout }}"
 
-        ## Application verification after injecting chaos
+        ## Application verification after injecting crash
         - name: check the application status
           shell: kubectl get pods -n {{ namespace}} -l {{ label }} --no-headers -o custom-columns=:.status.phase
           args:
@@ -292,22 +304,22 @@
             pod_name: "{{ app_pod_name.stdout }}"
           when: data_persistence != ''
 
-        ## Execute the chaos util to kill the replica1 node
-        - include_tasks: "{{ chaos_util_path }}"
+        ## Execute the crash util to kill the replica1 node
+        - include_tasks: "{{ crash_util_path }}"
           vars:
             node_ip_add: "{{ replica1_node_ip.stdout }}"
  
-        ## Execute the chaos util to kill the replica2 node
-        - include_tasks: "{{ chaos_util_path }}"
+        ## Execute the crash util to kill the replica2 node
+        - include_tasks: "{{ crash_util_path }}"
           vars:
             node_ip_add: "{{ replica2_node_ip.stdout }}"
 
-        ## Execute the chaos util to kill the replica3 node
-        - include_tasks: "{{ chaos_util_path }}"
+        ## Execute the crash util to kill the replica3 node
+        - include_tasks: "{{ crash_util_path }}"
           vars:
             node_ip_add: "{{ replica3_node_ip.stdout }}"
 
-        ## Application verification after injecting chaos
+        ## Application verification after injecting crash
         - name: check the application status
           shell: kubectl get pods -n {{ namespace}} -l {{ label }} --no-headers -o custom-columns=:.status.phase
           args:
@@ -317,6 +329,77 @@
           delay: 5
           retries: 10
           ignore_errors: true
+
+        - name: Verify application data persistence
+          include: "{{ data_consistency_util_path }}"
+          vars:
+            status: 'VERIFY'
+            ns: "{{ namespace }}"
+            pod_name: "{{ rescheduled_app_pod.stdout }}"
+
+    - block:
+        ## Execute the chaos util to turn off the target node
+        - include_tasks: "{{ chaos_util_path }}"
+          vars:
+            esx_ip: "{{ host_ip }}"
+            target_node: "{{ replica3_node.stdout }}"
+            operation: "off"
+
+        - name: Check the node status
+          shell: kubectl get nodes {{ replica3_node.stdout }} --no-headers
+          args:
+            executable: /bin/bash
+          register: state
+          until: "'NotReady' in state.stdout"
+          delay: 15
+          retries: 30
+
+        ## Generate data on the application
+        - name: Generate data on the specified application.
+          include: "{{ data_consistency_util_path }}"
+          vars:
+            status: 'LOAD'
+            ns: "{{ namespace }}"
+            pod_name: "{{ app_pod_name.stdout }}"
+          when: data_persistence != ''
+
+        ## Execute the chaos util to turn on the target node
+        - include_tasks: "{{ chaos_util_path }}"
+          vars:
+            esx_ip: "{{ host_ip }}"
+            target_node: "{{ replica3_node.stdout }}"
+            operation: "on"
+
+        - name: Get wo replica status from controller
+          vars:
+            replicas_endpoint: "9501/v1/replicas"
+          uri:
+            url: "http://{{ controller_service }}:{{ replicas_endpoint }}"
+            method: GET
+            return_content: yes
+            status_code: 200
+            headers:
+              Content-Type: "application/json"
+            body_format: json
+          register: json_response
+          until: json_response.json.data[0].mode == "RW" and json_response.json.data[1].mode == "RW" and json_response.json.data[2].mode == "WO"
+          retries: 20
+          delay: 60
+
+        ## Execute the crash util to kill the replica1 node
+        - include_tasks: "{{ crash_util_path }}"
+          vars:
+            node_ip_add: "{{ replica1_node_ip.stdout }}"
+
+        ## Execute the crash util to kill the replica2 node
+        - include_tasks: "{{ crash_util_path }}"
+          vars:
+            node_ip_add: "{{ replica2_node_ip.stdout }}"
+
+        ## Execute the crash util to kill the replica3 node
+        - include_tasks: "{{ crash_util_path }}"
+          vars:
+            node_ip_add: "{{ replica3_node_ip.stdout }}"
 
         - name: Verify application data persistence
           include: "{{ data_consistency_util_path }}"
