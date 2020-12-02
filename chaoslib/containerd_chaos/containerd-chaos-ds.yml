@@ -14,7 +14,7 @@ spec:
     spec:
       containers:
       - image: gprasath/crictl:ci
-        imagePullPolicy: Always
+        imagePullPolicy: IfNotPresent
         name: containerd-chaos
         command: ['sh', '-c', 'echo Hello! && sleep 1800']
         volumeMounts:
