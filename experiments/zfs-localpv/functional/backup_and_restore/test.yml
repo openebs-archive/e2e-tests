@@ -34,28 +34,28 @@
         - name: Install velero 
           include_tasks: "./setup_dependency.yml"
 
-        - block:
+        - name: Get the application pod name
+          shell: >
+            kubectl get pod -n {{ app_ns }} -l {{ app_label }} 
+            --no-headers -o custom-columns=:.metadata.name
+          args:
+            executable: /bin/bash
+          register: application_pod_name
 
-          - name: Get the application pod name
-            shell: >
-              kubectl get pod -n {{ app_ns }} -l {{ app_label }} 
-              --no-headers -o custom-columns=:.metadata.name
-            args:
-              executable: /bin/bash
-            register: application_pod_name
+        - name: Record the application pod name
+          set_fact:
+            app_pod_name: "{{ application_pod_name.stdout }}"
 
-          - name: Record the application pod name
-            set_fact:
-              app_pod_name: "{{ application_pod_name.stdout }}"
+        - name: Check if the application pod is in running state
+          shell: >
+            kubectl get pod {{ app_pod_name }} -n {{ app_ns }} 
+            --no-headers -o custom-columns=:.status.phase
+          args:
+            executable: /bin/bash
+          register: app_pod_status
+          failed_when: "'Running' not in app_pod_status.stdout"
 
-          - name: Check if the application pod is in running state
-            shell: >
-              kubectl get pod {{ app_pod_name }} -n {{ app_ns }} 
-              --no-headers -o custom-columns=:.status.phase
-            args:
-              executable: /bin/bash
-            register: app_pod_status
-            failed_when: "'Running' not in app_pod_status.stdout"
+        - block: 
 
           - name: Create some test data
             include: "{{ data_consistency_util_path }}"
@@ -66,19 +66,58 @@
             when: data_persistence != ''
 
           - name: Create the backup of the namespace in which application is deployed
-            include_tasks: "./backup_restore.yml"
+            include_tasks: "./backup.yml"
 
           when: action == 'backup' or action == 'schedule_backup'
 
 
         - block:
+        
+          - name: Get the application node name
+            shell: >
+              kubectl get pod {{ app_pod_name }} -n {{ app_ns }}
+              --no-headers -o custom-columns=:.spec.nodeName
+            args:
+              executable: /bin/bash
+            register: application_node_name
+
+          - name: Record the application node name
+            set_fact:
+              source_node: "{{ application_node_name.stdout }}"
+
+          - name: Get any one of the nodes from remaining worker nodes in cluster
+            shell: >
+              kubectl get nodes --no-headers | grep -v master | grep -v {{ source_node }} | shuf -n 1 | awk '{print $1}'
+            args:
+              executable: /bin/bash
+            register: random_node
+
+          - name: Record this random node as destination node for restoring on differet node
+            set_fact:
+              destination_node: "{{ random_node.stdout }}"
+
+          - name: Update the restore item action configmap with test specific values
+            template:
+              src: RestoreItemAction_configmap.j2
+              dest: RestoreItemAction_configmap.yml
+
+          - name: Apply the configmap
+            shell: kubectl apply -f RestoreItemAction_configmap.yml
+            args:
+              executable: /bin/bash
+            register: status
+            failed_when: "status.rc != 0"
+
+          when: lookup('env','RESTORE_IN_DIFF_NODE') == "true"
+       
+        - block:
 
           - name: Restore the backup
-            include_tasks: "./backup_restore.yml"
+            include_tasks: "./restore.yml"
             when: lookup('env','RESTORE_IN_DIFF_NAMESPACE') == "true"
 
           - name: Restore the backup
-            include_tasks: "./backup_restore.yml"
+            include_tasks: "./restore.yml"
             vars:
               app_ns_new: "{{ app_ns }}"
             when: lookup('env','RESTORE_IN_DIFF_NAMESPACE') == "false"

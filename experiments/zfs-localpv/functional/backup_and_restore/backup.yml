@@ -1,0 +1,34 @@
+---
+- block:
+
+    - name: Create the volume snapshot location which has the information about where the snapshot should be stored
+      shell: kubectl apply -f ./volume_snapshot_location.yml
+      args:
+        executable: /bin/bash
+
+    - name: Creating Backup 
+      shell: >
+        velero backup create {{ velero_backup_name }} --snapshot-volumes --include-namespaces={{ app_ns }} --volume-snapshot-locations=zfspv-snaplocation --storage-location=default
+      args:
+        executable: /bin/bash
+
+    - name: Get the state of Backup
+      shell: kubectl get backup {{ velero_backup_name }} -n velero -o jsonpath='{.status.phase}'
+      args:
+        executable: /bin/bash
+      register: backup_state
+      until: "'Completed' in backup_state.stdout"
+      delay: 5
+      retries: 100
+
+  when: action == "backup"
+  
+
+# Schedule creates a cron job for backup. Notation "--schedule=*/2 * * * *" applies same as kubernetes cron job here.
+
+- block:
+  
+  - name: Creating schedule backup 
+    shell: velero create schedule {{ schedule_name }} --schedule="*/1 * * * *" --snapshot-volumes --include-namespaces={{ app_ns }} --volume-snapshot-locations=zfspv-snaplocation --storage-location=default
+
+  when: action == "schedule_backup"
