@@ -82,7 +82,7 @@
   register: backup_status
   failed_when: "backup_status.stdout != 'Completed'"
   loop: 
-    - first_full_backup
-    - first_incr_backup
-    - second_incr_backup
-    - last_full_backup
+    - "{{ first_full_backup }}"
+    - "{{ first_incr_backup }}"
+    - "{{ second_incr_backup }}"
+    - "{{ last_full_backup }}"
