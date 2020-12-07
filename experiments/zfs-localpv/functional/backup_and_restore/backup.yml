@@ -32,3 +32,12 @@
     shell: velero create schedule {{ schedule_name }} --schedule="*/1 * * * *" --snapshot-volumes --include-namespaces={{ app_ns }} --volume-snapshot-locations=zfspv-snaplocation --storage-location=default
 
   when: action == "schedule_backup"
+
+- block:
+
+  - name: Creating incremental backup
+    shell: velero create schedule {{ schedule_name }} --schedule="*/1 * * * *" --snapshot-volumes --include-namespaces={{ app_ns }} --volume-snapshot-locations=incr --storage-location=default
+  
+  - include_tasks: "./incr_backup.yml"
+
+  when: action == "incr_backup"

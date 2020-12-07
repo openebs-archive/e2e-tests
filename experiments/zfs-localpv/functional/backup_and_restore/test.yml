@@ -68,7 +68,7 @@
           - name: Create the backup of the namespace in which application is deployed
             include_tasks: "./backup.yml"
 
-          when: action == 'backup' or action == 'schedule_backup'
+          when: action == 'backup' or action == 'schedule_backup' or action == 'incr_backup'
 
 
         - block:

@@ -68,6 +68,9 @@ spec:
 
           - name: RESTORE_IN_DIFF_NODE  ## For restoring the backup on different nodes provide value accordingly.
             value: ''                   ## Supported values: ( true, false)
+            
+          - name: INCR_BACKUP_COUNT    ## No. of incremental backups we want to have
+            value: ''
 
           - name: DATA_PERSISTENCE  ## Supported values: (busybox, mysql)
             value: ''               ## To check data-consistency provide values accordingly. When value is set; some dummy test data will be 
