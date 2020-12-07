@@ -1,5 +1,17 @@
 - name: Wait for some time
   shell: sleep 30
+
+- name: Obtain the mount path for the application
+  shell: > 
+      kubectl get pods -n {{ app_ns }} -l {{ app_label }} 
+      -o custom-columns=:.spec.containers[].volumeMounts[].mountPath --no-headers
+  args: 
+      executable: /bin/bash
+  register: mount
+
+- name: Record the mount path for the application
+  set_fact:
+    mount_path: "{{ mount.stdout }}"
   
 - name: Dump some dummy data in application mount point
   shell: >
