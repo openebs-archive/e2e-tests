@@ -179,37 +179,37 @@
             
           when: lookup('env','COMPONENT_FAILURE') != ''
         
-        - block:
+        # - block:
          
-           - block: 
+        #    - block: 
 
-              - name: Getting the volume name
-                shell: kubectl get pvc {{ app_pvc }} -n {{ app_ns }} -o jsonpath='{.spec.volumeName}'
-                register: volume_name
+        #       - name: Getting the volume name
+        #         shell: kubectl get pvc {{ app_pvc }} -n {{ app_ns }} -o jsonpath='{.spec.volumeName}'
+        #         register: volume_name
 
-              - include_tasks: ./cstor_post_restore.yml
-                vars:
-                  operator: "{{ operator_ns }}"
-                  vol_name: "{{ volume_name.stdout }}"
+        #       - include_tasks: ./cstor_post_restore.yml
+        #         vars:
+        #           operator: "{{ operator_ns }}"
+        #           vol_name: "{{ volume_name.stdout }}"
 
-             when: lookup('env','RESTORE_IN_DIFF_NAMESPACE') == "false"
+        #      when: lookup('env','RESTORE_IN_DIFF_NAMESPACE') == "false"
 
-           - block: 
+        #    - block: 
 
-              - name: Getting the volume name
-                shell: kubectl get pvc {{ app_pvc }} -n {{ app_ns_new }} -o jsonpath='{.spec.volumeName}'
-                register: volume_name
+        #       - name: Getting the volume name
+        #         shell: kubectl get pvc {{ app_pvc }} -n {{ app_ns_new }} -o jsonpath='{.spec.volumeName}'
+        #         register: volume_name
 
-              - include_tasks: ./cstor_post_restore.yml
-                vars:
-                  operator: "{{ operator_ns }}"
-                  vol_name: "{{ volume_name.stdout }}"
+        #       - include_tasks: ./cstor_post_restore.yml
+        #         vars:
+        #           operator: "{{ operator_ns }}"
+        #           vol_name: "{{ volume_name.stdout }}"
 
-             when: lookup('env','RESTORE_IN_DIFF_NAMESPACE') == "true" 
+        #      when: lookup('env','RESTORE_IN_DIFF_NAMESPACE') == "true" 
           
-          when: 
-            - "storage_engine == 'cstor' or storage_engine == 'cstor-csi'" 
-            - lookup('env','LOCAL_SNAPSHOT') == "false"
+        #   when: 
+        #     - "storage_engine == 'cstor' or storage_engine == 'cstor-csi'" 
+        #     - lookup('env','LOCAL_SNAPSHOT') == "false"
 
         - block: 
 
