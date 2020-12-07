@@ -59,16 +59,7 @@
           args:
               executable: /bin/bash
           register: load
-          ignore_errors: true
-
-        - name: Check the volume is successfully filled
-          shell: kubectl logs {{ app_pod.stdout }} -n {{ app_ns }} | grep 'No space left on device'
-          args:
-            executable: /bin/bash
-          register: space
-          until: "'No space left on device' in space.stdout"
-          retries: 150
-          delay: 5
+          failed_when: "load.rc == 0"
 
         # - name: Check the application pod status
         #   shell: >
