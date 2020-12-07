@@ -62,13 +62,13 @@
           ignore_errors: true
 
         - name: Check the volume is successfully filled
-          shell: kubectl logs {{ app_pod.stdout }} -n {{ app_ns }} | grep 'No space left on device'
+          shell: >
+              kubectl exec -it "{{ app_pod.stdout }}" -n "{{ app_ns }}"
+              -- sh -c "cd {{ mount.stdout }} && dd if=/dev/urandom of=check.txt bs=1024k count=1024"
           args:
             executable: /bin/bash
           register: space
-          until: "'No space left on device' in space.stdout"
-          retries: 150
-          delay: 5
+          failed_when: "'No space left on device' in space.stdout"
 
         # - name: Check the application pod status
         #   shell: >
