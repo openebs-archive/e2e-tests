@@ -43,7 +43,7 @@ spec:
             value: ''
 
           - name: ACTION  ## On basis of the value of this env, this playbook will perform tasks.
-            value: ''     ## Supported values: (backup, restore and schedule_backup)
+            value: ''     ## Supported values: (backup, restore, schedule_backup, incr_backup, incr_restore)
           
           - name: VELERO_BACKUP_NAME  ## Velero backup will be created with name of this value.
             value: ''
@@ -69,9 +69,6 @@ spec:
           - name: RESTORE_IN_DIFF_NODE  ## For restoring the backup on different nodes provide value accordingly.
             value: ''                   ## Supported values: ( true, false)
             
-          - name: INCR_BACKUP_COUNT    ## No. of incremental backups we want to have
-            value: ''
-
           - name: DATA_PERSISTENCE  ## Supported values: (busybox, mysql)
             value: ''               ## To check data-consistency provide values accordingly. When value is set; some dummy test data will be 
                                     ## dumped in application mount point and will verify that data in restored application.
