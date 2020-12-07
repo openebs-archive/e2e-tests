@@ -1,0 +1,72 @@
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: zfspv-clone-from-pvc
+  namespace: litmus
+data:
+  parameters.yml: |
+  
+---
+apiVersion: batch/v1
+kind: Job
+metadata:
+  generateName: zfspv-clone-from-pvc
+  namespace: litmus
+spec:
+  template:
+    metadata:
+      labels:
+        name: zfspv-clone-from-pvc
+    spec:
+      serviceAccountName: litmus
+      restartPolicy: Never
+      containers:
+      - name: ansibletest
+        image: openebs/ansible-runner:ci
+        imagePullPolicy: IfNotPresent
+        env:
+          - name: ANSIBLE_STDOUT_CALLBACK
+            #value: log_plays  #value: actionable
+            value: default
+
+          - name: APP_NAMESPACE           ## Namespace in which application is deployed
+            value: '' 
+
+          - name: OPERATOR_NAMESPACE      ## Namespace in which all the resources created by zfs driver will be present
+            value: ''                     ## for e.g. zfsvolume (zv) will be in this namespace
+
+          - name: STORAGE_CLASS           ## Storage class name by which original volume was provisioned
+            value: ''
+            
+          - name: PARENT_PVC_NAME         ## Give value of parent pvc name which is using by the application
+            value: '' 
+
+          - name: CLONED_PVC_NAME         ## Cloned pvc will be created by this name in the same namespace where spapshot is present
+            value: ''
+        
+          - name: CLONE_PVC_SIZE          ## clone PVC size should match the size of the snapshot
+            value: '' 
+      
+          - name: APP_NAME                ## Provide the application name which will be deployed using cloned PVC
+            value: ''                     ## Supported values are: `busybox` and `percona`
+            
+          - name: APP_LABEL               ## Here app label is in key-value pair of app="{{value}}"
+            value: ''                     ## Provide only "value" part in app_label
+                               
+          - name: ACTION                  ## Use 'deprovision' for clone cleanup
+            value: 'provision'
+             
+          - name: DATA_PERSISTENCE        ## Give values according to the application
+            value: ""                     ## For `Busybox` : `busybox`  &  For `Percona` : `mysql`
+       
+        command: ["/bin/bash"]
+        args: ["-c", "ansible-playbook ./experiments/zfs-localpv/functional/zfspv-clone-directly-from-pvc/test.yml -i /etc/ansible/hosts -vv; exit 0"]
+
+        volumeMounts:
+        - name: parameters
+          mountPath: /mnt/
+      volumes:
+        - name: parameters
+          configMap:
+            name: zfspv-clone-from-pvc
