@@ -124,6 +124,14 @@
 
           when: action == 'restore'
 
+        - block:
+
+          - name: Restore the incremental backups
+            include_tasks: "./incr_restore.yml"
+            
+          when: action == 'incr_restore'
+            
+
         - set_fact:
             flag: "Pass"
 
