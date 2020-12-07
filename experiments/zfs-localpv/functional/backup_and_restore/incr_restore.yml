@@ -54,11 +54,11 @@
   include: "./restore.yml"
   vars:
     velero_backup_name: "{{ first_incr_backup }}"
-    app_ns_new: "first_incr_restore_ns"
+    app_ns_new: "first-incr-restore-ns"
 
 - name: Check the data consistency
   shell: >
-    kubectl exec -ti {{ restore_app_pod }} -n first_incr_restore_ns 
+    kubectl exec -ti {{ restore_app_pod }} -n first-incr-restore-ns 
     -- sh -c "cd {{ mount_path }} && ls"
   args:
     executable: /bin/bash
@@ -69,11 +69,11 @@
   include: "./restore.yml"
   vars:
     velero_backup_name: "{{ second_incr_backup }}"
-    app_ns_new: "second_incr_restore_ns"
+    app_ns_new: "second-incr-restore-ns"
 
 - name: Check the data consistency
   shell: >
-    kubectl exec -ti {{ restore_app_pod }} -n second_incr_restore_ns
+    kubectl exec -ti {{ restore_app_pod }} -n second-incr-restore-ns
     -- sh -c "cd {{ mount_path }} && ls"
   args:
     executable: /bin/bash
