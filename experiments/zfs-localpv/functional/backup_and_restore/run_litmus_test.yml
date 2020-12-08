@@ -43,7 +43,7 @@ spec:
             value: ''
 
           - name: ACTION  ## On basis of the value of this env, this playbook will perform tasks.
-            value: ''     ## Supported values: (backup, restore, schedule_backup, incr_backup, incr_restore)
+            value: ''     ## Supported values: (backup, restore, schedule_backup, incremental_backup, incremental_restore)
           
           - name: VELERO_BACKUP_NAME  ## Velero backup will be created with name of this value.
             value: ''

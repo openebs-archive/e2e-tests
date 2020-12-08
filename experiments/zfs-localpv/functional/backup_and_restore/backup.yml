@@ -40,9 +40,20 @@
     args:
       executable: /bin/bash
 
+  ## Incremental backups work with schedules. Following task will create one schedule which will create backups
+  ## Per minute (as per the cron job format). First backup will be full backup and after that incremental backups
+  ## and at last one will be full backup. This sequence will be repeated till the schedule is enabled.
   - name: Creating incremental backup
     shell: velero create schedule {{ schedule_name }} --schedule="*/1 * * * *" --snapshot-volumes --include-namespaces={{ app_ns }} --volume-snapshot-locations=incr --storage-location=default
   
-  - include_tasks: "./incr_backup.yml"
+  ## After creating schedule backup creation starts. so waiting for some time for dumping 
+  ## the data before creation of first incremental backup.
+  - name: sleep some time
+    shell: sleep 30
 
-  when: action == "incr_backup"
+  ## This task will create backups periodically after one minutes. Meanwhile this task will dump some dummy data
+  ## so that we can verify them after restoring the backups.
+  - name: Create backups incrementally after dumping data periodically
+    include_tasks: "./incremental_backup.yml"
+
+  when: action == "incremental_backup"

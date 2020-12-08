@@ -68,7 +68,7 @@
           - name: Create the backup of the namespace in which application is deployed
             include_tasks: "./backup.yml"
 
-          when: action == 'backup' or action == 'schedule_backup' or action == 'incr_backup'
+          when: action == 'backup' or action == 'schedule_backup' or action == 'incremental_backup'
 
 
         - block:
@@ -127,9 +127,9 @@
         - block:
 
           - name: Restore the incremental backups
-            include_tasks: "./incr_restore.yml"
+            include_tasks: "./incremental_restore.yml"
             
-          when: action == 'incr_restore'
+          when: action == 'incremental_restore'
             
 
         - set_fact:
