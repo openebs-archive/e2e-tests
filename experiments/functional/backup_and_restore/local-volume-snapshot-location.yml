@@ -10,5 +10,4 @@ spec:
   config:
     # namespace -- namespace in which openebs is installed (default: openebs)
     namespace: openebs
-
     local: "true"
