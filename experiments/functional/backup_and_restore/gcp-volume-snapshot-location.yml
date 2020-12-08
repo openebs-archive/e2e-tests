@@ -9,3 +9,4 @@ spec:
   config:
       bucket: e2e-gcp-bucket
       provider: gcp
+      autoSetTargetIP: "true"

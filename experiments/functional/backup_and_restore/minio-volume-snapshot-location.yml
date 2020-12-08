@@ -13,3 +13,4 @@ spec:
       #profile: new-profile
       s3ForcePathStyle: "true"
       s3Url: http://minio.velero.svc:9000
+      autoSetTargetIP: "true"
