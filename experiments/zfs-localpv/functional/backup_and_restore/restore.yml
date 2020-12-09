@@ -79,9 +79,11 @@
   shell: kubectl get pod -n {{ app_ns_new }} -l {{ app_label }} --no-headers -o custom-columns=:.metadata.name
   args:
     executable: /bin/bash
-  register: restore_app_pod
+  register: restore_application_pod
 
-
+- name: Record the application pod name in {{ app_ns_new }} namespace
+  set_fact:
+    restore_app_pod: "{{ restore_application_pod.stdout }}"
 
 - block:
 
@@ -103,5 +105,5 @@
     status: 'VERIFY'
     ns: "{{ app_ns_new }}"
     label: "{{ app_label }}"
-    pod_name: "{{ restore_app_pod.stdout }}"
+    pod_name: "{{ restore_app_pod }}"
   when: data_persistence != ''
