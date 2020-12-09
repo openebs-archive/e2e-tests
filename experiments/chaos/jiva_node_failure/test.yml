@@ -11,14 +11,6 @@
 
     - block:
 
-        - include_tasks: /utils/fcm/create_testname.yml
-
-        - include_tasks: /utils/fcm/update_litmus_result_resource.yml
-          vars:
-            status: 'SOT'
-            chaostype: "node-failure"
-            app: ""
-
         ## DISPLAY APP INFORMATION
         - name: Display the app information passed via the test job
           debug:
@@ -108,8 +100,8 @@
         ## Obtain the nodeIP where application pod is running
         - name: Get Application pod Node IP to perform crash
           shell: >
-            kubectl get nodes {{ app_node_name }}
-            -o jsonpath=\'{ $.status.addresses[?(@.type=="InternalIP")].address }\'
+            kubectl get nodes {{ app_node.stdout }}
+            -o jsonpath='{ $.status.addresses[?(@.type=="InternalIP")].address }'
           args:
             executable: /bin/bash
           register: app_node_ip
@@ -128,11 +120,20 @@
             pv_name: "{{ pv.stdout }}"
 
 
-        - name: Get rw replica status from controller
+        - name: Get controller svc
+          shell: >
+           kubectl get svc -l openebs.io/persistent-volume={{ pv_name }}
+           -n {{ operator_ns }} --no-headers -o custom-columns=:spec.clusterIP
+          args:
+            executable: /bin/bash
+          register: controller_service
+          failed_when: controller_service.stdout == ""
+
+        - name: Get total replica count from controller
           vars:
-            replicas_endpoint: "9501/v1/replicas"
+            replicas_endpoint: "9501/v1/volumes"
           uri:
-            url: "http://{{ controller_service }}:{{ replicas_endpoint }}"
+            url: "http://{{ controller_service.stdout }}:{{ replicas_endpoint }}"
             method: GET
             return_content: yes
             status_code: 200
@@ -140,71 +141,81 @@
               Content-Type: "application/json"
             body_format: json
           register: json_response
-          until: json_response.json.data[0].mode == "RW" and json_response.json.data[1].mode == "RW" and json_response.json.data[2].mode == "RW"
+          until: json_response.status == 200 and json_response.json.data[0].replicaCount == 3
+          retries: 180
+          delay: 1
+
+        - name: Get rw replica status from controller
+          vars:
+            replicas_endpoint: "9501/v1/replicas"
+          uri:
+            url: "http://{{ controller_service.stdout }}:{{ replicas_endpoint }}"
+            method: GET
+            return_content: yes
+            status_code: 200
+            headers:
+              Content-Type: "application/json"
+            body_format: json
+          register: json_response
+          until: json_response.status == 200 and json_response.json.data[0].mode == "RW" and json_response.json.data[1].mode == "RW" and json_response.json.data[2].mode == "RW"
           retries: 20
-          delay: 60
+          delay: 1
 
         - name: Getting replica1 IP
           vars:
             replicas_endpoint: "9501/v1/replicas"
-          shell: curl http://{{ controller_service }}:{{ replicas_endpoint }} | jq '.data[0].address' | sed -e 's/^"//' -e 's/"$//'
+          shell: curl http://{{ controller_service.stdout }}:{{ replicas_endpoint }} | jq '.data[0].address' | sed -e 's/^"//' -e 's/"$//'
           register: json_response
           until: "'tcp' in json_response.stdout"
-          delay: 15
+          delay: 1
           retries: 24
 
         - name: Set replica1 ip
           set_fact:
-            replica_ip: "{{ json_response.stdout | regex_replace('tcp://') | regex_replace(':9502') }}"
-        - debug:
-            var: "replica1_ip"
+            replica1_ip: "{{ json_response.stdout | regex_replace('tcp://') | regex_replace(':9502') }}"
 
         - name: Getting replica2 IP
           vars:
             replicas_endpoint: "9501/v1/replicas"
-          shell: curl http://{{ controller_service }}:{{ replicas_endpoint }} | jq '.data[1].address' | sed -e 's/^"//' -e 's/"$//'
+          shell: curl http://{{ controller_service.stdout }}:{{ replicas_endpoint }} | jq '.data[1].address' | sed -e 's/^"//' -e 's/"$//'
           register: json_response
           until: "'tcp' in json_response.stdout"
-          delay: 15
+          delay: 1
           retries: 24
 
         - name: Set replica2 ip
           set_fact:
-            replica_ip: "{{ json_response.stdout | regex_replace('tcp://') | regex_replace(':9502') }}"
-        - debug:
-            var: "replica2_ip"
+            replica2_ip: "{{ json_response.stdout | regex_replace('tcp://') | regex_replace(':9502') }}"
 
         - name: Getting replica3 IP
           vars:
             replicas_endpoint: "9501/v1/replicas"
-          shell: curl http://{{ controller_service }}:{{ replicas_endpoint }} | jq '.data[2].address' | sed -e 's/^"//' -e 's/"$//'
+          shell: curl http://{{ controller_service.stdout }}:{{ replicas_endpoint }} | jq '.data[2].address' | sed -e 's/^"//' -e 's/"$//'
           register: json_response
           until: "'tcp' in json_response.stdout"
-          delay: 15
+          delay: 1
           retries: 24
 
         - name: Set replica3 ip
           set_fact:
-            replica_ip: "{{ json_response.stdout | regex_replace('tcp://') | regex_replace(':9502') }}"
-        - debug:
-            var: "replica3_ip"
+            replica3_ip: "{{ json_response.stdout | regex_replace('tcp://') | regex_replace(':9502') }}"
 
         - name: Getting the replica1 pod name corresponding to the IP
-          shell: kubectl get pod -l openebs.io/component=jiva-replica,openebs.io/persistent-volume={{ pv_name }} -n {{ operator_ns }} --no-headers -o jsonpath='{.items[?(@.status.podIP==\"{{ replica1_ip }}\")].metadata.name}'
+          shell: kubectl get pod -l openebs.io/component=jiva-replica,openebs.io/persistent-volume={{ pv_name }} -n {{ operator_ns }} --no-headers -o jsonpath='{.items[?(@.status.podIP=="{{ replica1_ip }}")].metadata.name}'
           register: replica1_pod_name
 
         - name: Getting the replica1 pod name corresponding to the IP
-          shell: kubectl get pod -l openebs.io/component=jiva-replica,openebs.io/persistent-volume={{ pv_name }} -n {{ operator_ns }} --no-headers -o jsonpath='{.items[?(@.status.podIP==\"{{ replica2_ip }}\")].metadata.name}'
+          shell: kubectl get pod -l openebs.io/component=jiva-replica,openebs.io/persistent-volume={{ pv_name }} -n {{ operator_ns }} --no-headers -o jsonpath='{.items[?(@.status.podIP=="{{ replica2_ip }}")].metadata.name}'
           register: replica2_pod_name
 
         - name: Getting the replica1 pod name corresponding to the IP
-          shell: kubectl get pod -l openebs.io/component=jiva-replica,openebs.io/persistent-volume={{ pv_name }} -n {{ operator_ns }} --no-headers -o jsonpath='{.items[?(@.status.podIP==\"{{ replica3_ip }}\")].metadata.name}'
+          shell: kubectl get pod -l openebs.io/component=jiva-replica,openebs.io/persistent-volume={{ pv_name }} -n {{ operator_ns }} --no-headers -o jsonpath='{.items[?(@.status.podIP=="{{ replica3_ip }}")].metadata.name}'
           register: replica3_pod_name
 
         ## Obtain the node where replica1 pod is running
         - name: Get replica1 pod Node to perform crash
           shell: >
-            kubectl get pod {{ replica1_pod_name.stdout }} -n {{ namespace }}
+            kubectl get pod {{ replica1_pod_name.stdout }} -n {{ operator_ns }}
             --no-headers -o custom-columns=:spec.nodeName
           args:
             executable: /bin/bash
@@ -213,7 +224,7 @@
         ## Obtain the node where replica2 pod is running
         - name: Get replica2 pod Node to perform crash
           shell: >
-            kubectl get pod {{ replica2_pod_name.stdout }} -n {{ namespace }}
+            kubectl get pod {{ replica2_pod_name.stdout }} -n {{ operator_ns }}
             --no-headers -o custom-columns=:spec.nodeName
           args:
             executable: /bin/bash
@@ -222,11 +233,38 @@
         ## Obtain the node where replica2 pod is running
         - name: Get replica3 pod Node to perform crash
           shell: >
-            kubectl get pod {{ replica3_pod_name.stdout }} -n {{ namespace }}
+            kubectl get pod {{ replica3_pod_name.stdout }} -n {{ operator_ns }}
             --no-headers -o custom-columns=:spec.nodeName
           args:
             executable: /bin/bash
           register: replica3_node
+
+        ## Obtain the nodeIP where replica1 pod is running
+        - name: Get replica1 pod Node IP to perform crash
+          shell: >
+            kubectl get nodes {{ replica1_node.stdout }}
+            -o jsonpath='{ $.status.addresses[?(@.type=="InternalIP")].address }'
+          args:
+            executable: /bin/bash
+          register: replica1_node_ip
+
+        ## Obtain the nodeIP where replica2 pod is running
+        - name: Get replica2 pod Node IP to perform crash
+          shell: >
+            kubectl get nodes {{ replica2_node.stdout }}
+            -o jsonpath='{ $.status.addresses[?(@.type=="InternalIP")].address }'
+          args:
+            executable: /bin/bash
+          register: replica2_node_ip
+
+        ## Obtain the nodeIP where replica3 pod is running
+        - name: Get replica3 pod Node IP to perform crash
+          shell: >
+            kubectl get nodes {{ replica3_node.stdout }}
+            -o jsonpath='{ $.status.addresses[?(@.type=="InternalIP")].address }'
+          args:
+            executable: /bin/bash
+          register: replica3_node_ip
 
     - block:
         ## Generate data on the application
@@ -252,7 +290,6 @@
           until: "'Running' in app_status.stdout"
           delay: 5
           retries: 10
-          ignore_errors: true
 
         - name: Verify application data persistence
           include: "{{ data_consistency_util_path }}"
@@ -260,6 +297,7 @@
             status: 'VERIFY'
             ns: "{{ namespace }}"
             pod_name: "{{ rescheduled_app_pod.stdout }}"
+          when: data_persistence != ''
 
     - block:
         ## Generate data on the application
@@ -285,7 +323,6 @@
           until: "'Running' in app_status.stdout"
           delay: 5
           retries: 10
-          ignore_errors: true
 
         - name: Verify application data persistence
           include: "{{ data_consistency_util_path }}"
@@ -293,6 +330,7 @@
             status: 'VERIFY'
             ns: "{{ namespace }}"
             pod_name: "{{ rescheduled_app_pod.stdout }}"
+          when: data_persistence != ''
 
     - block:
         ## Generate data on the application
@@ -328,7 +366,6 @@
           until: "'Running' in app_status.stdout"
           delay: 5
           retries: 10
-          ignore_errors: true
 
         - name: Verify application data persistence
           include: "{{ data_consistency_util_path }}"
@@ -336,12 +373,14 @@
             status: 'VERIFY'
             ns: "{{ namespace }}"
             pod_name: "{{ rescheduled_app_pod.stdout }}"
+          when: data_persistence != ''
 
     - block:
         ## Execute the chaos util to turn off the target node
         - include_tasks: "{{ chaos_util_path }}"
           vars:
-            esx_ip: "{{ host_ip }}"
+            esx_ip: "{{ esx_host_ip }}"
+            esx_pwd: "{{ esx_host_pass }}"
             target_node: "{{ replica3_node.stdout }}"
             operation: "off"
 
@@ -366,15 +405,16 @@
         ## Execute the chaos util to turn on the target node
         - include_tasks: "{{ chaos_util_path }}"
           vars:
-            esx_ip: "{{ host_ip }}"
+            esx_ip: "{{ esx_host_ip }}"
+            esx_pwd: "{{ esx_host_pass }}"
             target_node: "{{ replica3_node.stdout }}"
             operation: "on"
 
-        - name: Get wo replica status from controller
+        - name: Get total replica count from controller
           vars:
-            replicas_endpoint: "9501/v1/replicas"
+            replicas_endpoint: "9501/v1/volumes"
           uri:
-            url: "http://{{ controller_service }}:{{ replicas_endpoint }}"
+            url: "http://{{ controller_service.stdout }}:{{ replicas_endpoint }}"
             method: GET
             return_content: yes
             status_code: 200
@@ -382,9 +422,25 @@
               Content-Type: "application/json"
             body_format: json
           register: json_response
-          until: json_response.json.data[0].mode == "RW" and json_response.json.data[1].mode == "RW" and json_response.json.data[2].mode == "WO"
+          until: json_response.status == 200 and json_response.json.data[0].replicaCount == 3
+          retries: 180
+          delay: 1
+
+        - name: Get wo replica status from controller
+          vars:
+            replicas_endpoint: "9501/v1/replicas"
+          uri:
+            url: "http://{{ controller_service.stdout }}:{{ replicas_endpoint }}"
+            method: GET
+            return_content: yes
+            status_code: 200
+            headers:
+              Content-Type: "application/json"
+            body_format: json
+          register: json_response
+          until: json_response.status == 200 and json_response.json.data[0].mode == "RW" and json_response.json.data[1].mode == "RW" and json_response.json.data[2].mode == "WO"
           retries: 20
-          delay: 60
+          delay: 1
 
         ## Execute the crash util to kill the replica1 node
         - include_tasks: "{{ crash_util_path }}"
@@ -407,6 +463,7 @@
             status: 'VERIFY'
             ns: "{{ namespace }}"
             pod_name: "{{ rescheduled_app_pod.stdout }}"
+          when: data_persistence != ''
 
         - set_fact:
             flag: "Pass"
