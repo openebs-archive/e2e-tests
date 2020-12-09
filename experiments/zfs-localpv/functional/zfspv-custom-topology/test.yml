@@ -131,6 +131,20 @@
           with_items: "{{ app_pod_list.stdout_lines }}"
           failed_when: "'{{ node_name.stdout }}' not in node_list.stdout"
 
+        - name: Deprovision the application
+          shell: kubectl delete -f app_yamls_immediate/ -n {{ app_ns}}-immediate
+          args:
+            executable: /bin/bash
+          register: deprovision_status
+          failed_when: "deprovision_status.rc != 0"
+
+        - name: Delete the namespace
+          shell: kubectl delete ns {{ app_ns }}-immediate
+          args:
+            executable: /bin/bash
+          register: namespace_status
+          failed_when: "namespace_status.rc != 0"
+
         - name: Create namespace
           shell: kubectl create ns {{ app_ns}}-wfc
           args:
@@ -245,6 +259,20 @@
           register: node_name
           with_items: "{{ app_pod_list.stdout_lines }}"
           failed_when: "'{{ node_name.stdout }}' not in node_list.stdout"
+
+        - name: Deprovision the application
+          shell: kubectl delete -f app_yamls_wfc/ -n {{ app_ns}}-wfc
+          args:
+            executable: /bin/bash
+          register: deprovision_status
+          failed_when: "deprovision_status.rc != 0"
+
+        - name: Delete the namespace
+          shell: kubectl delete ns {{ app_ns }}-wfc
+          args:
+            executable: /bin/bash
+          register: namespace_status
+          failed_when: "namespace_status.rc != 0"
 
         - set_fact:
             flag: "Pass"
