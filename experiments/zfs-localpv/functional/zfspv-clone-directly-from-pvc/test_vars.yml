@@ -14,6 +14,8 @@ app_name: "{{ lookup('env','APP_NAME') }}"
 
 app_label: "{{ lookup('env','APP_LABEL') }}"
 
+clone_app_label: "{{ lookup('env','CLONE_APP_LABEL') }}"
+
 action: "{{ lookup('env','ACTION') }}"
 
 operator_ns: "{{ lookup('env','OPERATOR_NAMESPACE') }}"
