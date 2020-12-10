@@ -4,16 +4,16 @@ metadata:
   name: {{ app_name }}-clone
   namespace: {{ app_ns }}
   labels:
-    app: {{ app_label }}
+    app: {{ clone_app_label }}
 spec:
   replicas: 1
   selector: 
     matchLabels:
-      app: {{ app_label }} 
+      app: {{ clone_app_label }} 
   template: 
     metadata:
       labels: 
-        app: {{ app_label }}
+        app: {{ clone_app_label }}
     spec:
       containers:
         - resources:

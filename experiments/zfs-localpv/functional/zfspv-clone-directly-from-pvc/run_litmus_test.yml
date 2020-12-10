@@ -33,6 +33,9 @@ spec:
           - name: APP_NAMESPACE           ## Namespace in which application is deployed
             value: '' 
 
+          - name: APP_LABEL               ## Parent application label
+            value: ''                     ## Give value in format (key=value)
+
           - name: OPERATOR_NAMESPACE      ## Namespace in which all the resources created by zfs driver will be present
             value: ''                     ## for e.g. zfsvolume (zv) will be in this namespace
 
@@ -51,7 +54,7 @@ spec:
           - name: APP_NAME                ## Provide the application name which will be deployed using cloned PVC
             value: ''                     ## Supported values are: `busybox` and `percona`
             
-          - name: APP_LABEL               ## Here app label is in key-value pair of app="{{value}}"
+          - name: CLONE_APP_LABEL         ## This is label of app which is clone pvc. Here app label is in key-value pair of app="{{value}}"
             value: ''                     ## Provide only "value" part in app_label
                                
           - name: ACTION                  ## Use 'deprovision' for clone cleanup
