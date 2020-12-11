@@ -167,11 +167,6 @@
           
       always:
 
-        - name: Update the daemonset spec template with test specific values
-          template:
-            src: zv_property_ds.j2
-            dest: zv_property_ds.yml
-
         - name: Delete the daemonset with privileged access to verify zvol properties at node level
           shell: >
             kubectl delete -f ./zv_property_ds.yml
@@ -184,4 +179,3 @@
         - include_tasks: /utils/fcm/update_litmus_result_resource.yml
           vars:
             status: 'EOT'
-            
