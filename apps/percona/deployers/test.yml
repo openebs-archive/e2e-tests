@@ -17,7 +17,15 @@
         - include_tasks: "/utils/fcm/update_litmus_result_resource.yml"
           vars:
             status: 'SOT'
-   
+  
+        - name: Identify the deployment spec to be invoked
+          template:
+            src: deployemnt_spec.j2
+            dest: deployemnt_spec.yml
+
+        - include_vars:
+            file: deployemnt_spec.yml
+
         - name: Replace the storage capacity placeholder
           replace:
               path: "{{ application_deployment }}"
@@ -29,7 +37,12 @@
             ## Actual test
             ## Creating namespaces and making the application for deployment
             - include_tasks: /utils/k8s/pre_create_app_deploy.yml
-        
+
+            - name: Display application deployment spec for verification
+              debug: var=item
+              with_file:
+              - "{{ application_deployment }}"
+
             ## Deploying the application, upper bound wait time: 900s 
             - include_tasks: /utils/k8s/deploy_single_app.yml
               vars:
@@ -73,4 +86,3 @@
         - include_tasks: /utils/fcm/update_litmus_result_resource.yml
           vars:
             status: 'EOT'
-              

@@ -71,4 +71,3 @@ spec:
       targetPort: 3306
   selector:
       lkey: lvalue
-
