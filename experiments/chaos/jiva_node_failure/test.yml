@@ -11,6 +11,14 @@
 
     - block:
 
+        - include_tasks: /utils/fcm/create_testname.yml
+
+        - include_tasks: /utils/fcm/update_litmus_result_resource.yml
+          vars:
+            status: 'SOT'
+            chaostype: "node-failure"
+            app: ""
+
         ## DISPLAY APP INFORMATION
         - name: Display the app information passed via the test job
           debug:
