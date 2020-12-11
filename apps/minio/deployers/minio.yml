@@ -26,6 +26,7 @@ spec:
       - name: minio
         # Pulls the default Minio image from Docker Hub
         image: minio/minio
+        imagePullPolicy: "IfNotPresent"
         args:
         - server
         - /storage1
