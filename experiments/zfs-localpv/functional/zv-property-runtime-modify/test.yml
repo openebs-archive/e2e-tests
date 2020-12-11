@@ -167,9 +167,16 @@
           
       always:
 
+        - name: Get the name of daemonset
+          shell: >
+            kubectl get ds -n litmus -o jsonpath='{.items[?(@.spec.selector.matchLabels.app=="zv-property-modify-{{ fs_type }}")].metadata.name}'
+          args: 
+            executable: /bin/bash
+          register: ds_name
+
         - name: Delete the daemonset with privileged access to verify zvol properties at node level
           shell: >
-            kubectl delete -f ./zv_property_ds.yml
+            kubectl delete ds {{ ds_name.stdout }} -n litmus
           args: 
             executable: /bin/bash
           register: status
