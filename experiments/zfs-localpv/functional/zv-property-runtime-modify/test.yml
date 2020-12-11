@@ -28,6 +28,8 @@
               kubectl create -f ./zv_property_ds.yml
             args: 
               executable: /bin/bash
+            register: status
+            failed_when: "status.rc != 0"
 
           - name: Confirm that the ds pods are running on all nodes
             shell: >
@@ -131,7 +133,9 @@
             args: 
               executable: /bin/bash
             register: modified_compress_val
-            failed_when: "new_compress_val not in modified_compress_val.stdout"  
+            until: "new_compress_val in modified_compress_val.stdout"  
+            delay: 2
+            retries: 20
                           
           - name: Verify that dedup parameter value is modified in zvolume
             shell: >
@@ -150,7 +154,9 @@
             args: 
               executable: /bin/bash
             register: modified_dedup_val
-            failed_when: "new_dedup_val not in modified_dedup_val.stdout"
+            until: "new_dedup_val in modified_dedup_val.stdout"
+            delay: 2
+            retries: 20
                 
           - set_fact:
               flag: "Pass"
@@ -160,7 +166,22 @@
           flag: "Fail"
           
       always:
-      ## RECORD END-OF-TEST IN LITMUS RESULT CR
+
+        - name: Update the daemonset spec template with test specific values
+          template:
+            src: zv_property_ds.j2
+            dest: zv_property_ds.yml
+
+        - name: Delete the daemonset with privileged access to verify zvol properties at node level
+          shell: >
+            kubectl delete -f ./zv_property_ds.yml
+          args: 
+            executable: /bin/bash
+          register: status
+          failed_when: "status.rc != 0"
+            
+        ## RECORD END-OF-TEST IN LITMUS RESULT CR
         - include_tasks: /utils/fcm/update_litmus_result_resource.yml
           vars:
             status: 'EOT'
+            
