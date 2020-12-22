@@ -1,0 +1,215 @@
+      ## Obtaining the OpenEBS operator from charts.
+      ## If the chart is not created, openebs operator will be downloaded from master branch.
+
+    - block: 
+
+        - name: Downloading openebs operator yaml for rc tag
+          get_url:
+            url: "{{ release_operator_link }}"
+            dest: "{{ playbook_dir }}/{{ openebs_operator }}"
+            force: yes
+          register: release_operator
+          when: rc_tag == ""
+
+        - name: Downloading openebs operator yaml for rc tag
+          get_url:
+            url: "{{ rc_operator_link }}"
+            dest: "{{ playbook_dir }}/{{ openebs_operator }}"
+            force: yes
+          register: rc_operator
+          when: rc_tag != ""
+
+      when: 
+        - commit_id != "master"
+
+    - name: Downloading openebs operator yaml for rc tag
+      get_url:
+        url: "{{ new_operator }}"
+        dest: "{{ playbook_dir }}/{{ openebs_operator }}"
+        force: yes
+      register: rc_operator
+      when:
+        - commit_id == "master"
+        - rc_tag == "charts"
+
+    - block:
+
+        - name: Downloading openebs-operator.yaml
+          get_url:
+            url: "{{ openebs_operator_link }}"
+            dest: "{{ playbook_dir }}/{{ openebs_operator }}"
+            force: yes
+          register: result
+ 
+        - block: 
+
+            - name: Change the OpenEBS component labels to desired version in Operator yaml
+              replace:
+                path: "{{ openebs_operator }}"
+                regexp: 'openebs.io/version: dev'
+                replace: "openebs.io/version: {{ openebs_version }}"
+
+            - name: Change the Maya API server Image
+              replace:
+                path: "{{ openebs_operator }}"
+                regexp: openebs/m-apiserver:ci
+                replace: "{{ lookup('env','OPENEBS_MAYA_APISERVER_IMAGE') }}"
+              when: lookup('env','OPENEBS_MAYA_APISERVER_IMAGE') | length > 0
+
+            - name: Change the OpenEBS k8s provisioner Image
+              replace:
+                path: "{{ openebs_operator }}"
+                regexp: openebs/openebs-k8s-provisioner:ci
+                replace: "{{ lookup('env','OPENEBS_PROVISIONER_IMAGE') }}"
+              when: lookup('env','OPENEBS_PROVISIONER_IMAGE') | length > 0
+
+            - name: Change the OpenEBS Snapshot Controller Image
+              replace:
+                path: "{{ openebs_operator }}"
+                regexp: openebs/snapshot-controller:ci
+                replace: "{{ lookup('env','OPENEBS_SNAPSHOT_CONTROLLER_IMAGE') }}"
+              when: lookup('env','OPENEBS_SNAPSHOT_CONTROLLER_IMAGE') | length > 0
+
+            - name: Change the OpenEBS Snapshot provisioner Image
+              replace:
+                path: "{{ openebs_operator }}"
+                regexp: openebs/snapshot-provisioner:ci
+                replace: "{{ lookup('env','OPENEBS_SNAPSHOT_PROVISIONER_IMAGE') }}"
+              when: lookup('env','OPENEBS_SNAPSHOT_PROVISIONER_IMAGE') | length > 0
+
+            - name: Change the OpenEBS JIVA Controller and Replica Image
+              replace:
+                path: "{{ openebs_operator }}"
+                regexp: openebs/jiva:ci
+                replace: "{{ lookup('env','OPENEBS_IO_JIVA_IMAGE') }}"
+              when: lookup('env','OPENEBS_IO_JIVA_IMAGE') | length > 0
+
+            - name: Change the Maya Exporter Image
+              replace:
+                path: "{{ openebs_operator }}"
+                regexp: openebs/m-exporter:ci
+                replace: "{{ lookup('env','OPENEBS_MAYA_EXPORTER_IMAGE') }}"
+              when: lookup('env','OPENEBS_MAYA_EXPORTER_IMAGE') | length > 0
+
+            - name: Change the Node Disk Manager Image
+              replace:
+                path: "{{ openebs_operator }}"
+                regexp: openebs/node-disk-manager:ci
+                replace: "{{ lookup('env','OPENEBS_NODE_DISK_MANAGER_IMAGE') }}"
+              when: lookup('env','OPENEBS_NODE_DISK_MANAGER_IMAGE') | length > 0
+
+            - name: Change the Node Disk Operator Image
+              replace:
+                path: "{{ openebs_operator }}"
+                regexp: openebs/node-disk-operator:ci
+                replace: "{{ lookup('env','OPENEBS_NODE_DISK_OPERATOR_IMAGE') }}"
+              when: lookup('env','OPENEBS_NODE_DISK_OPERATOR_IMAGE') | length > 0
+
+            - name: Change the OpenEBS cStor Target Image
+              replace:
+                path: "{{ openebs_operator }}"
+                regexp: openebs/cstor-istgt:ci
+                replace: "{{ lookup('env','OPENEBS_IO_CSTOR_TARGET_IMAGE') }}"
+              when: lookup('env','OPENEBS_IO_CSTOR_TARGET_IMAGE') | length > 0
+
+            - name: Change the OpenEBS cStor Pool Image
+              replace:
+                path: "{{ openebs_operator }}"
+                regexp: openebs/cstor-pool:ci
+                replace: "{{ lookup('env','OPENEBS_IO_CSTOR_POOL_IMAGE') }}"
+              when: lookup('env','OPENEBS_IO_CSTOR_POOL_IMAGE') | length > 0
+
+            - name: Change the OpenEBS cStor Pool-mgmt Image
+              replace:
+                path: "{{ openebs_operator }}"
+                regexp: openebs/cstor-pool-mgmt:ci
+                replace: "{{ lookup('env','OPENEBS_IO_CSTOR_POOL_MGMT_IMAGE') }}"
+              when: lookup('env','OPENEBS_IO_CSTOR_POOL_MGMT_IMAGE') | length > 0
+
+            - name: Change the OpenEBS cStor Volume mgmt Image
+              replace:
+                path: "{{ openebs_operator }}"
+                regexp: openebs/cstor-volume-mgmt:ci
+                replace: "{{ lookup('env','OPENEBS_IO_CSTOR_VOLUME_MGMT_IMAGE') }}"
+              when: lookup('env','OPENEBS_IO_CSTOR_VOLUME_MGMT_IMAGE') | length > 0
+
+            - name: Change the OpenEBS LocalPV Provisioner Image
+              replace:
+                path: "{{ openebs_operator }}"
+                regexp: openebs/provisioner-localpv:ci
+                replace: "{{ lookup('env','OPENEBS_LOCALPV_PROVISIONER_IMAGE') }}"
+              when: lookup('env','OPENEBS_LOCALPV_PROVISIONER_IMAGE') | length > 0
+
+            - name: Change the OpenEBS Admission Server Image
+              replace:
+                path: "{{ openebs_operator }}"
+                regexp: openebs/admission-server:ci
+                replace: "{{ lookup('env','OPENEBS_ADMISSION_SERVER_IMAGE') }}"
+              when: lookup('env','OPENEBS_ADMISSION_SERVER_IMAGE') | length > 0
+
+            - name: Change the OpenEBS CleanUp Job Image
+              replace:
+                path: "{{ openebs_operator }}"
+                regexp: openebs/linux-utils:ci
+                replace: "{{ lookup('env','OPENEBS_CLEANUP_JOB_IMAGE') }}"
+              when: lookup('env','OPENEBS_CLEANUP_JOB_IMAGE') | length > 0
+
+            - name: Change the OpenEBS CleanUP Job Image
+              replace:
+                path: "{{ openebs_operator }}"
+                regexp: openebs/linux-utils:ci
+                replace: "{{ lookup('env','OPENEBS_CLEANUP_JOB_IMAGE') }}"
+              when: lookup('env','OPENEBS_CLEANUP_JOB_IMAGE') | length > 0
+
+          when: openebs_version != "master"
+
+        - name: Change the value of sparse file count in operator YAML
+          replace:
+            path: "{{ openebs_operator }}"
+            regexp: 'value: "1"'
+            after: '- name: SPARSE_FILE_COUNT'
+            replace: 'value: "{{ sparse_file_count }}"'
+
+      when: 
+        - commit_id == "master"
+        - rc_tag != "charts"
+
+    - name: Change the openebs analytics value of openebs resources in operator YAML
+      replace:
+        path: "{{ openebs_operator }}"
+        regexp: 'value: "true"'
+        after: '- name: OPENEBS_IO_ENABLE_ANALYTICS'
+        replace: 'value: "false"'
+
+    - name: Change the value of sparse file count in operator YAML
+      replace:
+        path: "{{ openebs_operator }}"
+        regexp: 'value: "0"'
+        after: '- name: SPARSE_FILE_COUNT'
+        replace: 'value: "{{ sparse_file_count }}"'
+
+    - name: Applying openebs operator
+      shell: kubectl apply -f "{{ openebs_operator }}"
+      args:
+        executable: /bin/bash
+      when: namespace == "openebs"
+
+    - block:
+
+        - name: Change the default namespace in openebs operator spec
+          replace:
+            path: "{{ openebs_operator }}"
+            regexp: 'namespace: openebs'
+            replace: 'namespace: "{{ namespace }}"'
+
+        - name: Create the namesapce to deploy openebs
+          shell: kubectl create namespace {{ namespace }}
+          args:
+            executable: /bin/bash
+
+        - name: Applying openebs operator
+          shell: kubectl apply -f "{{ openebs_operator }}"
+          args:
+            executable: /bin/bash
+
+      when: namespace != "openebs"
