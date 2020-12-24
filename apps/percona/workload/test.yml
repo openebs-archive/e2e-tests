@@ -115,12 +115,12 @@
           shell: kubectl create configmap tpcc-config --from-file {{ tpcc_conf }} -n {{ namespace }}
           when: "'tpcc-config' not in configmap.stdout"
 
-        - name: Verifying successful creation of the configmap
-          shell: kubectl describe configmap -n {{ namespace }}
-          register: config
-          until: "'tpcc-config' in config.stdout"
-          delay: 6
-          retries: 20
+        # - name: Verifying successful creation of the configmap
+        #   shell: kubectl describe configmap -n {{ namespace }}
+        #   register: config
+        #   until: "'tpcc-config' in config.stdout"
+        #   delay: 6
+        #   retries: 20
 
         - name: Create Percona Loadgen Job
           shell: kubectl apply -f {{ percona_loadgen }} -n {{ namespace }}
