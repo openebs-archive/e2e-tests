@@ -18,86 +18,65 @@
           vars:
             status: 'SOT'
 
-
         - block:
-            - name: Downloading the csi-operator file
-              get_url:
-                url: "https://raw.githubusercontent.com/openebs/charts/master/archive/1.10.x/csi-operator-1.10.0.yaml"
-                dest: "{{ playbook_dir }}/csi-operator.yaml"
-                force: yes
-              register: csi_status
-              until:  "'OK' in csi_status.msg"
-              delay: 5
-              retries: 3
-              when: node_os == "ubuntu-16.04" or node_os == "centos"
-
-            - name: Downloading the csi-operator file
-              get_url:
-                url: "https://raw.githubusercontent.com/openebs/charts/master/archive/1.10.x/csi-operator-1.10.0-ubuntu-18.04.yaml"
-                dest: "{{ playbook_dir }}/csi-operator.yaml"
-                force: yes
-              register: csi_status
-              until:  "'OK' in csi_status.msg"
-              delay: 5
-              retries: 3
-              when: node_os == "ubuntu-18.04"
 
             - name: Downloading openebs cStor operator from charts
               get_url:
-                url: https://raw.githubusercontent.com/openebs/charts/master/archive/1.10.x/cstor-operator-1.10.0.yaml
+                url: https://raw.githubusercontent.com/openebs/charts/{{ release_branch }}/{{ release_version }}/cstor-operator-{{ release_tag }}.yaml
                 dest: "{{ playbook_dir }}/{{ cspc_operator }}"
                 force: yes
               register: release
               until:  "'OK' in release.msg"
               delay: 5
               retries: 3
-
-            - name: Deploy CSI Driver when the release tag is 1.10.0
-              shell: >
-                kubectl apply -f csi-operator.yaml
-              args:
-                executable: /bin/bash
-              register: deploy_status
-              failed_when: "deploy_status.rc != 0"              
-
-          when: "release_tag == '1.10.0'"
-
-        - block:
+              ignore_errors: true
 
             - block:
-                - name: Downloading the csi-operator file
+
+                - name: Downloading the csi operator yaml spec from charts
                   get_url:
-                    url: "https://raw.githubusercontent.com/openebs/charts/gh-pages/{{ release_tag }}/csi-operator-{{ release_tag }}.yaml"
+                    url: "https://raw.githubusercontent.com/openebs/cstor-operators/master/deploy/csi-operator.yaml"
                     dest: "{{ playbook_dir }}/csi-operator.yaml"
                     force: yes
-                  register: status
-                  until:  "'OK' in status.msg"
+                  register: charts_file
+                  until:  "'OK' in charts_file.msg"
                   delay: 5
                   retries: 3
-                  when: node_os == "ubuntu-16.04" or node_os == "centos"
 
-                - name: Downloading the csi-operator file
+                - name: Downloading openebs cspc-operator.yaml
                   get_url:
-                    url: "https://raw.githubusercontent.com/openebs/charts/gh-pages/{{ release_tag }}/csi-operator-{{ release_tag }}-ubuntu-18.04.yaml"
-                    dest: "{{ playbook_dir }}/csi-operator.yaml"
-                    force: yes
-                  register: status
-                  until:  "'OK' in status.msg"
-                  delay: 5
-                  retries: 3
-                  when: node_os == "ubuntu-18.04"
-
-                - name: Downloading openebs cStor operator from charts
-                  get_url:
-                    url: https://raw.githubusercontent.com/openebs/charts/gh-pages/{{ release_tag }}/cstor-operator-{{ release_tag }}.yaml
+                    url: "{{ cspc_operator_link }}"
                     dest: "{{ playbook_dir }}/{{ cspc_operator }}"
                     force: yes
-                  register: release
-                  until:  "'OK' in release.msg"
+                  register: result
+                  until:  "'OK' in result.msg"
                   delay: 5
                   retries: 3
 
-                - name: Deploy CSI Driver when the csi verison is {{ release_tag }}
+                - name: Downloading rbac for cstor operator
+                  get_url:
+                    url: "{{ cspc_rbac_link }}"
+                    dest: "{{ playbook_dir }}/{{ cspc_rbac }}"
+                    force: yes
+                  register: result
+                  until:  "'OK' in result.msg"
+                  delay: 5
+                  retries: 3
+
+                - name: Downloading crd yaml spec for cstor operator
+                  get_url:
+                    url: "{{ all_crd_link }}"
+                    dest: "{{ playbook_dir }}/{{ cspc_crd }}"
+                    force: yes
+                  register: result
+                  until:  "'OK' in result.msg"
+                  delay: 5
+                  retries: 3                                               
+
+                - include_tasks: update_env.yaml
+                  when: release_version != 'master'
+
+                - name: Deploy CSI Driver
                   shell: >
                     kubectl apply -f csi-operator.yaml
                   args:
@@ -105,167 +84,21 @@
                   register: deploy_status
                   failed_when: "deploy_status.rc != 0"
 
-              when: release_tag == "1.11.0" or release_tag == "1.12.0"  
+                - name: Applying cspc rbac
+                  shell: "kubectl  apply -f {{ cspc_rbac }}"
+                  args:
+                    executable: /bin/bash
 
-            - block:
-                - block:
+                - name: Applying cspc crd
+                  shell: "kubectl  apply -f {{ cspc_crd }}"
+                  args:
+                    executable: /bin/bash                          
 
-                    - name: Downloading openebs cStor operator from charts
-                      get_url:
-                        url: https://raw.githubusercontent.com/openebs/charts/{{ release_branch }}/{{ release_version }}/cstor-operator-{{ release_tag }}.yaml
-                        dest: "{{ playbook_dir }}/{{ cspc_operator }}"
-                        force: yes
-                      register: release
-                      until:  "'OK' in release.msg"
-                      delay: 5
-                      retries: 3
-                      ignore_errors: true
-
-                    - block:
-
-                        - name: Downloading the csi operator yaml spec from charts
-                          get_url:
-                            url: "https://raw.githubusercontent.com/openebs/cstor-operators/master/deploy/csi-operator.yaml"
-                            dest: "{{ playbook_dir }}/csi-operator.yaml"
-                            force: yes
-                          register: charts_file
-                          until:  "'OK' in charts_file.msg"
-                          delay: 5
-                          retries: 3
-
-                        - name: Downloading openebs cspc-operator.yaml
-                          get_url:
-                            url: "{{ cspc_operator_link }}"
-                            dest: "{{ playbook_dir }}/{{ cspc_operator }}"
-                            force: yes
-                          register: result
-                          until:  "'OK' in result.msg"
-                          delay: 5
-                          retries: 3
-
-                        - name: Downloading rbac for cstor operator
-                          get_url:
-                            url: "{{ cspc_rbac_link }}"
-                            dest: "{{ playbook_dir }}/{{ cspc_rbac }}"
-                            force: yes
-                          register: result
-                          until:  "'OK' in result.msg"
-                          delay: 5
-                          retries: 3
-
-                        - name: Downloading crd yaml spec for cstor operator
-                          get_url:
-                            url: "{{ all_crd_link }}"
-                            dest: "{{ playbook_dir }}/{{ cspc_crd }}"
-                            force: yes
-                          register: result
-                          until:  "'OK' in result.msg"
-                          delay: 5
-                          retries: 3                                               
-
-                        - block:
-
-                            - name: Update the desired image tag for openebs-plugin
-                              replace:
-                                path: "{{ playbook_dir }}/csi-operator.yaml"
-                                regexp: "cstor-csi-driver:ci"
-                                replace: "cstor-csi-driver:{{ release_tag }}"
-
-                            - name: Change the OpenEBS component labels to desired version csi provisioner spec
-                              replace:
-                                path: "{{ playbook_dir }}/csi-operator.yaml"
-                                regexp: 'openebs.io/version: dev'
-                                replace: "openebs.io/version: {{ release_tag }}"
-
-                            - name: Change CSPC operator image
-                              replace:
-                                path: "{{ cspc_operator }}"
-                                regexp: openebs/cspc-operator-amd64:ci
-                                replace: openebs/cspc-operator:{{ lookup('env','IMAGE_TAG') }}
-                              when: lookup('env','IMAGE_TAG') | length > 0
-
-                            - name: Change CSTOR POOL MANAGER image
-                              replace:
-                                path: "{{ cspc_operator }}"
-                                regexp: openebs/cstor-pool-manager-amd64:ci
-                                replace: openebs/cstor-pool-manager:{{ lookup('env','IMAGE_TAG') }}
-                              when: lookup('env','IMAGE_TAG') | length > 0
-
-                            - name: Change OPENEBS_IO_CSTOR_POOL image
-                              replace:
-                                path: "{{ cspc_operator }}"
-                                regexp: openebs/cstor-pool:ci
-                                replace: openebs/cstor-pool:{{ lookup('env','IMAGE_TAG') }}
-                              when: lookup('env','IMAGE_TAG') | length > 0
-
-                            - name: Change OPENEBS_IO_CSTOR_POOL_EXPORTER image
-                              replace:
-                                path: "{{ cspc_operator }}"
-                                regexp: openebs/m-exporter:ci
-                                replace: openebs/m-exporter:{{ lookup('env','IMAGE_TAG') }}
-                              when: lookup('env','IMAGE_TAG') | length > 0
-
-                            - name: Change openebs cvc operator image
-                              replace:
-                                path: "{{ cspc_operator }}"
-                                regexp: openebs/cvc-operator-amd64:ci
-                                replace: openebs/cvc-operator:{{ lookup('env','IMAGE_TAG') }}
-                              when: lookup('env','IMAGE_TAG') | length > 0
-
-                            - name: Change openebs CSTOR ISTGT image
-                              replace:
-                                path: "{{ cspc_operator }}"
-                                regexp: openebs/cstor-istgt:ci
-                                replace: openebs/cstor-istgt:{{ lookup('env','IMAGE_TAG') }}
-                              when: lookup('env','IMAGE_TAG') | length > 0
-
-                            - name: Change openebs CSTOR VOLUME MGMT image
-                              replace:
-                                path: "{{ cspc_operator }}"
-                                regexp: openebs/cstor-volume-manager-amd64:ci
-                                replace: openebs/cstor-volume-manager:{{ lookup('env','IMAGE_TAG') }}
-                              when: lookup('env','IMAGE_TAG') | length > 0
-
-                            - name: Change openebs CSTOR WEBHOOK image
-                              replace:
-                                path: "{{ cspc_operator }}"
-                                regexp: openebs/cstor-webhook-amd64:ci
-                                replace: openebs/cstor-webhook:{{ lookup('env','IMAGE_TAG') }}
-                              when: lookup('env','IMAGE_TAG') | length > 0
-
-                            - name: Change the OpenEBS component labels to desired version in Operator yaml
-                              replace:
-                                path: "{{ cspc_operator }}"
-                                regexp: 'openebs.io/version: dev'
-                                replace: "openebs.io/version: {{ release_tag }}"
-
-                          when: release_version != 'master'
-
-                        - name: Deploy CSI Driver
-                          shell: >
-                            kubectl apply -f csi-operator.yaml
-                          args:
-                            executable: /bin/bash
-                          register: deploy_status
-                          failed_when: "deploy_status.rc != 0"
-
-                        - name: Applying cspc rbac
-                          shell: "kubectl  apply -f {{ cspc_rbac }}"
-                          args:
-                            executable: /bin/bash
-
-                        - name: Applying cspc crd
-                          shell: "kubectl  apply -f {{ cspc_crd }}"
-                          args:
-                            executable: /bin/bash                          
-
-                      when: "'OK' not in release.msg"
-
-                  when: release_tag != '1.12.0'
-
-              when: release_tag != '1.11.0'
-
-          when: release_tag != '1.10.0'
+              when: "'OK' not in release.msg" 
+          when: 
+            - release_tag != '1.10.0'
+            - release_tag != '1.11.0'
+            - release_tag != '1.12.0'
 
         - block: 
 

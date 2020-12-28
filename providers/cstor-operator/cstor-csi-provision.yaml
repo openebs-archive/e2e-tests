@@ -1,0 +1,85 @@
+        - block:
+            - name: Downloading the csi-operator file
+              get_url:
+                url: "https://raw.githubusercontent.com/openebs/charts/master/archive/1.10.x/csi-operator-1.10.0.yaml"
+                dest: "{{ playbook_dir }}/csi-operator.yaml"
+                force: yes
+              register: csi_status
+              until:  "'OK' in csi_status.msg"
+              delay: 5
+              retries: 3
+              when: node_os == "ubuntu-16.04" or node_os == "centos"
+
+            - name: Downloading the csi-operator file
+              get_url:
+                url: "https://raw.githubusercontent.com/openebs/charts/master/archive/1.10.x/csi-operator-1.10.0-ubuntu-18.04.yaml"
+                dest: "{{ playbook_dir }}/csi-operator.yaml"
+                force: yes
+              register: csi_status
+              until:  "'OK' in csi_status.msg"
+              delay: 5
+              retries: 3
+              when: node_os == "ubuntu-18.04"
+
+            - name: Downloading openebs cStor operator from charts
+              get_url:
+                url: https://raw.githubusercontent.com/openebs/charts/master/archive/1.10.x/cstor-operator-1.10.0.yaml
+                dest: "{{ playbook_dir }}/{{ cspc_operator }}"
+                force: yes
+              register: release
+              until:  "'OK' in release.msg"
+              delay: 5
+              retries: 3
+
+            - name: Deploy CSI Driver when the release tag is 1.10.0
+              shell: >
+                kubectl apply -f csi-operator.yaml
+              args:
+                executable: /bin/bash
+              register: deploy_status
+              failed_when: "deploy_status.rc != 0"              
+
+          when: "release_tag == '1.10.0'"
+
+        - block:
+            - name: Downloading the csi-operator file
+              get_url:
+                url: "https://raw.githubusercontent.com/openebs/charts/gh-pages/{{ release_tag }}/csi-operator-{{ release_tag }}.yaml"
+                dest: "{{ playbook_dir }}/csi-operator.yaml"
+                force: yes
+              register: status
+              until:  "'OK' in status.msg"
+              delay: 5
+              retries: 3
+              when: node_os == "ubuntu-16.04" or node_os == "centos"
+
+            - name: Downloading the csi-operator file
+              get_url:
+                url: "https://raw.githubusercontent.com/openebs/charts/gh-pages/{{ release_tag }}/csi-operator-{{ release_tag }}-ubuntu-18.04.yaml"
+                dest: "{{ playbook_dir }}/csi-operator.yaml"
+                force: yes
+              register: status
+              until:  "'OK' in status.msg"
+              delay: 5
+              retries: 3
+              when: node_os == "ubuntu-18.04"
+
+            - name: Downloading openebs cStor operator from charts
+              get_url:
+                url: https://raw.githubusercontent.com/openebs/charts/gh-pages/{{ release_tag }}/cstor-operator-{{ release_tag }}.yaml
+                dest: "{{ playbook_dir }}/{{ cspc_operator }}"
+                force: yes
+              register: release
+              until:  "'OK' in release.msg"
+              delay: 5
+              retries: 3
+
+            - name: Deploy CSI Driver when the csi verison is {{ release_tag }}
+              shell: >
+                kubectl apply -f csi-operator.yaml
+              args:
+                executable: /bin/bash
+              register: deploy_status
+              failed_when: "deploy_status.rc != 0"
+
+          when: release_tag == "1.11.0" or release_tag == "1.12.0"            
