@@ -1,64 +1,11 @@
                 - name: Install helm client
-                  shell: curl https://raw.githubusercontent.com/kubernetes/helm/master/scripts/get | bash
+                  shell: curl https://raw.githubusercontent.com/helm/helm/master/scripts/get-helm-3 | bash
                   args:
                     executable: /bin/bash
                   register: output
                   until: "'installed' in output.stdout"
                   delay: 30
                   retries: 5
-
-                - name: Setting up tiller.
-                  shell: helm init --upgrade
-                  args:
-                    executable: /bin/bash
-                  register: tiller_out
-
-                - name: Checking if the tiller pod is created.
-                  shell: helm version
-                  args:
-                    executable: /bin/bash
-                  register: tiller_version
-                  until: "'Server: &version.Version' in tiller_version.stdout"
-                  delay: 30
-                  retries: 30
-
-                - name: Checking if the tiller service account already exists.
-                  shell: kubectl get sa tiller -n kube-system
-                  args:
-                    executable: /bin/bash
-                  register: sa
-                  until: "'tiller' in sa.stdout"
-                  delay: 20
-                  retries: 2
-                  ignore_errors: True
-
-                - name: Creating the service account
-                  shell: kubectl create serviceaccount --namespace kube-system tiller | echo $?
-                  args:
-                    executable: /bin/bash
-                  register: tiller
-                  until: "'0' in tiller.stdout"
-                  delay: 30
-                  retries: 5
-                  when: "'tiller' not in sa.stdout"
-
-                - name: Checking if the tiller cluster role binding already exists.
-                  shell: kubectl get clusterrolebinding tiller
-                  args:
-                    executable: /bin/bash
-                  register: cr
-                  until: "'tiller' in cr.stdout"
-                  delay: 10
-                  retries: 2
-                  ignore_errors: True
-
-                - name: Creating the cluster rolebinding.
-                  shell: |
-                    kubectl create clusterrolebinding tiller --clusterrole=cluster-admin --serviceaccount=kube-system:tiller
-                    kubectl patch deploy --namespace kube-system tiller-deploy -p '{"spec":{"template":{"spec":{"serviceAccount":"tiller"}}}}'
-                  args:
-                    executable: /bin/bash
-                  when: "'tiller' not in cr.stdout"
 
                 - name: Installing openebs using stable charts.
                   shell: >
