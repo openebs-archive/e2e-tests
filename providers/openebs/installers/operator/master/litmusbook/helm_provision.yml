@@ -1,0 +1,45 @@
+                - name: Install helm client
+                  shell: curl https://raw.githubusercontent.com/helm/helm/master/scripts/get-helm-3 | bash
+                  args:
+                    executable: /bin/bash
+                  register: output
+                  until: "'installed' in output.stdout"
+                  delay: 30
+                  retries: 5
+
+                - name: Installing openebs using stable charts.
+                  shell: >
+                    helm install --namespace {{ namespace }} --name openebs stable/openebs --version {{ openebs_version }}
+                  args:
+                    executable: /bin/bash
+                  register: openebs_out
+                  until: "'The OpenEBS has been installed' in openebs_out.stdout"
+                  delay: 5
+                  retries: 5
+                  ignore_errors: True
+
+                - block:
+
+                    - set_fact:
+                         helm_repo: "openebs/charts"
+                      when: helm_repo is undefined
+
+                    - set_fact:
+                         helm_branch: "master"
+                      when: helm_branch is undefined
+
+                    - name: Clone the Openebs Charts repo
+                      shell: git clone -b {{ helm_branch }} https://github.com/{{ helm_repo }}
+                      args:
+                        executable: /bin/bash
+                      ignore_errors: true
+
+                    - set_fact:
+                         helm_directory: "{{ helm_repo.split('/') }}"
+
+                    - name: Install helm using charts
+                      shell: cd "{{ helm_directory.1 }}"/charts/openebs && helm install --namespace {{ namespace }} --name openebs .
+                      args:
+                        executable: /bin/bash
+
+                  when: "'The OpenEBS has been installed' not in openebs_out.stdout"
