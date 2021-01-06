@@ -68,4 +68,3 @@
      failed_when: "'deleted' not in maya_pod_del_status.stdout"
 
   when: action == "maya"
-
