@@ -70,22 +70,9 @@ spec:
           - name: PROFILE
             value: "default"
 
-          #Supported values are {"pool", "maya"}
-          # Will have no impact if variable is undefined i.e; will not induce any failure
-          - name: COMPONENT_FAILURE
-            value: ''
-
-          # supported values are: cstor, cstor-csi, jiva, localpv
-          - name: STORAGE_ENGINE
-            value: "cstor"
-
           # supported values are: true & false (Deprovision velero namespace after test completion)
           - name: DEPROVISION_VELERO
-            value: "false"
-
-          # supported values are: backup & restore
-          - name: VELERO_ACTION
-            value: "BACKUP"            
+            value: "false"          
              
         command: ["/bin/bash"]
-        args: ["-c", "ansible-playbook ./experiments/functional/backup_and_restore/test.yml -i /etc/ansible/hosts -vv; exit 0"]
+        args: ["-c", "ansible-playbook ./experiments/functional/backup_and_restore/localpv/test.yml -i /etc/ansible/hosts -vv; exit 0"]

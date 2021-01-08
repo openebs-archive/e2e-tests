@@ -10,7 +10,6 @@ spec:
       name: litmus
       labels:
         app: velero-backup-restore
-
     spec:
       serviceAccountName: litmus
       restartPolicy: Never
@@ -18,7 +17,6 @@ spec:
       - name: ansibletest
         image: openebs/ansible-runner:ci
         imagePullPolicy: IfNotPresent
-
         env:
           - name: ANSIBLE_STDOUT_CALLBACK
             value: default
@@ -62,7 +60,7 @@ spec:
           - name: GCP_PROJECT_ID
             value: "openebs-ci"
 
-           #Supported values are {'default', 'user-defined'}, can be set only true when {bucket-type=minio, local-snapshot=false}
+           #Supported values are {'default', 'user-defined'}, can be set only true when {bucket-type=minio}
           - name: PROFILE
             value: "default"
 
@@ -70,9 +68,5 @@ spec:
           - name: DEPROVISION_VELERO
             value: "false"
 
-          # supported values are: backup & restore
-          - name: VELERO_ACTION
-            value: "BACKUP"            
-             
         command: ["/bin/bash"]
-        args: ["-c", "ansible-playbook ./experiments/functional/backup_and_restore/test.yml -i /etc/ansible/hosts -vv; exit 0"]
+        args: ["-c", "ansible-playbook ./experiments/functional/backup_and_restore/jiva/test.yml -i /etc/ansible/hosts -vv; exit 0"]

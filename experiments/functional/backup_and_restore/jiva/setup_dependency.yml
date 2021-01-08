@@ -20,7 +20,7 @@
 
 - name: Replacing Profile name in credential file
   replace:
-    path: ./credentials-velero
+    path: ./experiments/functional/backup_and_restore/jiva/credentials-velero
     regexp: "add-profile"
     replace: "{{ profile_name }}"
   when: lookup('env','PROFILE') != "default"
@@ -49,7 +49,7 @@
           velero install \
             --provider aws \
             --bucket velero \
-            --secret-file ./credentials-velero \
+            --secret-file /experiments/functional/backup_and_restore/jiva/credentials-velero \
             --use-volume-snapshots=false \
             --use-restic \
             --backup-location-config region=minio,s3ForcePathStyle="true",s3Url=http://minio.velero.svc:9000
@@ -60,7 +60,7 @@
           velero install \
             --provider aws \
             --bucket velero \
-            --secret-file ./credentials-velero \
+            --secret-file /experiments/functional/backup_and_restore/jiva/credentials-velero \
             --plugins velero/velero-plugin-for-aws:v1.0.0 \
             --use-volume-snapshots=false \
             --use-restic \

@@ -80,35 +80,30 @@
           delay: 5
           retries: 15
              
-        - block: 
-            
-            - name: Restoring Application
-              include_tasks: "./backup-restore.yml"
-              vars:
-                action: 'RESTORE'
-                velero_backup_name: "{{ backup_name }}"    
-              when: lookup('env','COMPONENT_FAILURE') == ''
+        - name: Restoring Application
+          include_tasks: "./backup-restore.yml"
+          vars:
+            action: 'RESTORE'
+            velero_backup_name: "{{ backup_name }}"    
 
-            - name: Waiting for application to be in running state
-              shell: kubectl get pod {{ app_pod.stdout }} -n {{ app_ns }} -o jsonpath='{.status.phase}'
-              register: app_pod_status
-              until: "'Running' in app_pod_status.stdout"
-              delay: 5
-              retries: 30
+        - name: Waiting for application to be in running state
+          shell: kubectl get pod {{ app_pod.stdout }} -n {{ app_ns }} -o jsonpath='{.status.phase}'
+          register: app_pod_status
+          until: "'Running' in app_pod_status.stdout"
+          delay: 5
+          retries: 30
 
-            - name: Verifying Data persistense
-              include_tasks: "/utils/scm/applications/mysql/mysql_data_persistence.yml"
-              vars:
-                status: 'VERIFY'
-                ns: "{{ app_ns }}"
-                pod_name: "{{ app_pod.stdout }}"
-                dbuser: 'root'
-                dbpassword: 'k8sDem0'
-                dbname: "backup"
-                label: "{{ app_label }}"
-
-          when: lookup('env','VELERO_ACTION') == 'RESTORE'
-                        
+        - name: Verifying Data persistense
+          include_tasks: "/utils/scm/applications/mysql/mysql_data_persistence.yml"
+          vars:
+            status: 'VERIFY'
+            ns: "{{ app_ns }}"
+            pod_name: "{{ app_pod.stdout }}"
+            dbuser: 'root'
+            dbpassword: 'k8sDem0'
+            dbname: "backup"
+            label: "{{ app_label }}"
+                       
         - set_fact:
             flag: "Pass"
 
