@@ -2,15 +2,14 @@
 apiVersion: batch/v1
 kind: Job
 metadata:
-  generateName: litmus-velero-backup-restore-
+  generateName: litmus-velero-backup-restore-cstor-
   namespace: litmus
 spec:
   template:
     metadata:
       name: litmus
       labels:
-        app: velero-backup-restore
-
+        app: velero-backup-restore-cstor
     spec:
       serviceAccountName: litmus
       restartPolicy: Never
@@ -58,16 +57,21 @@ spec:
           #Supported values are {'minio', 'GCP'}
           - name: STORAGE_BUCKET
             value: "minio"
+
           #Supported values are {'true', false}, can be set true only with cstor volumes
           - name: LOCAL_SNAPSHOT
             value: "false"
-           #Supported values are {'true', false}, can be set true only with cstor volumes whose restore will happen in different namespace. 
+
+           #Supported values are {'true', false}, can be set true 
+           #only with cstor volumes whose restore will happen in different namespace. 
           - name: RESTORE_IN_DIFF_NAMESPACE
             value: "false"
 
           - name: GCP_PROJECT_ID
             value: "openebs-ci"
-           #Supported values are {'default', 'user-defined'}, can be set only true when {bucket-type=minio, local-snapshot=false}
+
+           #Supported values are {'default', 'user-defined'}
+           #can be set only true when {bucket-type=minio, local-snapshot=false}
           - name: PROFILE
             value: "default"
 
@@ -76,13 +80,9 @@ spec:
           - name: COMPONENT_FAILURE
             value: ''
 
-          # supported values are: cstor, cstor-csi, jiva, localpv
-          - name: STORAGE_ENGINE
-            value: "cstor"
-
           # supported values are: true & false (Deprovision velero namespace after test completion)
           - name: DEPROVISION_VELERO
             value: "false"
-             
+
         command: ["/bin/bash"]
-        args: ["-c", "ansible-playbook ./experiments/functional/backup_and_restore/test.yml -i /etc/ansible/hosts -vv; exit 0"]
+        args: ["-c", "ansible-playbook ./experiments/functional/backup_and_restore/cstor/test.yml -i /etc/ansible/hosts -vv; exit 0"]
