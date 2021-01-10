@@ -97,7 +97,7 @@
                 executable: /bin/bash
               register: modify_replica_count
               until: "modify_replica_count.stdout == \"0\""
-              delay: 2
+              delay: 5
               retries: 20
 
             - name: Verify that the application pod is not present after scaling down the deployment
@@ -107,8 +107,8 @@
                 executable: /bin/bash
               register: app_pod_status
               until: "app_pod_name.stdout not in app_pod_status.stdout"
-              delay: 2
-              retries: 20
+              delay: 5
+              retries: 30
 
               ## As we are checking the status of only one pod if is terminated successfully
               ## but in case of shared mount support other pods may not be terminate at the same time
@@ -171,7 +171,7 @@
                 executable: /bin/bash
               register: ready_replica_count
               until: ready_replica_count.stdout == replica_count.stdout
-              delay: 2
+              delay: 5
               retries: 20
 
           when: action == 'provision' 
