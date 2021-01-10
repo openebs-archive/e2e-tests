@@ -112,7 +112,7 @@
 
                     - name: Downloading openebs cStor operator from charts
                       get_url:
-                        url: https://raw.githubusercontent.com/openebs/charts/{{ release_branch }}/{{ release_version }}/cstor-operator-{{ release_tag }}.yaml
+                        url: https://raw.githubusercontent.com/openebs/charts/{{ release_branch }}/{{ release_version }}/cstor-operator.yaml
                         dest: "{{ playbook_dir }}/{{ cspc_operator }}"
                         force: yes
                       register: release
