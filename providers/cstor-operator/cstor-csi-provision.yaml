@@ -82,4 +82,5 @@
               register: deploy_status
               failed_when: "deploy_status.rc != 0"
 
-          when: release_tag == "1.11.0" or release_tag == "1.12.0"            
+          when: release_tag == "1.11.0" or release_tag == "1.12.0"
+
