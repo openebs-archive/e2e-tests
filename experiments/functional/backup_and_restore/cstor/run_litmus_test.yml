@@ -9,7 +9,7 @@ spec:
     metadata:
       name: litmus
       labels:
-        app: velero-backup-restore-cstor
+        app: velero-backup-restore
     spec:
       serviceAccountName: litmus
       restartPolicy: Never
