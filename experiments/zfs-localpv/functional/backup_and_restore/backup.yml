@@ -6,6 +6,15 @@
       args:
         executable: /bin/bash
 
+    - name: Check that volume snapshot location class is present
+      shell: kubectl get volumesnapshotlocation -n velero
+      args:
+       executable: /bin/bash
+      register: vol_snapshot_location
+      until: "'zfspv-snaplocation' in vol_snapshot_location.stdout"
+      delay: 2
+      retries: 30
+
     - name: Creating Backup 
       shell: >
         velero backup create {{ velero_backup_name }} --snapshot-volumes --include-namespaces={{ app_ns }} --volume-snapshot-locations=zfspv-snaplocation --storage-location=default
