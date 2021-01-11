@@ -70,6 +70,13 @@
               until:  "'OK' in operator_file.msg"
               delay: 5
               retries: 3
+             
+            # this removing of csidriver plugin is just a workaround
+  
+            - name: Remove the csidriver plugin
+              shell: kubectl delete csidriver cstor.csi.openebs.io
+              args:
+                 executable: /bin/bash
 
             - block:
 

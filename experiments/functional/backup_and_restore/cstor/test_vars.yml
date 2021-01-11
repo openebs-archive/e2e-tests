@@ -1,4 +1,4 @@
-test_name: "velero-backup-restore-cstor"
+test_name: "velero-backup-restore"
 app_ns: "{{ lookup('env','APP_NAMESPACE') }}"
 app_ns_new: "{{ lookup('env','APP_NAMESPACE') }}-local"
 app_label: "{{ lookup('env','APP_LABEL') }}"
