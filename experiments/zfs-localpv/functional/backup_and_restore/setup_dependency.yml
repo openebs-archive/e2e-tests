@@ -117,4 +117,11 @@
   until: "'running' in velero_container.stdout"
   delay: 5
   retries: 20
+
+- name: Check velero plugin for VolumeSnapshotter is present
+  shell: velero plugin get
+  register: snapshotter_plugin
+  until: "'zfspv-blockstore' in snapshotter_plugin.stdout"
+  delay: 2
+  retries: 40
     

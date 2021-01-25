@@ -1,0 +1,177 @@
+- name: Downloading velero binary
+  get_url:
+    url: "{{ velero_binary_url }}"
+    dest: "./"
+    force: yes
+  register: result
+  until:  "'OK' in result.msg"
+  delay: 5
+  retries: 3
+
+- name: Installing velero inside litmus container
+  shell: |
+    tar -xvf velero-{{ velero_version }}-linux-amd64.tar.gz
+    mv velero-{{ velero_version }}-linux-amd64/velero /usr/local/bin/
+
+- name: Checking the velero version
+  shell: velero version
+  register: velero
+  failed_when: "velero_version not in velero.stdout"
+
+- name: Replacing Profile name in credential file
+  replace:
+    path: /experiments/functional/backup_and_restore/credentials-velero
+    regexp: "add-profile"
+    replace: "{{ profile_name }}"
+  when: lookup('env','PROFILE') != "default"
+
+- block:
+
+   - name: Installing minio s3-bucket
+     shell: kubectl apply -f velero-{{ velero_version }}-linux-amd64/examples/minio/00-minio-deployment.yaml
+
+   - name: Checking for minio pod status
+     shell: kubectl get pod -n velero -l component=minio -ojsonpath='{.items[0].status.phase}'
+     register: minio_status
+     until: "'Running' in minio_status.stdout"
+     delay: 5
+     retries: 15
+   
+   - name: Waiting for minio job to create bucket
+     shell: kubectl get pod -n velero -l job-name=minio-setup -o jsonpath='{.items[*].status.phase}'
+     register: minio_job_status
+     until: "'Succeeded' in minio_job_status.stdout"
+     delay: 5
+     retries: 10
+
+  when: bucket_type == "minio"
+
+- block:
+
+   - name: Fetching service account key.json from configmap
+     shell: kubectl get cm gcp-key -n litmus -o jsonpath='{.data.key\.json}' > ./key.json
+        
+   - name: Authenticating using gcp service account
+     shell: gcloud auth activate-service-account --key-file key.json
+
+   - name: Setting up the project ID
+     shell: gcloud config set project {{ gcp_project_id }} 
+
+   - name: Deleting GCP bucket if exist
+     shell: gsutil rm -r gs://e2e-gcp-bucket
+     args:
+       executable: /bin/bash
+     ignore_errors: true
+
+   - name: Creating gcp bucket
+     shell: gsutil mb gs://e2e-gcp-bucket/
+
+  when: bucket_type == "GCP"
+
+- block:
+
+  - name: Installing velero server inside cluster
+    shell: >
+        velero install \
+          --provider aws \
+          --bucket velero \
+          --secret-file /experiments/functional/backup_and_restore/credentials-velero \
+          --use-volume-snapshots=false \
+          --use-restic \
+          --backup-location-config region=minio,s3ForcePathStyle="true",s3Url=http://minio.velero.svc:9000
+    when: velero_version == "v1.1.0"
+
+  - name: Installing velero server inside cluster
+    shell: >
+        velero install \
+          --provider aws \
+          --bucket velero \
+          --secret-file /experiments/functional/backup_and_restore/credentials-velero \
+          --plugins velero/velero-plugin-for-aws:v1.0.0 \
+          --use-volume-snapshots=false \
+          --use-restic \
+          --backup-location-config region=minio,s3ForcePathStyle="true",s3Url=http://minio.velero.svc:9000
+    when: velero_version == "v1.2.0" or velero_version == "v1.3.0" or velero_version == "v1.4.0"
+
+  when: "bucket_type == 'minio'"
+
+- block: 
+  
+  - name: Installing velero server inside cluster
+    shell: >
+      velero install \
+        --provider gcp \
+        --bucket e2e-gcp-bucket \
+        --use-restic \
+        --use-volume-snapshots=false \
+        --secret-file ./key.json
+    when: velero_version == "v1.1.0"
+
+  - name: Installing velero server inside cluster
+    shell: >
+      velero install \
+        --provider gcp \
+        --plugins velero/velero-plugin-for-gcp:v1.0.0 \
+        --bucket e2e-gcp-bucket \
+        --use-restic \
+        --use-volume-snapshots=false \
+        --secret-file ./key.json 
+    when: velero_version == "v1.2.0" or velero_version == "v1.3.0" or velero_version == "v1.4.0"
+
+  when: bucket_type == "GCP"
+
+- block:
+
+    - name: Patching restic demonset for privileged access
+      shell: kubectl patch ds restic -n velero --patch "$(cat patch.yml)"
+      register: patch_status
+      failed_when: "'patched' not in patch_status.stdout"
+
+  when: velero_version == "v1.1.0"
+
+- block: 
+
+    - name: Replacing Restic Image in patch.yml
+      replace:
+        path: ./patch.yml
+        regexp: "gcr.io/heptio-images/velero:v1.1.0"
+        replace: "velero/velero:{{ velero_version }}"
+
+    - name: Patching restic demonset for privileged access
+      shell: kubectl patch ds restic -n velero --patch "$(cat patch.yml)"
+      register: patch_status
+      failed_when: "'patched' not in patch_status.stdout"
+
+  when: velero_version != "v1.1.0"
+
+- name: Getting the number of compute nodes
+  shell: kubectl get nodes | grep worker | wc -l
+  register: node_count
+
+- name: Checking the status of restic demonset pods
+  shell: kubectl get po -n velero -o jsonpath='{.items[?(@.metadata.labels.name=="restic")].status.phase}' | wc -w
+  register: restic_pod_count
+  until: (node_count.stdout)|int == (restic_pod_count.stdout)|int
+  delay: 5
+  retries: 60
+
+- name: Checking for velero server status
+  shell: kubectl get pod -n velero -l component=velero -ojsonpath='{.items[0].status.phase}'
+  register: velero_status
+  until: "'Running' in velero_status.stdout"
+  delay: 5
+  retries: 20
+
+- name: Checking for velero server status
+  shell: kubectl get pod -n velero -l component=velero -ojsonpath='{.items[0].status.phase}'
+  register: velero_status_post_update
+  until: "'Running' in velero_status_post_update.stdout"
+  delay: 5
+  retries: 20
+
+- name: Checking for velero server container status
+  shell: kubectl get pod -n velero -l component=velero -ojsonpath='{.items[0].status.containerStatuses[0].ready}'
+  register: velero_container_status
+  until: "'true' in velero_container_status.stdout"
+  delay: 5
+  retries: 20

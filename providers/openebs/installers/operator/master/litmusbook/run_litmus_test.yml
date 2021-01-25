@@ -68,14 +68,10 @@ spec:
             value: provision
           - name: OPERATOR_NS
             value: "openebs"
+          - name: COMMIT_ID
+            value: ""
+          - name: RC_TAG
+            value: ""
 
         command: ["/bin/bash"]
         args: ["-c", "ansible-playbook ./providers/openebs/installers/operator/master/litmusbook/test.yml -i /etc/ansible/hosts -vv; exit 0"]
-        volumeMounts:
-          - name: kubeconfig 
-            mountPath: /root/admin.conf
-            subPath: admin.conf
-      volumes: 
-        - name: kubeconfig
-          configMap: 
-            name: kubeconfig 

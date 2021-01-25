@@ -1,8 +1,9 @@
+---
         - block:
             - name: Downloading the csi-operator file
               get_url:
                 url: "https://raw.githubusercontent.com/openebs/charts/master/archive/1.10.x/csi-operator-1.10.0.yaml"
-                dest: "{{ playbook_dir }}/csi-operator.yaml"
+                dest: "{{ playbook_dir }}/{{ csi_operator }}"
                 force: yes
               register: csi_status
               until:  "'OK' in csi_status.msg"
@@ -13,7 +14,7 @@
             - name: Downloading the csi-operator file
               get_url:
                 url: "https://raw.githubusercontent.com/openebs/charts/master/archive/1.10.x/csi-operator-1.10.0-ubuntu-18.04.yaml"
-                dest: "{{ playbook_dir }}/csi-operator.yaml"
+                dest: "{{ playbook_dir }}/{{ csi_operator }}"
                 force: yes
               register: csi_status
               until:  "'OK' in csi_status.msg"
@@ -31,21 +32,13 @@
               delay: 5
               retries: 3
 
-            - name: Deploy CSI Driver when the release tag is 1.10.0
-              shell: >
-                kubectl apply -f csi-operator.yaml
-              args:
-                executable: /bin/bash
-              register: deploy_status
-              failed_when: "deploy_status.rc != 0"              
-
-          when: "release_tag == '1.10.0'"
+          when: "openebs_version == '1.10.0'"
 
         - block:
             - name: Downloading the csi-operator file
               get_url:
-                url: "https://raw.githubusercontent.com/openebs/charts/gh-pages/{{ release_tag }}/csi-operator-{{ release_tag }}.yaml"
-                dest: "{{ playbook_dir }}/csi-operator.yaml"
+                url: "https://raw.githubusercontent.com/openebs/charts/gh-pages/{{ openebs_version }}/csi-operator-{{ openebs_version }}.yaml"
+                dest: "{{ playbook_dir }}/{{ csi_operator }}"
                 force: yes
               register: status
               until:  "'OK' in status.msg"
@@ -55,8 +48,8 @@
 
             - name: Downloading the csi-operator file
               get_url:
-                url: "https://raw.githubusercontent.com/openebs/charts/gh-pages/{{ release_tag }}/csi-operator-{{ release_tag }}-ubuntu-18.04.yaml"
-                dest: "{{ playbook_dir }}/csi-operator.yaml"
+                url: "https://raw.githubusercontent.com/openebs/charts/gh-pages/{{ openebs_version }}/csi-operator-{{ openebs_version }}-ubuntu-18.04.yaml"
+                dest: "{{ playbook_dir }}/{{ csi_operator }}"
                 force: yes
               register: status
               until:  "'OK' in status.msg"
@@ -66,7 +59,7 @@
 
             - name: Downloading openebs cStor operator from charts
               get_url:
-                url: https://raw.githubusercontent.com/openebs/charts/gh-pages/{{ release_tag }}/cstor-operator-{{ release_tag }}.yaml
+                url: https://raw.githubusercontent.com/openebs/charts/gh-pages/{{ openebs_version }}/cstor-operator-{{ openebs_version }}.yaml
                 dest: "{{ playbook_dir }}/{{ cspc_operator }}"
                 force: yes
               register: release
@@ -74,13 +67,46 @@
               delay: 5
               retries: 3
 
-            - name: Deploy CSI Driver when the csi verison is {{ release_tag }}
+            - name: Change the value for admission server failure policy
+              replace:
+                path: "{{ cspc_operator }}"
+                regexp: 'value: "Fail"'
+                after: '- name: ADMISSION_WEBHOOK_FAILURE_POLICY'
+                replace: 'value: "{{ webhook_policy }}"'
+              when:
+                - lookup('env','WEBHOOK_FAILURE_POLICY') != ''
+                - openebs_version == "1.12.0"
+
+          when: openebs_version == "1.11.0" or openebs_version == "1.12.0"
+
+        - block:
+
+            - name: Deploy CSI Driver
               shell: >
-                kubectl apply -f csi-operator.yaml
+                "kubectl apply -f {{ csi_operator }}"
               args:
                 executable: /bin/bash
               register: deploy_status
-              failed_when: "deploy_status.rc != 0"
 
-          when: release_tag == "1.11.0" or release_tag == "1.12.0"
+            - name: Applying cspc operator
+              shell: "kubectl apply -f {{ cspc_operator }}"
+              args:
+                executable: /bin/bash
 
+          when: lookup('env','ACTION') == "provision"
+
+        - block:
+
+            - name: Deprovision CSI Driver
+              shell: >
+                "kubectl delete -f {{ csi_operator }}"
+              args:
+                executable: /bin/bash
+              ignore_errors: True
+
+            - name: Deprovision cspc operator
+              shell: "kubectl delete -f {{ cspc_operator }}"
+              args:
+                executable: /bin/bash
+              ignore_errors: True
+          when: lookup('env','ACTION') == "deprovision"
