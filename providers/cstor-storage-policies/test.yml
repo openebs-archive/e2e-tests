@@ -38,6 +38,7 @@
           with_items:
              - { src: csi-cstor-xfs-sc.j2,dest: csi-cstor-xfs-sc.yml }
              - { src: csi-cstor-sc.j2,dest: csi-cstor-sc.yml }
+             - { src: csi-app-target-affinity-sc.j2,dest: csi-app-target-affinity-sc.yml }
           when: lookup('env','POOL_TYPE') == 'cspc'
 
         - block:
@@ -153,6 +154,7 @@
                   with_items:
                     - openebs-cstor-csi
                     - openebs-cstor-csi-xfs
+                    - csi-app-target-affinity
 
               when: lookup('env','POOL_TYPE') == 'cspc'
 
