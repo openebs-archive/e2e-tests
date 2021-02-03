@@ -38,6 +38,34 @@
               register: pvc_status
               failed_when: "'Bound' not in pvc_status.stdout"
 
+            - name: Get the application pod name using {{ app_pvc }} pvc
+              shell: >
+                kubectl get pod -n {{ app_ns }} -l {{ app_label }} --no-headers
+                -o custom-columns=:.metadata.name
+              args:
+                executable: /bin/bash
+              register: app_pod
+
+            - name: Obtain the mount path for the application
+              shell: > 
+                  kubectl get pods -n {{ app_ns }} -l {{ app_label }} 
+                  -o custom-columns=:.spec.containers[].volumeMounts[].mountPath --no-headers
+              args: 
+                  executable: /bin/bash
+              register: mount
+
+            - name: Fetch the Storage from PVC using namespace
+              shell: kubectl get pvc -n {{ app_ns }} -o jsonpath={.items[0].spec.resources.requests.storage}
+              args:
+                executable: /bin/bash
+              register: storage_capacity
+
+            - name: Fetch the alphabet(G,M,m,g) from storage capacity
+              shell: echo "{{ storage_capacity.stdout }}" | grep -o -E '[0-9]+'
+              args:
+                executable: /bin/bash
+              register: value_str
+
             - name: Obtain the PVC spec
               shell: >
                 kubectl get pvc {{ app_pvc }} -n {{ app_ns }}
@@ -78,6 +106,30 @@
               until: "desired_vol_size in capacity.stdout"
               delay: 10
               retries: 50
+
+             ## Here we will dump +1Gi data than to previous pvc size
+            - set_fact:
+                value_num: '{{ ( (value_str.stdout | int + 1 | int) * 1024) |  int }}'
+
+            - name: Dump some more dummy data in the application mount point for using resized volume when application is busybox
+              shell: >
+                  kubectl exec -it "{{ app_pod.stdout }}" -n "{{ app_ns }}" 
+                  -- sh -c "cd {{ mount.stdout }} && dd if=/dev/urandom of=volume.txt bs=1024k count={{ value_num }}"
+              args:
+                  executable: /bin/bash
+              register: load
+              failed_when: "load.rc != 0"
+              when: "mount.stdout == '/busybox'"
+
+            - name: Dump some dummy data in the application mount point for using resized volume when application is percona
+              shell: >
+                  kubectl exec -it "{{ app_pod.stdout }}" -n "{{ app_ns }}" 
+                  -- sh -c "cd {{ mount.stdout }} && dd if=/dev/urandom of=volume.txt bs=1024k count={{ value_num }}"
+              args:
+                  executable: /bin/bash
+              register: load
+              failed_when: "load.rc != 0"
+              when: "mount.stdout == '/var/lib/mysql'"
 
         - set_fact:
             flag: "Pass"
