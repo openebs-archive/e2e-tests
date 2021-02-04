@@ -1,4 +1,4 @@
-#namespace: openebs
+namespace: openebs
 cspc_operator_link: https://raw.githubusercontent.com/openebs/cstor-operators/master/deploy/cstor-operator.yaml
 cspc_rbac_link: https://raw.githubusercontent.com/openebs/cstor-operators/master/deploy/rbac.yaml
 all_crd_link: https://raw.githubusercontent.com/openebs/cstor-operators/master/deploy/crds/all_cstor_crds.yaml
@@ -18,3 +18,5 @@ test_name: "openebs-cstor-operator-{{ lookup('env','ACTION') }}"
 node_os: "{{ lookup('env','NODE_OS') }}"
 snapshot_class: "{{ lookup('env','SNAPSHOT_CLASS_NAME') }}"
 operator_ns: "{{ lookup('env','CSI_NS') }}"
+commit_id: "{{ lookup('env','COMMIT_ID') }}"
+rc_tag: "{{ lookup('env','RC_TAG') }}"
