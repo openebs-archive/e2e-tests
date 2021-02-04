@@ -3,7 +3,6 @@
   connection: local
   gather_facts: False
 
-
   vars_files:
     - test_vars.yml
 
@@ -17,7 +16,33 @@
         - include_tasks: "/utils/fcm/update_litmus_result_resource.yml"
           vars:
             status: 'SOT'
-  
+
+        - block:
+
+            - name: Replace the application namespace placeholder in cstorvolumpolicy spec
+              replace:
+                path: /utils/scm/openebs/csi-app-target-affinity-policy.yml
+                regexp: "app-namespace"
+                replace: "{{ lookup('env','APP_NAMESPACE') }}"
+
+            - name: Get the application label values from env
+              set_fact:
+                 app_key: "{{ app_label.split('=')[0] }}"
+                 application_label: "{{ app_label.split('=')[1] }}"                
+
+            - name: Replace the application's label value placeholder in cstorvolumpolicy spec
+              replace:
+                path: /utils/scm/openebs/csi-app-target-affinity-policy.yml
+                regexp: "app-label"
+                replace: "{{ application_label }}"                
+
+            - name: Deploying the application target affinity volume policy
+              shell: kubectl apply -f /utils/scm/openebs/csi-app-target-affinity-policy.yml
+              args:
+                executable: /bin/bash
+
+          when: app_target_affinity == 'cstor-csi'          
+
         - name: Identify the deployment spec to be invoked
           template:
             src: deployemnt_spec.j2
@@ -57,7 +82,14 @@
             - include_tasks: /utils/scm/applications/mysql/check_db_connection.yml
    
             ## Check application-target pod affinity
-            - include_tasks: /utils/scm/openebs/target_affinity_check.yml
+            - block:
+
+                - include_tasks: /utils/scm/openebs/target_affinity_check.yml
+                  when: app_target_affinity == 'cstor'
+
+                - include_tasks: /utils/scm/openebs/csi_target_affinity_check.yml
+                  when: app_target_affinity == 'cstor-csi'                  
+
               when: lookup('env','TARGET_AFFINITY_CHECK') == 'enable'
 
             - set_fact:
