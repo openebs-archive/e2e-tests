@@ -120,6 +120,84 @@
           register: result 
           failed_when: "result.rc != 0 or result.stdout != ''"
 
+        - name: Obtain the mount path for the application
+          shell: > 
+              kubectl get pod {{ new_pod_name.stdout }} -n {{ app_ns }}
+              -o custom-columns=:.spec.containers[].volumeMounts[].mountPath --no-headers
+          args: 
+              executable: /bin/bash
+          register: mount
+
+        - name: Fetch the Storage from PVC using namespace
+          shell: kubectl get pvc -n {{ app_ns }} -o jsonpath={.items[0].spec.resources.requests.storage}
+          args:
+            executable: /bin/bash
+          register: storage_capacity
+
+        - name: Fetch the alphabet(G,M,m,g) from storage capacity
+          shell: echo "{{ storage_capacity.stdout }}" | grep -o -E '[0-9]+'
+          args:
+            executable: /bin/bash
+          register: value_pvc
+
+        ## Here we will resize the volume to double value of present pvc size
+        - set_fact:
+            desired_vol_size: '{{ (value_pvc.stdout | int * 2 | int) |  int }}'
+
+        - name: Obtain the PVC spec
+          shell: >
+            kubectl get pvc block-vol-pvc -n {{ app_ns }}
+            --no-headers -o yaml > pvc.yml
+          args:
+            executable: /bin/bash
+
+        - name: Update the desired capacity in PVC spec
+          replace:
+            path: pvc.yml
+            before: 'storageClassName: {{ storage_class }}'
+            regexp: "storage: {{ pvc_size }}"
+            replace: "storage: {{ desired_vol_size }}Gi"
+
+        - name: Configure PVC with the new capacity
+          shell: kubectl apply -f pvc.yml
+          args:
+            executable: /bin/bash
+          register: result
+          failed_when: "result.rc != 0"
+
+        - name: Check if the desired PVC is bound
+          shell: >
+            kubectl get pvc block-vol-pvc -n {{ app_ns }} --no-headers
+            -o custom-columns=:.status.phase
+          args:
+            executable: /bin/bash
+          register: pvc_status
+          failed_when: "'Bound' not in pvc_status.stdout"
+
+        - name: Check if the storage capacity is updated in PVC
+          shell: >
+              kubectl get pvc block-vol-pvc -n {{ app_ns }} --no-headers 
+              -o custom-columns=:status.capacity.storage
+          args:
+            executable: /bin/bash
+          register: capacity
+          until: "desired_vol_size in capacity.stdout"
+          delay: 10
+          retries: 50
+
+          ## Here we will dump +1Gi data than to previous pvc size
+        - set_fact:
+            value_num: '{{ ( (value_pvc.stdout | int + 1 | int) * 1024) |  int }}'
+
+        - name: Dump some more dummy data in the application mount point for using resized volume
+          shell: >
+              kubectl exec -it "{{ new_pod_name.stdout }}" -n "{{ app_ns }}" 
+              -- sh -c "cd {{ mount.stdout }} && dd if=/dev/urandom of=volume.txt bs=1024k count={{ value_num }}"
+          args:
+              executable: /bin/bash
+          register: load
+          failed_when: "load.rc != 0"
+
         - name: Deprovision the busybox application
           shell: kubectl delete -f busybox.yml -n {{ app_ns }}
           args:
