@@ -119,7 +119,6 @@
                   executable: /bin/bash
               register: load
               failed_when: "load.rc != 0"
-              when: "mount.stdout == '/busybox'"
 
         - set_fact:
             flag: "Pass"
