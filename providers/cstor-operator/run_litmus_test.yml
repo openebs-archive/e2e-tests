@@ -21,13 +21,36 @@ spec:
           - name: ANSIBLE_STDOUT_CALLBACK
             value: default
 
-            # Image tag for cstor cspc components
-          - name: IMAGE_TAG
+          - name: CSPC_OPERATOR_IMAGE
             value: ""
+
+          - name: CSPI_MGMT_IMAGE
+            value: ""
+
+          - name: CSPC_CSTOR_POOL_IMAGE
+            value: ""
+
+          - name: CSPC_CSTOR_POOL_EXPORTER_IMAGE
+            value: ""
+
+          - name: CSPC_CVC_OPERATOR_IMAGE
+            value: ""
+
+          - name: CSPC_CSTOR_ISTGT_IMAGE
+            value: ""        
+
+          - name: CSPC_CSTOR_VOLUME_MGMT_IMAGE
+            value: ""                         
+                  
+          - name: CSPC_CSTOR_WEBHOOK_IMAGE
+            value: ""
+
+          - name: CSTOR_CSI_DRIVER_IMAGE
+            value: ""             
 
             # release version in case of ci, value is 'master'
             # Other Release versions it should be 1.x.x for ex 1.12.0
-          - name: RELEASE_VERSION
+          - name: OPENEBS_VERSION
             value: ""
 
             ## openebs charts branch to get the operator specs
@@ -47,12 +70,18 @@ spec:
           - name: CSI_NS
             value: "openebs"
 
-            # NODE_OS is required in case of the image_tag is >2.x.x
+            # NODE_OS is required in case of the image_tag is < 2.x.x
           - name: NODE_OS
             value: ""
 
-          - name: SNAPSHOT_CLASS
-            value: csi-cstor                                    
+          - name: SNAPSHOT_CLASS_NAME
+            value: csi-cstor
+
+          - name: COMMIT_ID
+            value: ""
+
+          - name: RC_TAG
+            value: ""                                           
 
         command: ["/bin/bash"]
         args: ["-c", "ansible-playbook ./providers/cstor-operator/test.yml -i /etc/ansible/hosts -vv; exit 0"]
