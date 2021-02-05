@@ -15,16 +15,16 @@
       - name: Change CSPC operator image
         replace:
           path: "{{ cspc_operator }}"
-          regexp: openebs/cspc-operator-amd64:ci
+          regexp: openebs/cspc-operator:ci
           replace: "{{ lookup('env','CSPC_OPERATOR_IMAGE') }}"
         when: lookup('env','CSPC_OPERATOR_IMAGE') | length > 0
 
       - name: Change CSTOR POOL MANAGER image
         replace:
           path: "{{ cspc_operator }}"
-          regexp: openebs/cstor-pool-manager-amd64:ci
+          regexp: openebs/cstor-pool-manager:ci
           replace: "{{ lookup('env','CSPI_MGMT_IMAGE') }}"
-        when: lookup('env','CSPI_MGMT_IMAGE) | length > 0
+        when: lookup('env','CSPI_MGMT_IMAGE') | length > 0
 
       - name: Change OPENEBS_IO_CSTOR_POOL image
         replace:
@@ -43,7 +43,7 @@
       - name: Change openebs cvc operator image
         replace:
           path: "{{ cspc_operator }}"
-          regexp: openebs/cvc-operator-amd64:ci
+          regexp: openebs/cvc-operator:ci
           replace: "{{ lookup('env','CSPC_CVC_OPERATOR_IMAGE') }}"
         when: lookup('env','CSPC_CVC_OPERATOR_IMAGE') | length > 0
 
@@ -57,14 +57,14 @@
       - name: Change openebs CSTOR VOLUME MGMT image
         replace:
           path: "{{ cspc_operator }}"
-          regexp: openebs/cstor-volume-manager-amd64:ci
+          regexp: openebs/cstor-volume-manager:ci
           replace: "{{ lookup('env','CSPC_CSTOR_VOLUME_MGMT_IMAGE') }}"
         when: lookup('env','CSPC_CSTOR_VOLUME_MGMT_IMAGE') | length > 0
 
       - name: Change openebs CSTOR WEBHOOK image
         replace:
           path: "{{ cspc_operator }}"
-          regexp: openebs/cstor-webhook-amd64:ci
+          regexp: openebs/cstor-webhook:ci
           replace: "{{ lookup('env','CSPC_CSTOR_WEBHOOK_IMAGE') }}"
         when: lookup('env','CSPC_CSTOR_WEBHOOK_IMAGE') | length > 0
 

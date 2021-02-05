@@ -181,7 +181,7 @@
 
                 - name: Deploy CSI Driver
                   shell: >
-                    kubectl apply -f {{ csi_operator }}
+                    "kubectl apply -f {{ csi_operator }}"
                   args:
                     executable: /bin/bash
 
