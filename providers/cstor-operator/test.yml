@@ -181,22 +181,22 @@
 
                 - name: Deploy CSI Driver
                   shell: >
-                    "kubectl apply -f {{ csi_operator }}"
+                    kubectl apply -f {{ csi_operator }}
                   args:
                     executable: /bin/bash
 
                 - name: Applying cspc rbac
-                  shell: "kubectl  apply -f {{ cspc_rbac }}"
+                  shell: kubectl  apply -f {{ cspc_rbac }}
                   args:
                     executable: /bin/bash
 
                 - name: Applying cspc crd
-                  shell: "kubectl  apply -f {{ cspc_crd }}"
+                  shell: kubectl  apply -f {{ cspc_crd }}
                   args:
                     executable: /bin/bash
 
                 - name: Applying cspc operator
-                  shell: "kubectl  apply -f {{ cspc_operator }}"
+                  shell: kubectl  apply -f {{ cspc_operator }}
                   args:
                     executable: /bin/bash
 
@@ -206,25 +206,25 @@
 
                 - name: Deprovision CSI Driver
                   shell: >
-                    "kubectl delete -f {{ csi_operator }}"
+                    kubectl delete -f {{ csi_operator }}
                   args:
                     executable: /bin/bash
                   ignore_errors: True
 
                 - name: Deprovision cspc rbac
-                  shell: "kubectl delete -f {{ cspc_rbac }}"
+                  shell: kubectl delete -f {{ cspc_rbac }}
                   args:
                     executable: /bin/bash
                   ignore_errors: True
 
                 - name: Deprovision cspc crd
-                  shell: "kubectl delete -f {{ cspc_crd }}"
+                  shell: kubectl delete -f {{ cspc_crd }}
                   args:
                     executable: /bin/bash
                   ignore_errors: True
 
                 - name: Deprovision cspc operator
-                  shell: "kubectl delete -f {{ cspc_operator }}"
+                  shell: kubectl delete -f {{ cspc_operator }}
                   args:
                     executable: /bin/bash
                   ignore_errors: True
