@@ -45,7 +45,7 @@
 
             - name: Deploy cStor operator
               shell: >
-                "kubectl apply -f {{ cstor_operator }}"
+                kubectl apply -f {{ cstor_operator }}
               args:
                 executable: /bin/bash
               register: deploy_status
@@ -53,7 +53,7 @@
 
             - name: Deprovision cStor operator
               shell: >
-                "kubectl delete -f {{ cstor_operator }}"
+                kubectl delete -f {{ cstor_operator }}
               args:
                 executable: /bin/bash
               register: deprovision_status
