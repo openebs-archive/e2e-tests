@@ -36,12 +36,20 @@
               register: rc_operator
               when: rc_tag != ""
 
-            - name: Change the value for admission server failure policy
+            - name: Change the value for remount feature for volumes
               replace:
                 path: "{{ cstor_operator }}"
                 regexp: 'value: "false"'
                 after: '- name: REMOUNT'
                 replace: 'value: "true"'
+
+            - name: Change the value for admission server failure policy
+              replace:
+                path: "{{ cspc_operator }}"
+                regexp: 'value: "Fail"'
+                after: '- name: ADMISSION_WEBHOOK_FAILURE_POLICY'
+                replace: 'value: "{{ webhook_policy }}"'
+              when: lookup('env','WEBHOOK_FAILURE_POLICY') != ''                
 
             - name: Deploy cStor operator
               shell: >
@@ -79,7 +87,7 @@
                   delay: 5
                   retries: 3
 
-                - name: Change the value for admission server failure policy
+                - name: Change the value for remount feature for volumes
                   replace:
                     path: "{{ cstor_operator }}"
                     regexp: 'value: "false"'
@@ -162,7 +170,7 @@
             - include_tasks: update_env.yaml
               when: openebs_version != 'master'
 
-            - name: Change the value for admission server failure policy
+            - name: Change the value for remount feature for volumes
               replace:
                 path: "{{ csi_operator }}"
                 regexp: 'value: "false"'
