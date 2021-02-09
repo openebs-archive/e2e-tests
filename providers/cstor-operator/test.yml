@@ -45,7 +45,7 @@
 
             - name: Change the value for admission server failure policy
               replace:
-                path: "{{ cspc_operator }}"
+                path: "{{ cstor_operator }}"
                 regexp: 'value: "Fail"'
                 after: '- name: ADMISSION_WEBHOOK_FAILURE_POLICY'
                 replace: 'value: "{{ webhook_policy }}"'
