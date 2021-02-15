@@ -107,13 +107,38 @@
               delay: 10
               retries: 50
 
+            - name: Restart the application pod after resizing the volume
+              shell: kubectl delete pod {{ app_pod.stdout }} -n {{ app_ns }}
+              args:
+                executable: /bin/bash
+              register: app_pod_status
+              failed_when: app_pod_status.rc != 0
+
+            - name: Verify that application pod is deleted successfully.
+              shell: >
+                kubectl get pods -n {{ app_ns }}
+              args:
+                executable: /bin/bash
+              register: app_pod_list
+              until: '"{{ app_pod.stdout }}" not in app_pod_list.stdout'
+              delay: 2
+              retries: 30
+
+            - name: Get the name of application pod after Restart
+              shell: >
+                kubectl get pod -n {{ app_ns }} -l {{ app_label }} --no-headers
+                -o custom-columns=:.metadata.name
+              args:
+                executable: /bin/bash
+              register: app_pod_name
+
              ## Here we will dump +1Gi data than to previous pvc size
             - set_fact:
                 value_num: '{{ ( (value_str.stdout | int + 1 | int) * 1024) |  int }}'
 
             - name: Dump some more dummy data in the application mount point for using resized volume
               shell: >
-                  kubectl exec -it "{{ app_pod.stdout }}" -n "{{ app_ns }}" 
+                  kubectl exec -it "{{ app_pod_name.stdout }}" -n "{{ app_ns }}" 
                   -- sh -c "cd {{ mount.stdout }} && dd if=/dev/urandom of=volume.txt bs=1024k count={{ value_num }}"
               args:
                   executable: /bin/bash
