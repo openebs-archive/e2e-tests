@@ -172,7 +172,7 @@
               register: ready_replica_count
               until: ready_replica_count.stdout == replica_count.stdout
               delay: 5
-              retries: 20
+              retries: 35
 
           when: action == 'provision' 
            
