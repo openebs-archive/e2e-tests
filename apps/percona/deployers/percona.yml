@@ -18,7 +18,7 @@ spec:
       containers:
         - resources:
             limits:
-              cpu: 0.5
+              cpu: 1
           name: percona
           image: openebs/tests-custom-percona:latest
           imagePullPolicy: IfNotPresent
