@@ -15,9 +15,9 @@
      shell: cat litmus-result.yaml
 
    - name: Apply the litmus result CR
-     k8s:
-       state: present
-       src: litmus-result.yaml
+     shell: kubectl apply -f litmus-result.yaml
+     args:
+       executable: /bin/bash
      register: lr_status
      failed_when: "lr_status is failed"
 
@@ -39,10 +39,9 @@
      shell: cat litmus-result.yaml
 
    - name: Apply the litmus result CR
-     k8s:
-       state: present
-       src: litmus-result.yaml
-       merge_type: merge
+     shell: kubectl apply -f litmus-result.yaml
+     args:
+       executable: /bin/bash
      register: lr_status
      failed_when: "lr_status is failed"
 
