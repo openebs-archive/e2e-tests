@@ -19,7 +19,7 @@ RUN echo "deb [signed-by=/usr/share/keyrings/cloud.google.gpg] https://packages.
 RUN pip install ansible==2.7.3
 
 #Installing openshift
-RUN pip install openshift
+RUN pip install openshift==0.11.2
 
 #Installing jmespath
 RUN pip install jmespath
