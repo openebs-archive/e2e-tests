@@ -16,28 +16,21 @@
         - include_tasks: /utils/fcm/update_litmus_result_resource.yml
           vars:
             status: 'SOT'
-        
-        - name: Download the Jiva operator spec
-          get_url:
-            url: https://raw.githubusercontent.com/openebs/jiva-operator/master/deploy/operator.yaml
-            dest: "./"
-            force: yes
-          register: result
-          until:  "'OK' in result.msg"
-          delay: 5
-          retries: 3
-
-        - name: Update the Jiva operator image
-          replace:
-            path: operator.yaml
-            regexp: ":ci"
-            replace: ":{{ operator_image }}"
 
         - block:
 
-            - name: Download the Jiva CSI Driver if OS is either centos or ubuntu-16.04
+            - name: Generate yaml files to create storage class
+              template:
+                src: "{{ item.src }}"
+                dest: "{{ item.dest }}"
+              with_items:
+                  - { src: jiva-csi-sc.j2,dest: jiva-csi-sc.yml }
+                  - { src: jiva-csi-xfs-sc.j2,dest: jiva-csi-xfs-sc.yml }
+                  - { src: local-pv-hostpath.j2,dest: local-pv-hostpath.yml }
+
+            - name: Download the Jiva operator spec
               get_url:
-                url: https://raw.githubusercontent.com/openebs/jiva-csi/master/deploy/jiva-csi-ubuntu-16.04.yaml
+                url: https://raw.githubusercontent.com/payes/jiva-operator/test/deploy/operator.yaml
                 dest: "./"
                 force: yes
               register: result
@@ -45,19 +38,15 @@
               delay: 5
               retries: 3
 
-            - name: Update the operator image in jiva csi driver spec
+            - name: Update the Jiva operator image
               replace:
-                path: jiva-csi-ubuntu-16.04.yaml
+                path: operator.yaml
                 regexp: ":ci"
                 replace: ":{{ operator_image }}"
-            
-          when: node_os == "ubuntu-16.04" or node_os == "centos"
-    
-        - block: 
 
-            - name: Download the Jiva CSI Driver if OS is ubuntu-18.04
+            - name: Download the Jiva CSI Driver
               get_url:
-                url: https://raw.githubusercontent.com/openebs/jiva-csi/master/deploy/jiva-csi.yaml
+                url: https://raw.githubusercontent.com/payes/jiva-operator/test/deploy/jiva-csi.yaml
                 dest: "./"
                 force: yes
               register: result
@@ -70,10 +59,30 @@
                 path: jiva-csi.yaml
                 regexp: ":ci"
                 replace: ":{{ operator_image }}"
-            
-          when: node_os == "ubuntu-18.04"
 
-        - block: 
+        - block:
+
+            - name: Create storage classes with specific storage policies
+              shell: kubectl apply -f {{ item }}
+              args:
+                executable: /bin/bash
+              register: sc
+              with_items:
+                - "{{ storage_policies }}"
+
+            - name: Confirm that the storage classes are created
+              shell: kubectl get storageclass
+              args:
+                executable: /bin/bash
+              register: result_sc
+              until: '"{{ item }}" in result_sc.stdout'
+              delay: 15
+              retries: 5
+              with_items:
+                - jiva-csi
+                - jiva-csi-xfs
+                - local-pv-hostpath
+
             - name: Install the Jiva operator in operator namespace
               shell: kubectl apply -f operator.yaml
               args:
@@ -83,16 +92,16 @@
 
             - name: Obtain the Jiva operator pod in operator namespace
               shell: >
-                kubectl get po -n {{ operator_ns }} --no-headers -l name=jiva-operator 
+                kubectl get po -n {{ operator_ns }} --no-headers -l name=jiva-operator
                 -o custom-columns=:.metadata.name
               args:
                 executable: /bin/bash
               register: jiva_operator_pod
               failed_when: "jiva_operator_pod.rc != 0"
-              
+
             - name: Verify the status of Jiva operator
               shell: >
-                kubectl get po {{ jiva_operator_pod.stdout }} -n {{ operator_ns }} 
+                kubectl get po {{ jiva_operator_pod.stdout }} -n {{ operator_ns }}
                 --no-headers -o custom-columns=:.status.phase
               args:
                 executable: /bin/bash
@@ -100,34 +109,18 @@
               until: "'Running' in jiva_operator.stdout"
               delay: 10
               retries: 30
-                
-            - block:
-                
-                - name: Deploy Jiva CSI Driver if OS is either centos or ubuntu-16.04 
-                  shell: >
-                    kubectl apply -f jiva-csi-ubuntu-16.04.yaml
-                  args:
-                    executable: /bin/bash
-                  register: status
-                  failed_when: "status.rc != 0"
 
-              when: node_os == "ubuntu-16.04" or node_os == "centos"
-        
-            - block: 
-                
-                - name: Deploy CSI Driver if os is ubuntu 18.04
-                  shell: >
-                    kubectl apply -f jiva-csi.yaml
-                  args:
-                    executable: /bin/bash
-                  register: status
-                  failed_when: "status.rc != 0"
-
-              when: node_os == "ubuntu-18.04"
+            - name: Deploy CSI Driver
+              shell: >
+                kubectl apply -f jiva-csi.yaml
+              args:
+                executable: /bin/bash
+              register: status
+              failed_when: "status.rc != 0"
 
             - name: check if jiva csi-controller pod is running
               shell: >
-                kubectl get pods -n kube-system -l app=openebs-jiva-csi-controller 
+                kubectl get pods -n {{ operator_ns }} -l app=openebs-jiva-csi-controller
                 --no-headers -o custom-columns=:status.phase
               args:
                 executable: /bin/bash
@@ -138,7 +131,7 @@
 
             - name: Obtain the desired number of openebs-csi-node pods
               shell: >
-                kubectl get daemonset openebs-jiva-csi-node -n kube-system 
+                kubectl get daemonset openebs-jiva-csi-node -n {{ operator_ns }}
                 --no-headers -o custom-columns=:status.desiredNumberScheduled
               args:
                 executable: /bin/bash
@@ -147,7 +140,7 @@
 
             - name: Check if the desired count matches the ready pods
               command: >
-                kubectl get daemonset openebs-jiva-csi-node -n kube-system --no-headers 
+                kubectl get daemonset openebs-jiva-csi-node -n {{ operator_ns }} --no-headers
                 -o custom-columns=:status.numberReady
               args:
                 executable: /bin/bash
@@ -156,39 +149,19 @@
               delay: 5
               retries: 50
 
-            - name: Update the storage class template with the variables.
-              template:
-                src: csi-jiva-sc.j2
-                dest: csi-jiva-sc.yml
-
-            - name: Create Storageclass
-              shell: kubectl apply -f csi-jiva-sc.yml
-              args:
-                executable: /bin/bash
-              register: sc_result
-              failed_when: "sc_result.rc != 0"
-          
           when: action == "provision"
 
         - block:
-            
-            - name: Delete Jiva CSI Driver if OS is either centos or ubuntu-16.04 
-              shell: >
-                kubectl delete -f jiva-csi-ubuntu-16.04.yaml
-              args:
-                executable: /bin/bash
-              when: node_os == "ubuntu-16.04" or node_os == "centos"
-        
-            - name: Delete CSI Driver if os is ubuntu 18.04
+
+            - name: Delete CSI Driver
               shell: >
                 kubectl delete -f jiva-csi.yaml
               args:
                 executable: /bin/bash
-              when: node_os == "ubuntu-18.04"
 
             - name: Verify if the Jiva CSI controller pod is deleted
               shell: >
-                kubectl get pod -n kube-system -l app=openebs-jiva-csi-controller 
+                kubectl get pod -n {{ operator_ns }} -l app=openebs-jiva-csi-controller
                 --no-headers -o custom-columns=:.metadata.name
               args:
                 executable: /bin/bash
@@ -199,15 +172,15 @@
 
             - name: Verify if the Jiva CSI node pod is deleted
               shell: >
-                kubectl get pod -n kube-system -l app=openebs-jiva-csi-node 
+                kubectl get pod -n {{ operator_ns }} -l app=openebs-jiva-csi-node
                 --no-headers -o custom-columns=:.metadata.name
               args:
                 executable: /bin/bash
               register: jiva_csi_node
               until: "jiva_csi_node.stdout == ''"
               delay: 10
-              retries: 30  
-                  
+              retries: 30
+
             - name: Delete jiva operator from operator namespace
               shell: >
                 kubectl delete -f operator.yaml
@@ -218,23 +191,36 @@
 
             - name: Verify if the Jiva operator pod is deleted
               shell: >
-                kubectl get pod -n {{ operator_ns }} -l name=jiva-operator 
+                kubectl get pod -n {{ operator_ns }} -l name=jiva-operator
                 --no-headers -o custom-columns=:.metadata.name
               args:
                 executable: /bin/bash
               register: jiva_operator
               until: "jiva_operator.stdout == ''"
               delay: 10
-              retries: 30  
-              
-            - name: Delete the storage class created
-              shell: >
-                kubectl delete sc {{ storage_class }}
+              retries: 30
+
+            - name: Delete storage classes with specific storage policies
+              shell: kubectl delete -f {{ item }}
               args:
                 executable: /bin/bash
-              register: status
-              failed_when: "status.rc != 0"
-              
+              register: sc
+              with_items:
+                   - "{{ storage_policies }}"
+
+            - name: Confirm that the storage classes are deleted
+              shell: kubectl get storageclass
+              args:
+                executable: /bin/bash
+              register: result_sc
+              until: '"{{ item }}" not in result_sc.stdout'
+              delay: 15
+              retries: 5
+              with_items:
+                - jiva-csi
+                - jiva-csi-xfs
+                - local-pv-hostpath
+
           when: action == "deprovision"
 
         - set_fact:

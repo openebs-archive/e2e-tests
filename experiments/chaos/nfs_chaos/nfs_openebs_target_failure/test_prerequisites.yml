@@ -45,6 +45,20 @@
         stg_engine: "{{ openebs_stg_engine.stdout }}"
   when: stg_prov == "openebs.io/provisioner-iscsi"
 
+- block:
+    - name: Derive PV name from PVC to query storage engine type (openebs)
+      shell: >
+        kubectl get pvc {{ pvc }} -n {{ namespace }}
+        --no-headers -o custom-columns=:spec.volumeName
+      args:
+        executable: /bin/bash
+      register: pv
+
+    - name: Record the storage engine name
+      set_fact:
+        stg_engine: "jiva-csi"
+  when: stg_prov == "jiva.csi.openebs.io"
+
 - name: Identify the chaos util to be invoked 
   template:
     src: chaosutil.j2

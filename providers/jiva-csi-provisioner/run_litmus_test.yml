@@ -9,14 +9,14 @@ spec:
     metadata:
       name: litmus
       labels:
-        app: jiva-csi-provisioner
+        provider: jiva-operator
     spec:
       serviceAccountName: litmus
       restartPolicy: Never
       containers:
       - name: ansibletest
         image: openebs/ansible-runner:ci
-        imagePullPolicy: IfNotPresent
+        imagePullPolicy: Always
         env:
           - name: ANSIBLE_STDOUT_CALLBACK
             #value: log_plays
@@ -25,20 +25,17 @@ spec:
           - name: OPERATOR_IMAGE
             value: ci
 
-          - name: PROVIDER_STORAGE_CLASS
-            value: openebs-jiva-csi-sc
-          
-          - name: NODE_OS
-            value: ubuntu-16.04
-
           - name: REPLICA_SC
-            value: openebs-hostpath
+            value: local-pv-hostpath
 
           - name: REPLICA_COUNT
             value: "3"
 
           - name: ACTION
-            value: provision  
+            value: provision
+
+          - name: POOL_PATH
+            value: "/var/openebs/local"
 
         command: ["/bin/bash"]
-        args: ["-c", "ansible-playbook ./providers/jiva-csi-provisioner/test.yml -i /etc/ansible/hosts -v; exit 0"]
+        args: ["-c", "ansible-playbook ./providers/jiva-csi-provisioner/test.yml -i /etc/ansible/hosts -vv; exit 0"]

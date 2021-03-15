@@ -12,7 +12,7 @@
         - NODE_OS : The operating system of worker nodes.
         - REPLICA_SC : The name of storage class used to create volume replicas.
 
-### csi-jiva-sc.j2
+### jiva-csi-sc.j2
    - The storage class template which has to be populated with the given variables
 
 ### test_vars.yml

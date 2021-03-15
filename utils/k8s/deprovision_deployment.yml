@@ -101,7 +101,7 @@
                 kind: Pod
                 namespace: "{{ app_ns }}"
                 label_selectors:
-                  - "openebs.io/controller=jiva-controller" 
+                  - "openebs.io/controller=jiva-controller"
                   - "openebs.io/persistent-volume={{ pvname }}"
               register: ctrl_status
               until: "ctrl_status.resources | length < 1"
@@ -120,7 +120,35 @@
               delay: 5
               retries: 15
 
-          when: stg_engine == 'jiva'  
+          when: stg_engine == 'jiva'
+
+        - block:
+
+            - name: Check if the ctrl-pod is deleted.
+              k8s_facts:
+                kind: Pod
+                namespace: "{{ app_ns }}"
+                label_selectors:
+                  - "openebs.io/component=jiva-controller"
+                  - "openebs.io/persistent-volume={{ pvname }}"
+              register: ctrl_status
+              until: "ctrl_status.resources | length < 1"
+              delay: 5
+              retries: 15
+
+            - name: Check if the  replica-pod is deleted.
+              k8s_facts:
+                kind: Pod
+                namespace: "{{ app_ns }}"
+                label_selectors:
+                  - "openebs.io/component=jiva-replica"
+                  - "openebs.io/persistent-volume={{ pvname }}"
+              register: rep_status
+              until: "rep_status.resources | length < 1"
+              delay: 5
+              retries: 15
+
+          when: stg_engine == 'jiva-csi'
 
         - block:
 

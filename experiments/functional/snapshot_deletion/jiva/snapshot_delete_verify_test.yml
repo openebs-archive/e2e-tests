@@ -4,6 +4,15 @@
   args:
     executable: /bin/bash
   register: controller_pod
+  when: storage_class != 'jiva-csi-sc'
+
+- name: Get the name of controller pod
+  shell: >
+    kubectl get pods -l openebs.io/component=jiva-controller,openebs.io/persistent-volume={{ pv_name }} -n {{ operator_ns }} -o jsonpath='{range .items[*]}{.metadata.name}{"\n"}{end}'
+  args:
+    executable: /bin/bash
+  register: controller_pod
+  when: storage_class == 'jiva-csi-sc'
 
 - name: Getting number of snapshots
   shell: >

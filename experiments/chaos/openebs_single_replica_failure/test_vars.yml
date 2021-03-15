@@ -5,5 +5,7 @@ app_ns: "{{ lookup('env','APP_NAMESPACE') }}"
 
 app_label: "{{ lookup('env','APP_LABEL') }}"
 
+stg_engine: "{{ lookup('env','STG_ENGINE') }}"
+
 
 

@@ -54,7 +54,7 @@
       Content-Type: "application/json"
     body_format: json
   register: json_response
-  until: json_response.json.data[0].readOnly == "false"
+  until: json_response.status == 200 and json_response.json.data[0].readOnly == "false"
   retries: 100
   delay: 60
 
@@ -116,6 +116,16 @@
   args:
     executable: /bin/bash
   register: replica_pod
+  when: storage_class != 'jiva-csi-sc'
+
+- name: Get the name of replica pods
+  shell: >
+    kubectl get pods -l openebs.io/component=jiva-replica
+    -n litmus --template '{{range .items}}{{.metadata.name}}{{"\n"}}{{end}}'
+  args:
+    executable: /bin/bash
+  register: replica_pod
+  when: storage_class == 'jiva-csi-sc'
 
 - name: Set the replica pod names to variables
   set_fact:

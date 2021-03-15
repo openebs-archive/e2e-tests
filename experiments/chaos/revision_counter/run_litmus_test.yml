@@ -49,6 +49,10 @@ spec:
             # Enter the mount path of application 
           - name: MOUNT_PATH
             value: ''
+
+            # Enter the storage engine of application
+          - name: STG_ENGINE
+            value: jiva
           
         command: ["/bin/bash"]
         args: ["-c", "ansible-playbook ./experiments/chaos/revision_counter/test.yml -i /etc/ansible/hosts -v; exit 0"]

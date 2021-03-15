@@ -72,8 +72,13 @@
 
         ## INCLUDING THE CHAOSLIB UTILITY TO KILL THE STORAGE REPLICA POD
 
+        - include: /chaoslib/openebs/jiva_csi_replica_pod_failure.yaml
+          app_pvc: "{{ pvc }}"
+          when: stg_engine == 'jiva-csi'
+
         - include: /chaoslib/openebs/jiva_replica_pod_failure.yaml
           app_pvc: "{{ pvc }}"
+          when: stg_engine == 'jiva'
 
         ## POST-CHAOS APPLICATION LIVENESS CHECK
 

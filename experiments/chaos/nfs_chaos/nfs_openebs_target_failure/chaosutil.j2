@@ -7,6 +7,7 @@
     {% endif %}
   {% endif %}
 {% endif %}
+
 {% if stg_prov is defined and stg_prov == 'openebs.io/provisioner-iscsi' %}
   {% if stg_engine is defined and stg_engine == 'jiva' %}
     {% if chaos_type is defined and chaos_type == 'jiva-ctrl-kill' %}
@@ -15,4 +16,12 @@
       chaosutil: openebs/jiva_controller_pod_failure.yaml
     {% endif %}
   {% endif %}
+{% endif %}
+
+{% if stg_prov is defined and stg_prov == 'jiva.csi.openebs.io' %}
+    {% if chaos_type is defined and chaos_type == 'jiva-ctrl-kill' %}
+      chaosutil: openebs/jiva_csi_controller_container_kill.yml
+    {% else %}
+      chaosutil: openebs/jiva_csi_controller_pod_failure.yaml
+    {% endif %}
 {% endif %}

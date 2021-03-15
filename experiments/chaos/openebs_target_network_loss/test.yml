@@ -184,7 +184,7 @@
                 operator_namespace: "{{ operator_ns }}"
                 containername: "jiva-controller"                                      
           when: 
-            - stg_engine == 'jiva'
+            - stg_engine == 'jiva-csi'
             - stg_prov == 'jiva.csi.openebs.io'          
     
         - include: /chaoslib/openebs/inject_packet_loss_tc.yml
@@ -210,7 +210,6 @@
             - stg_engine == 'cstor'
 
         - block:     
-
             - include: /chaoslib/openebs/inject_packet_loss_tc.yml
               vars:
                 status: "remove"
@@ -219,7 +218,10 @@
                 containername: "{{ pv.stdout }}-ctrl-con"
               when: 
                 - stg_prov == 'openebs.io/provisioner-iscsi'
+          when:
+            - stg_engine == 'jiva'
 
+        - block:
             - include: /chaoslib/openebs/inject_packet_loss_tc.yml
               vars:
                 status: "remove"
@@ -229,8 +231,7 @@
               when:
                 - stg_prov == 'jiva.csi.openebs.io'
           when: 
-            - stg_engine == 'jiva'
-            
+            - stg_engine == 'jiva-csi'
         ## POST-CHAOS APPLICATION LIVENESS CHECK
 
         - block:

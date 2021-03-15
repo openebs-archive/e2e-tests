@@ -4,4 +4,6 @@
   {% else %} 
     chaosutil: openebs/jiva_replica_pod_failure.yaml
   {% endif %}
+{% elif stg_prov is defined and stg_prov == 'jiva.csi.openebs.io' %}
+  chaosutil: openebs/jiva_csi_replica_pod_failure.yaml
 {% endif %}

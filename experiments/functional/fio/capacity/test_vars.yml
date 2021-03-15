@@ -4,3 +4,4 @@
 test_name: fio-benchmark
 pod_yaml_alias: fio.yml
 pvc_yaml_alias: testclaim-pvc.yml
+storage_class: "{{ lookup('env','PROVIDER_STORAGE_CLASS') }}"
