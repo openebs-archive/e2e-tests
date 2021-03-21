@@ -38,7 +38,7 @@ spec:
       restartPolicy: Always
       containers:
       - image: ranjnshashank855/nsenter:v1
-        imagePullPolicy: Always
+        imagePullPolicy: IfNotPresent
         name: bootstrap
         securityContext:
           privileged: true

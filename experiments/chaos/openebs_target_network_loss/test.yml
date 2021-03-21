@@ -216,9 +216,8 @@
                 target_pod: "{{ controller_pod.stdout }}"
                 operator_namespace: "{{ operator_ns }}"
                 containername: "{{ pv.stdout }}-ctrl-con"
-              when: 
-                - stg_prov == 'openebs.io/provisioner-iscsi'
           when:
+            - stg_prov == 'openebs.io/provisioner-iscsi'
             - stg_engine == 'jiva'
 
         - block:
@@ -228,9 +227,8 @@
                 target_pod: "{{ ctrl_pod.stdout }}"
                 operator_namespace: "{{ operator_ns }}"
                 containername: "jiva-controller"
-              when:
-                - stg_prov == 'jiva.csi.openebs.io'
           when: 
+            - stg_prov == 'jiva.csi.openebs.io'
             - stg_engine == 'jiva-csi'
         ## POST-CHAOS APPLICATION LIVENESS CHECK
 

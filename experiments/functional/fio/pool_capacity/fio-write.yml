@@ -33,7 +33,7 @@ spec:
       containers:
       - name: perfrunner
         image: openebs/tests-fio:latest
-        imagePullPolicy: Always
+        imagePullPolicy: IfNotPresent
         command: ["/bin/bash"]
         ## Time to complete the task approximately taking 14 minutes if pool isze is 9.3G
         args: ["-c", "./fio_runner.sh --size 256m; sync;exit 0"]

@@ -32,7 +32,7 @@ spec:
       containers:
       - name: perfrunner
         image: openebs/tests-fio:latest
-        imagePullPolicy: Always
+        imagePullPolicy: IfNotPresent
         command: ["/bin/bash"]
         args: ["-c", "./fio_runner.sh --read-only /datadir/basic-fio; exit 0"]
         volumeMounts:

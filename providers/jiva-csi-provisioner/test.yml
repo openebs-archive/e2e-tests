@@ -30,7 +30,7 @@
 
             - name: Download the Jiva operator spec
               get_url:
-                url: https://raw.githubusercontent.com/payes/jiva-operator/test/deploy/operator.yaml
+                url: https://raw.githubusercontent.com/openebs/jiva-operator/master/deploy/operator.yaml
                 dest: "./"
                 force: yes
               register: result
@@ -46,7 +46,7 @@
 
             - name: Download the Jiva CSI Driver
               get_url:
-                url: https://raw.githubusercontent.com/payes/jiva-operator/test/deploy/jiva-csi.yaml
+                url: https://raw.githubusercontent.com/openebs/jiva-operator/master/deploy/jiva-csi.yaml
                 dest: "./"
                 force: yes
               register: result

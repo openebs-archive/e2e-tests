@@ -31,7 +31,7 @@ spec:
       containers:
       - name: te
         image: nuodb/nuodb-ce:latest
-        imagePullPolicy: Always
+        imagePullPolicy: IfNotPresent
         args: [ "nuote", "--database-created-timeout", "300", "--servers-ready-timeout", "300" ]
         ports:
         - containerPort: 48006

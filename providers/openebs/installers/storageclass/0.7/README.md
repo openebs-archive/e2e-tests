@@ -115,7 +115,7 @@ spec:
       containers:
       - name: ansibletest
         image: openebs/ansible-runner:ci
-        imagePullPolicy: Always
+        imagePullPolicy: IfNotPresent
         env: 
           - name: mountPath
             value: /mnt/openebs

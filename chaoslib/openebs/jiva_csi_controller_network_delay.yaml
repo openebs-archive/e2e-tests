@@ -38,7 +38,6 @@
 
 - name: Record the jiva controller container name
   set_fact:
-    # Depends on the naming convention in maya-apiserver (<pv-id>-rep)
     jiva_controller_name: "jiva-controller"
 
 - name: Get the node on which the jiva controller is scheduled

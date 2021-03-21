@@ -68,14 +68,6 @@
   when: stg_prov == "cstor.csi.openebs.io"
 
 - block:
-  - name: Derive PV name from PVC to query storage engine type (openebs)
-    shell: >
-      kubectl get pvc {{ pvc }} -n {{ namespace }}
-      --no-headers -o custom-columns=:spec.volumeName
-    args:
-      executable: /bin/bash
-    register: pv
-
   - name: Record the storage engine name
     set_fact:
       stg_engine: "jiva-csi"

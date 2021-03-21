@@ -7,7 +7,7 @@ spec:
   containers:
   - name: kubernetes-job
     image: openebs/tests-chaostoolkit
-    imagePullPolicy: Always
+    imagePullPolicy: IfNotPresent
     command: ["chaos", "run", "/node_chaos_aws.json"]
     ports:
     - containerPort: 6379

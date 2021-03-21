@@ -55,7 +55,7 @@ spec:
       containers:
       - name: prometheus-liveness  
         image : openebs/service-liveness
-        imagePullPolicy: Always
+        imagePullPolicy: IfNotPresent
         env:
 
           - name: LIVENESS_TIMEOUT_SECONDS
