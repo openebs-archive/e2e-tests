@@ -1,8 +1,8 @@
 ## Experiment Metadata
 
-| Type       | Description                   | Storage | Applications | K8s Platform |
-| ---------- | ----------------------------- | ------- | ------------ | ------------ |
-| Functional | Scaling jiva storage replicas | OpenEBS | Cassandra    | Any          |
+| Type       | Description                   | Storage | K8s Platform |
+| ---------- | ----------------------------- | ------- | ------------ |
+| Functional | Scaling jiva storage replicas | OpenEBS | Any          |
 
 ## Entry-Criteria
 
