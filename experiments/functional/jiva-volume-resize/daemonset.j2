@@ -16,7 +16,7 @@ spec:
       - name: jiva-resize
         image: somesh2905/jiva-resize
         command: ["/bin/bash"]
-        imagePullPolicy: Always
+        imagePullPolicy: IfNotPresent
         args: ["-c", "sleep 100000"]
         resources:
           requests:

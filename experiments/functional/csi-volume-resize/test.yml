@@ -132,13 +132,24 @@
                 executable: /bin/bash
               register: app_pod_name
 
+            - name: Confirm that the application pod is in running state
+              shell: >
+                kubectl get pod -n {{ app_ns }} {{ app_pod_name.stdout }}
+                --no-headers -o custom-columns=:status.phase
+              args:
+                executable: /bin/bash
+              register: result
+              until: "result.stdout == 'Running'"
+              delay: 20
+              retries: 15
+
              ## Here we will dump +1Gi data than to previous pvc size
             - set_fact:
                 value_num: '{{ ( (value_str.stdout | int + 1 | int) * 262144) |  int }}'
 
             - name: Dump some more dummy data in the application mount point for using resized volume
               shell: >
-                  kubectl exec -it "{{ app_pod_name.stdout }}" -n "{{ app_ns }}" 
+                  kubectl exec -i "{{ app_pod_name.stdout }}" -n "{{ app_ns }}"
                   -- sh -c "cd {{ mount.stdout }} && dd if=/dev/urandom of=volume.txt bs=4k count={{ value_num }}"
               args:
                   executable: /bin/bash

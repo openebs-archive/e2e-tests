@@ -4,16 +4,21 @@
 
 operator_ns: 'openebs'
 
-test_name: "jiva-csi-provision"
-
-storage_class: "{{ lookup('env','PROVIDER_STORAGE_CLASS') }}"
+test_name: "openebs-jiva-operator-{{ lookup('env','ACTION') }}"
 
 replica_storageclass: "{{ lookup('env','REPLICA_SC') }}"
 
 replica_count: "{{ lookup('env','REPLICA_COUNT') }}"
+
+local_pv_hostpath: "{{ lookup('env','POOL_PATH') }}"
 
 node_os: "{{ lookup('env','NODE_OS') }}"
 
 operator_image: "{{ lookup('env','OPERATOR_IMAGE') }}"
 
 action: "{{ lookup('env','ACTION') }}"
+
+storage_policies:
+  - jiva-csi-xfs-sc.yml
+  - jiva-csi-sc.yml
+  - local-pv-hostpath.yml

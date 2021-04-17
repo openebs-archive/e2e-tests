@@ -15,7 +15,7 @@ spec:
       containers:
       - name: postgres-loadgen
         image: openebs/tests-postgresql-client
-        imagePullPolicy: Always
+        imagePullPolicy: IfNotPresent
 
         env: 
             # Time period (in sec) b/w retries for DB init check

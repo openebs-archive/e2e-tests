@@ -62,7 +62,7 @@
 
     - name: Obtain the pod ID through Pod name
       shell: >
-        kubectl exec -ti {{ chaos_pod.stdout}} -n {{ namespace }} --
+        kubectl exec -i {{ chaos_pod.stdout}} -n {{ namespace }} --
         crictl pods | grep "{{ app_pod }}" | awk '{print $1}'
       args:
         executable: /bin/bash
@@ -71,7 +71,7 @@
 
     - name: Obtain the container ID using pod name and container name
       shell: >
-        kubectl exec -ti {{ chaos_pod.stdout}} -n {{ namespace }} --
+        kubectl exec -i {{ chaos_pod.stdout}} -n {{ namespace }} --
         crictl ps | grep {{ pod_id.stdout }} | grep {{ app_container }} | awk '{print $1}'
       args:
         executable: /bin/bash
@@ -80,7 +80,7 @@
 
     - name: Kill the container
       shell: >
-        kubectl exec -ti {{ chaos_pod.stdout}} -n {{ namespace }} --
+        kubectl exec -i {{ chaos_pod.stdout}} -n {{ namespace }} --
         crictl stop "{{ container_id.stdout }}"
       args:
         executable: /bin/bash
@@ -89,7 +89,7 @@
 
     - name: Obtain the new container ID using pod name and container name
       shell: >
-        kubectl exec -ti {{ chaos_pod.stdout }} -n {{ namespace }} --
+        kubectl exec -i {{ chaos_pod.stdout }} -n {{ namespace }} --
         crictl ps | grep {{ pod_id.stdout }} | grep {{ app_container }} | awk '{print $1}'
       args:
         executable: /bin/bash
@@ -100,7 +100,7 @@
 
     - name: Check if the new container is running.
       shell: >
-        kubectl exec -ti {{ chaos_pod.stdout}} -n {{ namespace }} --
+        kubectl exec -i {{ chaos_pod.stdout}} -n {{ namespace }} --
         crictl ps | grep {{ new_container_id.stdout }}
       args:
         executable: /bin/bash

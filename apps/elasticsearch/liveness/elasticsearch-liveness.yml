@@ -17,7 +17,7 @@ spec:
       containers:
       - name: elasticsearch-litmus-liveness
         image: openebs/tests-custom-client:latest
-        imagePullPolicy: Always
+        imagePullPolicy: IfNotPresent
 
         env: 
 

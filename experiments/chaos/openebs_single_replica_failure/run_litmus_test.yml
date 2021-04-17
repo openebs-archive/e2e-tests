@@ -28,5 +28,8 @@ spec:
           - name: APP_LABEL
             value: 'app=cassandra'
 
+          - name: STG_ENGINE
+            value: jiva
+
         command: ["/bin/bash"]
         args: ["-c", "ansible-playbook ./experiments/chaos/openebs_single_replica_failure/test.yml -i /etc/ansible/hosts -vv; exit 0"]

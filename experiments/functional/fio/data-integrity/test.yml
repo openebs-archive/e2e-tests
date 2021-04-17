@@ -120,6 +120,17 @@
            executable: /bin/bash
          register: read_pod
 
+       - name: Verify if the read pod is running
+         shell: >
+           kubectl get pod -n {{ app_ns }} {{read_pod.stdout}}
+           --no-headers -o custom-columns=:.status.phase
+         args:
+           executable: /bin/bash
+         register: app_status
+         until: "'Running' in app_status.stdout"
+         delay: 5
+         retries: 60
+
        - name: Check if fio read job is completed
          shell: >
            kubectl get pods -n {{ app_ns }} 
@@ -128,8 +139,8 @@
            executable: /bin/bash
          register: result_read_job
          until: "'Completed' in result_read_job.stdout"
-         delay: 5
-         retries: 30
+         delay: 10
+         retries: 60
 
        - name: Verify the data integrity check
          shell: >

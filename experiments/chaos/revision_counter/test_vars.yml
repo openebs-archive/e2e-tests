@@ -14,6 +14,8 @@ file_name: "{{ lookup('env','FILE_NAME') }}"
 
 mount_path: "{{ lookup('env','MOUNT_PATH') }}"
 
+stg_engine: "{{ lookup('env','STG_ENGINE') }}"
+
 operator_ns: 'openebs'
 
 pvc: "{{ lookup('env','APP_PVC') }}"

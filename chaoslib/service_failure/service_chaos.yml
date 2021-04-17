@@ -172,6 +172,43 @@
            - app_node == ctrl_node
 
          when: vol_provisioner == 'openebs.io/provisioner-iscsi'
+         
+         - block:
+
+            - name: Check if the new controller pod is scheduled after {{ svc_type }} failure
+              shell: >
+                kubectl get pods -n {{ operator_ns }} 
+                -l openebs.io/component=jiva-controller,openebs.io/persistent-volume={{ pvol_name }} --no-headers  |  wc -l
+              args:
+                executable: /bin/bash
+              register: ctrl_pod_count
+              until: "'2' in ctrl_pod_count.stdout"
+              delay: 15
+              retries: 30
+
+            - name: Get the new controller pod name
+              shell: >
+                kubectl get pods -n {{ operator_ns }} -l openebs.io/component=jiva-controller,openebs.io/persistent-volume={{ pvol_name }} 
+                --no-headers | grep -v Terminating | awk '{print $1}'
+              args:
+                executable: /bin/bash
+              register: new_ctrl_pod
+
+            - name: Check the newly created controller pod status
+              shell: >
+                kubectl get pod {{ new_ctrl_pod.stdout }} -n {{ operator_ns }} --no-headers -o custom-columns=:.status.phase
+              args:
+                executable: /bin/bash
+              register: new_ctrl_pod_status
+              until: "'Running' in new_ctrl_pod_status.stdout"
+              delay: 15
+              retries: 35
+
+           when: 
+           - stg_engine == 'jiva'
+           - app_node == ctrl_node
+
+         when: vol_provisioner == 'jiva-csi.openebs.io'
  
        - block:
 

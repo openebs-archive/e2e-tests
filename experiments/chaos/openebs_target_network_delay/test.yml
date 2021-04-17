@@ -116,7 +116,7 @@
 
             - name: Patching jiva controller deployment to allow security privileged
               shell: >
-                kubectl patch deployment {{ pv.stdout }}-ctrl -n {{ operator_ns }}
+                kubectl patch sts {{ pv.stdout }}-ctrl -n {{ operator_ns }}
                 --patch "$(cat patch.yml)"
               register: patch_status
               failed_when: "'patched' not in patch_status.stdout"
@@ -157,6 +157,66 @@
                                       
           when: stg_engine == 'jiva'
 
+        - block:
+
+            - name: Identify the patch to be invoked
+              template:
+                src: jiva_csi_patch.j2
+                dest: patch.yml
+
+            - name: Identify the jiva controller pod name
+              shell: >
+                kubectl get pods -l openebs.io/component=jiva-controller
+                -n {{ operator_ns }} --no-headers | grep {{ pv.stdout }} 
+                | awk '{print $1}' 
+              args:
+                executable: /bin/bash
+              register: controller_pod_before
+
+            - name: Patching jiva controller sts to allow security privileged
+              shell: >
+                kubectl patch deployment {{ pv.stdout }}-jiva-ctrl -n {{ operator_ns }}
+                --patch "$(cat patch.yml)"
+              register: patch_status
+              failed_when: "'patched' not in patch_status.stdout"
+            
+            - name: Wait for 10s post fault injection 
+              wait_for:
+                timeout: 10
+
+            - name: Verify if the jiva controller pod is terminated
+              shell: kubectl get pods -n {{ operator_ns }}
+              args:
+                executable: /bin/bash
+              register: pod_status
+              until: '"{{ controller_pod_before.stdout }}" not in pod_status.stdout' 
+              delay: 5
+              retries: 60
+              when: "'no change' not in patch_status.stdout"
+
+            - name: Identify the new jiva controller pod belonging to the PV
+              shell: > 
+                kubectl get pods -l openebs.io/component=jiva-controller
+                -n {{ operator_ns }} --no-headers | grep {{ pv.stdout }} 
+                | awk '{print $1}'
+              args:
+                executable: /bin/bash
+              register: controller_pod_after
+
+            - name: Check for the jiva controller container status
+              shell: >
+                kubectl get pods {{ controller_pod_after.stdout }} -n {{ operator_ns }} 
+                -o jsonpath='{.status.containerStatuses[?(@.name=="jiva-controller")].state}' | grep running
+              args:
+                executable: /bin/bash
+              register: container_status
+              until: "'running' in container_status.stdout"
+              delay: 3
+              retries: 20
+
+          when: stg_engine == 'jiva-csi'
+
+
         ## STORAGE FAULT INJECTION 
 
         - include: "{{ chaos_util_path }}"
@@ -186,6 +246,16 @@
           when: 
             - cri == 'containerd' or cri =='cri-o'  
             - stg_engine == 'jiva'
+        
+        - include: "{{ chaos_util_path }}"
+          vars:
+            status: "induce"
+            target_pod: "{{ controller_pod_after.stdout }}"
+            operator_namespace: "{{ operator_ns }}"
+            containername: "jiva-controller"
+          when: 
+            - cri == 'containerd' or cri =='cri-o'  
+            - stg_engine == 'jiva-csi'
 
         - name: Wait for 10s post fault injection 
           wait_for:
@@ -210,6 +280,16 @@
           when: 
             - cri == 'containerd' or cri =='cri-o'  
             - stg_engine == 'jiva'
+        
+        - include: "{{ chaos_util_path }}"
+          vars:
+            status: "remove"
+            target_pod: "{{ controller_pod_after.stdout }}"
+            operator_namespace: "{{ operator_ns }}"
+            containername: "jiva-controller"
+          when: 
+            - cri == 'containerd' or cri =='cri-o'  
+            - stg_engine == 'jiva-csi'
             
         ## POST-CHAOS APPLICATION LIVENESS CHECK
 

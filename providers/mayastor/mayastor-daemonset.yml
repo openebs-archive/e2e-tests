@@ -29,7 +29,7 @@ spec:
       containers:
       - name: mayastor
         image: mayadata/mayastor:latest
-        imagePullPolicy: Always
+        imagePullPolicy: IfNotPresent
         args: ["--rpc-socket", "/mayastor/spdk.sock"]
         securityContext:
           privileged: true
@@ -51,7 +51,7 @@ spec:
             hugepages-2Mi: "1Gi"
       - name: mayastor-grpc
         image: mayadata/mayastor-grpc:latest
-        imagePullPolicy: Always
+        imagePullPolicy: IfNotPresent
         # we need privileged because we mount filesystems and use mknod
         securityContext:
           privileged: true
