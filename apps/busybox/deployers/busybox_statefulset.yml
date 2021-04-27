@@ -32,7 +32,7 @@ spec:
     spec:
       containers:
       - name: busybox
-        image: busybox
+        image: gcr.io/google-containers/busybox
         imagePullPolicy: IfNotPresent
         command:
            - sh
