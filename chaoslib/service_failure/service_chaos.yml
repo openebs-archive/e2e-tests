@@ -173,7 +173,7 @@
 
          when: vol_provisioner == 'openebs.io/provisioner-iscsi'
          
-         - block:
+       - block:
 
             - name: Check if the new controller pod is scheduled after {{ svc_type }} failure
               shell: >
@@ -204,11 +204,10 @@
               delay: 15
               retries: 35
 
-           when: 
-           - stg_engine == 'jiva'
-           - app_node == ctrl_node
+         when:
+         - vol_provisioner == 'jiva-csi.openebs.io'
+         - app_node == ctrl_node
 
-         when: vol_provisioner == 'jiva-csi.openebs.io'
  
        - block:
 
