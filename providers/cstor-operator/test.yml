@@ -167,6 +167,16 @@
               delay: 5
               retries: 3
 
+            - name: Downloading ndm operator yaml spec
+              get_url:
+                url: "{{ ndm_operator_link }}"
+                dest: "{{ playbook_dir }}/{{ ndm_operator }}"
+                force: yes
+              register: ndm_result
+              until: "'OK' in ndm_result.msg"
+              delay: 5
+              retries: 3
+
             - include_tasks: update_env.yaml
               when: openebs_version != 'master'
 
@@ -186,6 +196,21 @@
               when: lookup('env','WEBHOOK_FAILURE_POLICY') != ''
 
             - block:
+
+                - name: Obtain list of existing namespaces
+                  shell: >
+                    kubectl get ns
+                    --no-headers
+                    -o custom-columns=:metadata.name
+                  args:
+                    executable: /bin/bash
+                  register: ns_list
+
+                - name: Create test specific namespace.
+                  shell: kubectl create ns openebs
+                  args:
+                    executable: /bin/bash
+                  when: "'openebs' not in ns_list.stdout_lines"
 
                 - name: Deploy CSI Driver
                   shell: >
@@ -207,6 +232,11 @@
                   shell: kubectl  apply -f {{ cspc_operator }}
                   args:
                     executable: /bin/bash
+
+                - name: Applying ndm operator
+                  shell: kubectl  apply -f {{ ndm_operator }}
+                  args:
+                    executable: /bin/bash                    
 
               when: lookup('env','ACTION') == "provision"
 
@@ -236,6 +266,16 @@
                   args:
                     executable: /bin/bash
                   ignore_errors: True
+
+                - name: Deprovision ndm operator
+                  shell: kubectl  delete -f {{ ndm_operator }}
+                  args:
+                    executable: /bin/bash
+
+                - name: Create test specific namespace.
+                  shell: kubectl delete ns openebs
+                  args:
+                    executable: /bin/bash                    
 
               when: lookup('env','ACTION') == "deprovision"
 
