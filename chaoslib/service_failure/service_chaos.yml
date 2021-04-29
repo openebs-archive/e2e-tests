@@ -205,6 +205,7 @@
               retries: 35
 
          when:
+         - stg_engine == 'jiva'
          - vol_provisioner == 'jiva-csi.openebs.io'
          - app_node == ctrl_node
 
