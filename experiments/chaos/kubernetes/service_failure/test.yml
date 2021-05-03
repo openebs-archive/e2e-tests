@@ -3,7 +3,6 @@
   connection: local
   gather_facts: False
 
-
   vars_files:
     - test_vars.yml
     - /mnt/parameters.yml
@@ -105,13 +104,13 @@
 
         - block:
 
-          - name: Get the target pod name associated with this pv
-            shell: >
-              kubectl get pods -n {{ operator_ns }} -l openebs.io/persistent-volume={{ pv_name.stdout }} 
-              --no-headers -o custom-columns=:.metadata.name
-            args:
-              executable: /bin/bash
-            register: csi_target_pod_name
+            - name: Get the target pod name associated with this pv
+              shell: >
+                kubectl get pods -n {{ operator_ns }} -l openebs.io/persistent-volume={{ pv_name.stdout }} 
+                --no-headers -o custom-columns=:.metadata.name
+              args:
+                executable: /bin/bash
+              register: csi_target_pod_name
         
           when: vol_provisioner == 'cstor.csi.openebs.io'          
 
