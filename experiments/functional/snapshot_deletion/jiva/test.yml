@@ -82,22 +82,7 @@
          args:
            executable: /bin/bash
          register: controller_svc
-         until: "controller_svc.stdout != ''"
-         delay: 5
-         retries: 30
-         when: storage_class != 'jiva-csi-sc'
-
-       - name: Get controller svc
-         shell: >
-           kubectl get svc -l openebs.io/component=jiva-controller-service,openebs.io/persistent-volume={{ pv_name }}
-           -n {{ operator_ns }} --no-headers -o custom-columns=:spec.clusterIP
-         args:
-           executable: /bin/bash
-         register: controller_svc
-         until: "controller_svc.stdout != ''"
-         delay: 5
-         retries: 30
-         when: storage_class == 'jiva-csi-sc'
+         failed_when: "controller_svc.stdout != ''"
 
        - name: Replace the data sample size with the provider sample size in {{ fio_write_yml }}
          replace:
