@@ -7,15 +7,6 @@
      args:
        executable: /bin/bash
      register: replica_pod_name
-     when: storage_class != 'jiva-csi-sc'
-
-   - name: Get the name of replica pods
-     shell: >
-       kubectl get pods -l openebs.io/component=jiva-replica,openebs.io/persistent-volume={{ pv_name }} -n {{ operator_ns }} --sort-by=.metadata.creationTimestamp -o jsonpath='{range .items[*]}{.metadata.name}{"\n"}{end}}'
-     args:
-       executable: /bin/bash
-     register: replica_pod_name
-     when: storage_class == 'jiva-csi-sc'
 
    - name: Set the replica pod name to variable based on latest creation timestamp
      set_fact:
@@ -65,7 +56,7 @@
          Content-Type: "application/json"
        body_format: json
      register: json_response
-     until: json_response.status == 200 and json_response.json.data | length  == 3 and json_response.json.data[0].mode == "RW" and json_response.json.data[1].mode == "RW" and json_response.json.data[2].mode == "RW"
+     until: json_response.json.data | length  == 3 and json_response.json.data[0].mode == "RW" and json_response.json.data[1].mode == "RW" and json_response.json.data[2].mode == "RW"
      retries: 20
      delay: 60
      
@@ -88,12 +79,6 @@
    - name: Getting the master replica pod name corresponding to the IP
      shell: kubectl get pod -l openebs.io/replica=jiva-replica,openebs.io/persistent-volume={{ pv_name }} -n {{ operator_ns }} --no-headers -o jsonpath='{.items[?(@.status.podIP=="{{ replica_ip }}")].metadata.name}'
      register: replica_name
-     when: storage_class != 'jiva-csi-sc'
-
-   - name: Getting the master replica pod name corresponding to the IP
-     shell: kubectl get pod -l openebs.io/component=jiva-replica,openebs.io/persistent-volume={{ pv_name }} -n {{ operator_ns }} --no-headers -o jsonpath='{.items[?(@.status.podIP=="{{ replica_ip }}")].metadata.name}'
-     register: replica_name
-     when: storage_class == 'jiva-csi-sc'
 
    - name: Delete master replica
      shell: >
