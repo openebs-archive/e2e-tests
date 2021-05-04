@@ -11,7 +11,7 @@
       Content-Type: "application/json"
     body_format: json
   register: json_response
-  until: json_response.status == 200 and json_response.json.data[0].replicaCount == 3
+  until: json_response.json.data[0].replicaCount == 3
   retries: 30
   delay: 20
 
@@ -27,6 +27,6 @@
       Content-Type: "application/json"
     body_format: json
   register: json_response
-  until: json_response.status == 200 and json_response.json.data | length  == 3 and json_response.json.data[0].mode == "RW" and json_response.json.data[1].mode == "RW" and json_response.json.data[2].mode == "RW"
+  until: json_response.json.data[0].mode == "RW" and json_response.json.data[1].mode == "RW" and json_response.json.data[2].mode == "RW"
   retries: 20
   delay: 60

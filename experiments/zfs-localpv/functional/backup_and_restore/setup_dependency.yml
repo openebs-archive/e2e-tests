@@ -87,11 +87,22 @@
     executable: /bin/bash
   register: zfs_localpv_velero_plugin
 
+# from velero version v1.6.0 velero plugin for openebs is renamed to openebs-velero-plugin
+- name: Check if the velero-plugin for zfs-localpv is already added
+  shell: >
+    kubectl get deploy velero -n velero 
+    -o jsonpath='{.spec.template.spec.initContainers[?(@.name=="openebs-velero-plugin")].name}'
+  args: 
+    executable: /bin/bash
+  register: zfs_localpv_velero_plugin_latest
+
 - name: Add velero-plugin for zfs-localpv
   shell: velero plugin add {{ velero_plugin_name }}
   args:
     executable: /bin/bash
-  when: "'velero-plugin' not in zfs_localpv_velero_plugin.stdout"
+  when: 
+    - zfs_localpv_velero_plugin.stdout != 'velero-plugin'
+    - zfs_localpv_velero_plugin_latest.stdout != 'openebs-velero-plugin'
 
 #After installing openebs velero plugin a new velero pod comes up in Running state and the older one will terminates.  
 
