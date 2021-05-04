@@ -82,7 +82,7 @@
          args:
            executable: /bin/bash
          register: controller_svc
-         failed_when: "controller_svc.stdout != ''"
+         failed_when: "controller_svc.stdout == ''"
 
        - name: Replace the data sample size with the provider sample size in {{ fio_write_yml }}
          replace:
