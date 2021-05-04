@@ -35,7 +35,7 @@ spec:
             topologyKey: kubernetes.io/hostname
       containers:
       - name: busybox
-        image: busybox
+        image: gcr.io/google-containers/busybox
         imagePullPolicy: IfNotPresent
         command:
            - sh
