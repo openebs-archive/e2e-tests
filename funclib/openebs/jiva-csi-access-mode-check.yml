@@ -18,7 +18,7 @@
        
        - name: Verify that all the replicas are in RW state
          shell: >
-           kubectl get jivavolume {{ pv.stdout }} -n {{ operator_ns }}
+           kubectl get jivavolume {{ pv_name.stdout }} -n {{ operator_ns }}
            --no-headers -o yaml | grep "mode: RW" | wc -l
          args:
            executable: /bin/bash
