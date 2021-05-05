@@ -189,7 +189,7 @@
               args:
                 executable: /bin/bash
               register: csi_pod_status
-              until: '"{{ controller_pod_before.stdout }}" not in pod_status.stdout' 
+              until: '"{{ csi_controller_pod_before.stdout }}" not in csi_pod_status.stdout' 
               delay: 5
               retries: 60
               when: "'no change' not in csi_patch_status.stdout"
@@ -205,12 +205,12 @@
 
             - name: Check for the jiva controller container status
               shell: >
-                kubectl get pods {{ controller_pod_after.stdout }} -n {{ operator_ns }} 
+                kubectl get pods {{ csi_controller_pod_after.stdout }} -n {{ operator_ns }} 
                 -o jsonpath='{.status.containerStatuses[?(@.name=="jiva-controller")].state}' | grep running
               args:
                 executable: /bin/bash
               register: csi_container_status
-              until: "'running' in container_status.stdout"
+              until: "'running' in csi_container_status.stdout"
               delay: 3
               retries: 20
 
