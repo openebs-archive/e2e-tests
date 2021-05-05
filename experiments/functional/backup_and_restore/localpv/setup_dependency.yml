@@ -144,14 +144,33 @@
 
   when: velero_version != "v1.1.0"
 
-- name: Getting the number of compute nodes
-  shell: kubectl get nodes | grep worker | wc -l
-  register: node_count
+- name: Obtain the desired number of restic daemonset
+  shell: >
+    kubectl get daemonset -n velero -l component=velero
+    -o custom-columns=:.status.desiredNumberScheduled --no-headers
+  args:
+    executable: /bin/bash
+  register: desired_count
 
-- name: Checking the status of restic demonset pods
-  shell: kubectl get po -n velero -o jsonpath='{.items[?(@.metadata.labels.name=="restic")].status.phase}' | wc -w
-  register: restic_pod_count
-  until: (node_count.stdout)|int == (restic_pod_count.stdout)|int
+- name: Verify readily available daemonset is equal to desired count
+  shell: >
+    kubectl get daemonset -n velero -l component=velero
+    -o custom-columns=:.status.numberReady --no-headers
+  args:
+    executable: /bin/bash
+  register: ready_count
+  until: (ready_count.stdout)|int == (desired_count.stdout)|int
+  delay: 5
+  retries: 120
+
+- name: Confirm if restic pod is running in all the nodes
+  shell: >
+    kubectl get pods -n velero
+    -o jsonpath='{.items[?(@.metadata.labels.name=="restic")].status.phase}' | grep Running | wc -w
+  args:
+    executable: /bin/bash
+  register: restic_count
+  until: (desired_count.stdout)|int == (restic_count.stdout)|int
   delay: 5
   retries: 60
 
