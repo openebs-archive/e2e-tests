@@ -7,13 +7,17 @@
          changed_when: True
 
        - name: Get the controller deployment name 
-         shell: kubectl get deployment -n {{ operator_ns }} -l openebs.io/component=jiva-controller,openebs.io/persistent-volume="{{ pv_name.stdout }}" -o jsonpath='{.items[0].metadata.name}'
+         shell: >
+           kubectl get deployment -n {{ operator_ns }} 
+           -l openebs.io/component=jiva-controller,openebs.io/persistent-volume="{{ pv_name.stdout }}" -o jsonpath='{.items[0].metadata.name}'
          args:
            executable: /bin/bash
          register: ctrl_deployment
 
        - name: Obtaining the replication factor count from controller deployment
-         shell: kubectl get deployments {{ ctrl_deployment.stdout }} -n {{ operator_ns }} -o jsonpath='{.spec.template.spec.containers[0].env[0].value}'    
+         shell: >
+            kubectl get deployments {{ ctrl_deployment.stdout }} -n {{ operator_ns }} 
+            -o jsonpath='{.spec.template.spec.containers[0].env[0].value}'    
          register: replication_factor_count
        
        - name: Verify that all the replicas are in RW state
@@ -23,7 +27,7 @@
          args:
            executable: /bin/bash
          register: result
-         until: result.stdout| int == 3
+         until: result.stdout| int == replication_factor_count.stdout | int
          delay: 10
          retries: 60
 
