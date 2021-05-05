@@ -171,13 +171,13 @@
                 | awk '{print $1}' 
               args:
                 executable: /bin/bash
-              register: controller_pod_before
+              register: csi_controller_pod_before
 
             - name: Patching jiva controller sts to allow security privileged
               shell: >
                 kubectl patch deployment {{ pv.stdout }}-jiva-ctrl -n {{ operator_ns }}
                 --patch "$(cat patch.yml)"
-              register: patch_status
+              register: csi_patch_status
               failed_when: "'patched' not in patch_status.stdout"
             
             - name: Wait for 10s post fault injection 
@@ -188,7 +188,7 @@
               shell: kubectl get pods -n {{ operator_ns }}
               args:
                 executable: /bin/bash
-              register: pod_status
+              register: csi_pod_status
               until: '"{{ controller_pod_before.stdout }}" not in pod_status.stdout' 
               delay: 5
               retries: 60
@@ -201,7 +201,7 @@
                 | awk '{print $1}'
               args:
                 executable: /bin/bash
-              register: controller_pod_after
+              register: csi_controller_pod_after
 
             - name: Check for the jiva controller container status
               shell: >
@@ -209,7 +209,7 @@
                 -o jsonpath='{.status.containerStatuses[?(@.name=="jiva-controller")].state}' | grep running
               args:
                 executable: /bin/bash
-              register: container_status
+              register: csi_container_status
               until: "'running' in container_status.stdout"
               delay: 3
               retries: 20
@@ -250,7 +250,7 @@
         - include: "{{ chaos_util_path }}"
           vars:
             status: "induce"
-            target_pod: "{{ controller_pod_after.stdout }}"
+            target_pod: "{{ csi_controller_pod_after.stdout }}"
             operator_namespace: "{{ operator_ns }}"
             containername: "jiva-controller"
           when: 
@@ -284,7 +284,7 @@
         - include: "{{ chaos_util_path }}"
           vars:
             status: "remove"
-            target_pod: "{{ controller_pod_after.stdout }}"
+            target_pod: "{{ csi_controller_pod_after.stdout }}"
             operator_namespace: "{{ operator_ns }}"
             containername: "jiva-controller"
           when: 
@@ -312,7 +312,6 @@
             ns: "{{ namespace }}"
             pod_name: "{{ app_pod_name.stdout }}"
           when: data_persistence != ''      
-          
         
         - set_fact:
             flag: "Pass"
