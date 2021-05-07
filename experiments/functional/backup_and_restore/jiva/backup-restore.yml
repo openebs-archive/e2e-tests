@@ -9,7 +9,6 @@
 
   when: action == "BACKUP"
 
-
 - block:
      # Schedule creates a cron job for backup. Notation "--schedule=*/2 * * * *" applies same as kubernetes cron job here.
    - name: Creating schedule using minio bucket
@@ -35,11 +34,6 @@
    
 - block:
      
-    - name: Creating application namespace
-      shell: kubectl create ns {{ app_ns }}
-      register: app_ns_create_status
-      failed_when: "'created' not in app_ns_create_status.stdout"
-
     - name: Restoring application 
       shell: >
         velero restore create --from-backup {{ velero_backup_name }} --restore-volumes=true
