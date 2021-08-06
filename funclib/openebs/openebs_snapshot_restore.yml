@@ -5,7 +5,7 @@
 #     - volume_name ( Name of PV on which the snapshot has to be created)
 #     - snapshot_name ( Name for snapshot )
 #     - app_ns ( Namespace on which application has been deployed)
-# These arguments are to be obtained as environmental variables in the litmus-book.
+# These arguments are to be obtained as environmental variables in the e2e-book.
 
 - block:
 

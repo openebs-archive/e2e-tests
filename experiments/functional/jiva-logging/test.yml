@@ -13,7 +13,7 @@
         - include_tasks: /utils/fcm/create_testname.yml
 
         ## RECORD START-OF-TEST IN LITMUS RESULT CR
-        - include_tasks: "/utils/fcm/update_litmus_result_resource.yml"
+        - include_tasks: "/utils/fcm/update_e2e_result_resource.yml"
           vars:
             status: 'SOT'
 
@@ -100,6 +100,6 @@
       always:
                   
            ## RECORD END-OF-TEST IN LITMUS RESULT CR
-        - include_tasks: /utils/fcm/update_litmus_result_resource.yml
+        - include_tasks: /utils/fcm/update_e2e_result_resource.yml
           vars:
             status: 'EOT'

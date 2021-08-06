@@ -18,7 +18,7 @@
 ## Notes
 
 - This functional test checks if the statefulset application consuming openebs storage can be scaled.
-- The litmusbook accepts parameters in the form of environmental variables.
+- The e2ebook accepts parameters in the form of environmental variables.
 
 ## Associated Utils 
 

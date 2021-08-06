@@ -23,10 +23,10 @@
 
           when: lookup('env','RUN_ID')
 
-        - name: Generate the litmus result CR to reflect SOT (Start of Test) 
+        - name: Generate the e2e result CR to reflect SOT (Start of Test) 
           template: 
-            src: /litmus-result.j2
-            dest: litmus-result.yaml
+            src: /e2e-result.j2
+            dest: e2e-result.yaml
           vars: 
             test: "{{ test_name }}"
             chaostype: "application"
@@ -34,8 +34,8 @@
             phase: in-progress
             verdict: none
 
-        - name: Apply the litmus result CR
-          shell: kubectl apply -f litmus-result.yaml
+        - name: Apply the e2e result CR
+          shell: kubectl apply -f e2e-result.yaml
           args:
             executable: /bin/bash
           register: lr_status 
@@ -84,10 +84,10 @@
 
         ## RECORD END-OF-TEST IN LITMUS RESULT CR
  
-        - name: Generate the litmus result CR to reflect EOT (End of Test) 
+        - name: Generate the e2e result CR to reflect EOT (End of Test) 
           template: 
-            src: /litmus-result.j2
-            dest: litmus-result.yaml
+            src: /e2e-result.j2
+            dest: e2e-result.yaml
           vars: 
             test: "{{ test_name }}"
             chaostype: ""
@@ -95,8 +95,8 @@
             phase: completed
             verdict: "{{ flag }}"
            
-        - name: Apply the litmus result CR
-          shell: kubectl apply -f litmus-result.yaml
+        - name: Apply the e2e result CR
+          shell: kubectl apply -f e2e-result.yaml
           args:
             executable: /bin/bash
           register: lr_status 

@@ -2,7 +2,7 @@
 - name: Get pvc name to verify successful pvc deletion
   shell: >
     kubectl get pvc {{ test_name }} 
-    -o custom-columns=:spec.volumeName -n litmus 
+    -o custom-columns=:spec.volumeName -n e2e 
     --no-headers
   args:
     executable: /bin/bash
@@ -11,12 +11,12 @@
 - name: Delete fio job 
   shell: >
     source ~/.profile; kubectl delete -f {{ pod_yaml_alias }} 
-    -n litmus 
+    -n e2e 
   args:
     executable: /bin/bash
 
 - name: Confirm fio pod has been deleted
-  shell: source ~/.profile; kubectl get pods -n litmus 
+  shell: source ~/.profile; kubectl get pods -n e2e 
   args:
     executable: /bin/bash
   register: result
@@ -27,7 +27,7 @@
 - block: 
     - name: Confirm pvc pod has been deleted
       shell: >
-        kubectl get pods -n litmus | grep {{ pv.stdout }}
+        kubectl get pods -n e2e | grep {{ pv.stdout }}
       args:
         executable: /bin/bash
       register: result

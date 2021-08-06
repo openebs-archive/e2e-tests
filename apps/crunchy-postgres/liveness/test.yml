@@ -21,13 +21,13 @@
           when: lookup('env','RUN_ID')
         
         ## RECORD START-OF-TEST IN LITMUS RESULT CR
-        - include_tasks: /utils/fcm/update_litmus_result_resource.yml
+        - include_tasks: /utils/fcm/update_e2e_result_resource.yml
           vars:
             status: 'SOT'
 
         - name: Checking whether liveness container is running
           shell: >
-            kubectl get pod {{ test_pod }} -n litmus 
+            kubectl get pod {{ test_pod }} -n e2e 
             -o jsonpath='{.status.containerStatuses[?(@.name=="postgres-liveness")].state}'
           register: container_status
           until: "'running' in container_status.stdout"
@@ -35,7 +35,7 @@
           retries: 10
 
         - name: Verifying whether liveness check is started successfully  
-          shell: kubectl logs {{ test_pod }} -n litmus -c postgres-liveness 
+          shell: kubectl logs {{ test_pod }} -n e2e -c postgres-liveness 
           register: output
           until: "liveness_log in output.stdout"
           delay: 60 # Setting an upper bound that is >> general db init delays
@@ -51,14 +51,14 @@
       always:
 
         ## RECORD END-OF-TEST IN LITMUS RESULT CR
-        - include_tasks: /utils/fcm/update_litmus_result_resource.yml
+        - include_tasks: /utils/fcm/update_e2e_result_resource.yml
           vars:
             status: 'EOT'
 
         ## if flag=fail, task exits immediately; if flag=pass, runs indefinitely until liveness check ends
         - name: Run until liveness container is terminated
           shell: |
-            cmd="kubectl get pod {{ test_pod }} -n litmus -o jsonpath='{.status.containerStatuses[?(@.name==\"postgres-liveness\")].state}'"
+            cmd="kubectl get pod {{ test_pod }} -n e2e -o jsonpath='{.status.containerStatuses[?(@.name==\"postgres-liveness\")].state}'"
             while [[ ! $(eval $cmd) =~ 'terminated' ]]; do sleep 1; done
           args:
             executable: /bin/bash

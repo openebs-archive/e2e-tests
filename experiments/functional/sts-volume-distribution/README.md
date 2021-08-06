@@ -16,7 +16,7 @@
 ## Notes
 
 - This functional test checks if the volume replicas are scheduled in different storage pools available.
-- The litmus book receives the parameters in form of environmental variables.
+- The e2e book receives the parameters in form of environmental variables.
 - Scaleup the application replica and check if the new replicas are scheduled into different pools.
 
 ## Litmusbook Environment Variables

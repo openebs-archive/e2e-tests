@@ -8,7 +8,7 @@
      - test_vars.yml - This test_vars file has the list of test specific variables used in this test case.
      - test.yml - Playbook where the test logic is to create/delete the spc pool.
      - spc.yml  - SPC pool spec which has to be populated with the given variables.
-   - This test case should be provided with the parameters in form of job environmental variables in run_litmus_test.yml.
+   - This test case should be provided with the parameters in form of job environmental variables in run_e2e_test.yml.
 
 ## Litmusbook Environment Variables
 

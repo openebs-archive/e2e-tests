@@ -1,0 +1,36 @@
+---
+apiVersion: batch/v1
+kind: Job
+metadata:
+  generateName: e2e-redis-loadgen-
+  namespace: e2e 
+spec:
+  template:
+    metadata:
+      name: e2e
+      labels:
+        loadgen: redis-loadjob
+
+    spec:
+      serviceAccountName: e2e
+      restartPolicy: Never
+      containers:
+      - name: ansibletest
+        image: vvibhr995/dis-red:W1
+        imagePullPolicy: IfNotPresent
+        env: 
+          - name: ANSIBLE_STDOUT_CALLBACK
+            #value: log_plays
+            value: default
+
+          - name: LOADGEN_NS
+            value: app-redis-ns
+
+          - name: LOADGEN_LABEL
+            value: 'loadgen=redis-loadgen'
+
+          - name: APPLICATION_LABEL
+            value: 'app=redis'
+
+        command: ["/bin/bash"]
+        args: ["-c", "ansible-playbook ./apps/redis/workload/test.yml -i /etc/ansible/hosts -v; exit 0"]        

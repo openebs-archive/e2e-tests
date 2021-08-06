@@ -17,7 +17,7 @@
 ## Notes
 
 - This functional test checks if the parent volume can be deleted when there is clone.
-- The litmusbook accepts parameters in the form of environmental variables.
+- The e2ebook accepts parameters in the form of environmental variables.
 
 ## Associated Utils 
 

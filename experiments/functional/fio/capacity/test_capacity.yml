@@ -36,7 +36,7 @@
 - name: Get controller svc
   shell: >
     kubectl get svc -l openebs.io/controller-service=jiva-controller-svc
-    -n litmus --no-headers -o custom-columns=:spec.clusterIP
+    -n e2e --no-headers -o custom-columns=:spec.clusterIP
   args:
     executable: /bin/bash
   register: controller_svc
@@ -60,13 +60,13 @@
 
 - name: Deploy fio test job
   shell: >
-    kubectl apply -f {{ pod_yaml_alias }} -n litmus
+    kubectl apply -f {{ pod_yaml_alias }} -n e2e
   args:
     executable: /bin/bash
 
 - name: Get name of fio pod
   shell: >
-     kubectl get pods -l name=fio -n litmus
+     kubectl get pods -l name=fio -n e2e
      --no-headers
   args:
     executable: /bin/bash
@@ -81,7 +81,7 @@
 
 - name: Check fio pod status
   shell: >
-    kubectl get pod {{ fio_pod_name }} -n litmus
+    kubectl get pod {{ fio_pod_name }} -n e2e
     --no-headers -o custom-columns=:status.phase
   args:
     executable: /bin/bash
@@ -90,7 +90,7 @@
 
 - name: Confirm fio job completion status (poll and wait every 120 sec)
   shell: >
-    kubectl get pod {{ fio_pod_name }} -n litmus
+    kubectl get pod {{ fio_pod_name }} -n e2e
     --no-headers -o custom-columns=:status.phase
   args:
     executable: /bin/bash
@@ -101,7 +101,7 @@
 
 - name: Verify the fio logs to check if run is complete w/o errors
   shell: >
-    kubectl logs {{ fio_pod_name }} -n litmus
+    kubectl logs {{ fio_pod_name }} -n e2e
     | grep -i error | cut -d ":" -f 2
     | sort | uniq
   args:
@@ -112,7 +112,7 @@
 - name: Get the name of replica pods
   shell: >
     kubectl get pods -l openebs.io/replica=jiva-replica
-    -n litmus --template '{{range .items}}{{.metadata.name}}{{"\n"}}{{end}}'
+    -n e2e --template '{{range .items}}{{.metadata.name}}{{"\n"}}{{end}}'
   args:
     executable: /bin/bash
   register: replica_pod
@@ -121,7 +121,7 @@
 - name: Get the name of replica pods
   shell: >
     kubectl get pods -l openebs.io/component=jiva-replica
-    -n litmus --template '{{range .items}}{{.metadata.name}}{{"\n"}}{{end}}'
+    -n e2e --template '{{range .items}}{{.metadata.name}}{{"\n"}}{{end}}'
   args:
     executable: /bin/bash
   register: replica_pod
@@ -134,13 +134,13 @@
 
 - name: Delete fio job
   shell: >
-    kubectl delete -f {{ pod_yaml_alias }} -n litmus
+    kubectl delete -f {{ pod_yaml_alias }} -n e2e
   args:
     executable: /bin/bash
 
 - name: Confirm fio pod has been deleted
   shell: >
-    kubectl get pod -n litmus
+    kubectl get pod -n e2e
   args:
     executable: /bin/bash
   register: fio_pod_status
@@ -159,13 +159,13 @@
 
 - name: Delete one of the replica
   shell: >
-    kubectl delete pod {{ random_replica }} -n litmus
+    kubectl delete pod {{ random_replica }} -n e2e
   args:
     executable: /bin/bash
 
 - name: Confirm replica pod has been deleted
   shell: >
-    kubectl get pods -n litmus
+    kubectl get pods -n e2e
   args:
     executable: /bin/bash
   register: replica_pod_status

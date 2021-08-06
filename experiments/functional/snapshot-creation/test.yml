@@ -25,7 +25,7 @@
         - include_tasks: /utils/fcm/create_testname.yml
 
         ## RECORD START-OF-TEST IN LITMUS RESULT CR
-        - include_tasks: "/utils/fcm/update_litmus_result_resource.yml"
+        - include_tasks: "/utils/fcm/update_e2e_result_resource.yml"
           vars:
             status: 'SOT'
 
@@ -37,7 +37,7 @@
             executable: /bin/bash
           register: pv
 
-## Include an utility from litmus funclib to create snapshot.This creates snapshot and validates successful creation.
+## Include an utility from e2e funclib to create snapshot.This creates snapshot and validates successful creation.
        
         - name: Creating snapshot.
           include_tasks: /funclib/kubectl/k8s_snapshot_clone/create_snapshot.yml
@@ -103,7 +103,7 @@
 
       always:
             ## RECORD END-OF-TEST IN LITMUS RESULT CR
-        - include_tasks: /utils/fcm/update_litmus_result_resource.yml
+        - include_tasks: /utils/fcm/update_e2e_result_resource.yml
           vars:
             status: 'EOT'
 

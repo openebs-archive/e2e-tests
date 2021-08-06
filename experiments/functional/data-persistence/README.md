@@ -28,13 +28,13 @@ verify data set value: "VERIFY" and for deleting set value: "DELETE"            
 ### Procedure
 
 This Litmus experiment create some dummy data in application and create the md5sum for this data. Later it verifies for the data-persistence by checking md5sum.
-Based on the value of env DATA_PERSISTENCE, the corresponding data consistency util will be executed. At present only busybox and percona-mysql are supported. Along with specifying env in the litmus experiment, user needs to pass name for configmap and the data consistency specific parameters required via configmap in the format as follows:
+Based on the value of env DATA_PERSISTENCE, the corresponding data consistency util will be executed. At present only busybox and percona-mysql are supported. Along with specifying env in the e2e experiment, user needs to pass name for configmap and the data consistency specific parameters required via configmap in the format as follows:
 
     parameters.yml: |
       blocksize: 4k
       blockcount: 1024
       testfile: difiletest
-It is recommended to pass test-name for configmap and mount the corresponding configmap as volume in the litmus pod. The above snippet holds the parameters required for validation data consistency in busybox application.
+It is recommended to pass test-name for configmap and mount the corresponding configmap as volume in the e2e pod. The above snippet holds the parameters required for validation data consistency in busybox application.
 
 For percona-mysql, the following parameters are to be injected into configmap.
 
@@ -42,6 +42,6 @@ For percona-mysql, the following parameters are to be injected into configmap.
       dbuser: root
       dbpassword: k8sDem0
       dbname: tdb
-The configmap data will be utilised by litmus experiments as its variables while executing the scenario.
+The configmap data will be utilised by e2e experiments as its variables while executing the scenario.
 
-Based on the data provided, litmus checks if the data is consistent using md5sum checks.
+Based on the data provided, e2e checks if the data is consistent using md5sum checks.

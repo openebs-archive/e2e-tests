@@ -1,0 +1,48 @@
+---
+apiVersion: batch/v1
+kind: Job
+metadata:
+  generateName: e2e-k8s-snap-multiple-rep-rebuild-
+  namespace: e2e
+spec:
+  template:
+    metadata:
+      name: e2e
+      labels:
+        app: k8s-snap-multiple-rep-rebuild
+
+    spec:
+      serviceAccountName: e2e
+      restartPolicy: Never
+      containers:
+      - name: ansibletest
+        image: openebs/ansible-runner:ci
+        imagePullPolicy: IfNotPresent
+
+        env:
+          - name: ANSIBLE_STDOUT_CALLBACK
+            value: default
+
+          - name: APP_LABEL
+            value: 'name=percona'
+
+            # Application pvc
+          - name: APP_PVC
+            value: percona-mysql-claim
+
+            # Application namespace
+          - name: APP_NAMESPACE
+            value: percona-cstor
+
+          - name: OPENEBS_NAMESPACE
+            value: 'openebs'
+
+            # Name of snapshot
+          - name: snapshot
+            value: percona-snapshot
+
+          - name: CONTAINER_NAME
+            value: cstor-pool
+
+        command: ["/bin/bash"]
+        args: ["-c", "ansible-playbook ./experiments/functional/snapshot_rebuild/snap_rebuild_multiple_rep/test.yml -i /etc/ansible/hosts -vv; exit 0"]

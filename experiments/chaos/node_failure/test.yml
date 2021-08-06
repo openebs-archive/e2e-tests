@@ -13,7 +13,7 @@
 
         - include_tasks: /utils/fcm/create_testname.yml
 
-        - include_tasks: /utils/fcm/update_litmus_result_resource.yml
+        - include_tasks: /utils/fcm/update_e2e_result_resource.yml
           vars:
             status: 'SOT'
             chaostype: "node-failure"
@@ -191,112 +191,7 @@
             delay: 10
             retries: 45
 
-          when: stg_prov == "openebs.io/provisioner-iscsi" or stg_prov == "cstor.csi.openebs.io"
-
-        - block:
-
-          - name: Check if the new application pod is scheduled after node failure
-            shell: >
-              kubectl get pods -n {{ namespace }} -l {{ label }} --no-headers | wc -l
-            args:
-              executable: /bin/bash
-            register: app_pod_count
-            until: "'2' in app_pod_count.stdout"
-            delay: 15
-            retries: 30
-  
-          - name: Get the new application pod name
-            shell: > 
-              kubectl get pod -n {{ namespace }} -l {{ label }} --no-headers | grep -v Terminating | awk '{print $1}'
-            args:
-              executable: /bin/bash
-            register: new_app_pod_name
-  
-          - name: Record the new application pod name 
-            set_fact:
-              new_app_pod: "{{ new_app_pod_name.stdout }}"
-           
-          - name: Check for the newly created application pod status 
-            shell: >
-              kubectl get pod {{ new_app_pod }} -n {{ namespace }} --no-headers -o custom-columns=:.status.phase
-            args:
-              executable: /bin/bash
-            register: new_app_pod_status
-            failed_when: "'Pending' not in new_app_pod_status.stdout"
-
-          - include_tasks: "{{ chaos_util_path }}"
-            vars:
-              esx_ip: "{{ host_ip }}"
-              target_node: "{{ app_node_name }}"
-              operation: "on"
-            when: platform == 'vmware'
-
-          - name: Check the node status
-            shell: kubectl get node {{ app_node_name }} --no-headers
-            args:
-              executable: /bin/bash
-            register: node_status
-            until: "'NotReady' not in node_status.stdout"
-            delay: 10
-            retries: 30
-
-          - name: verify that previous application pod is successfully deleted
-            shell: kubectl get pod -n {{ namespace }} -l {{ label }} --no-headers
-            args:
-              executable: /bin/bash
-            register: app_pod_status
-            until: "'{{ application_pod }}' not in app_pod_status.stdout"
-            delay: 5
-            retries: 40
-
-          - name: Get the IP Address of the node on which application pod is scheduled
-            shell: >
-              kubectl get nodes {{ app_node_name }} --no-headers -o jsonpath='{.status.addresses[0].address}'
-            args:
-              executable: /bin/bash
-            register: node_ip_address
-      
-          - name: Record the IP Address of the node on which application pod is scheduled
-            set_fact:
-              node_ip_add: "{{ node_ip_address.stdout }}"
-
-          - name: Check if zpool is present 
-            shell: >
-              sshpass -p {{ node_pwd }} ssh -o StrictHostKeyChecking=no {{ user }}@{{ node_ip_add }} "zpool list"
-            args:
-              executable: /bin/bash
-            register: zpool_status          
-
-          - name: Import the zpool after turning on the VM's
-            shell: >
-              sshpass -p {{ node_pwd }} ssh -o StrictHostKeyChecking=no {{ user }}@{{ node_ip_add }}
-              "echo {{ node_pwd }} | sudo -S su -c 'zpool import {{ zpool_name }}'"
-            args:
-              executable: /bin/bash
-            register: status
-            failed_when: "status.rc != 0"
-            when: "'{{ zpool_name }}' not in zpool_status.stdout"
-            
-          - name: verify that zfs dataset is available now
-            shell: >
-              sshpass -p {{ node_pwd }} ssh -o StrictHostKeyChecking=no {{ user }}@{{ node_ip_add }} "zfs list"
-            args: 
-              executable: /bin/bash
-            register: zfs_dataset
-            until: "'{{ zpool_name }}/{{ pv_name }}' in zfs_dataset.stdout"
-            delay: 10
-            retries: 30
-
-          - name: check the newly scheduled application pod status
-            shell: kubectl get pod {{ new_app_pod }} -n {{ namespace }} --no-headers -o custom-columns=:.status.phase
-            args:
-              executable: /bin/bash
-            register: new_app_pod_status
-            until: "'Running' in new_app_pod_status.stdout"
-            delay: 5
-            retries: 50
-
-          when: stg_prov == "zfs.csi.openebs.io"
+          when: stg_prov == "openebs.io/provisioner-iscsi"
 
         - block:
 
@@ -334,9 +229,9 @@
             operation: "on"
           when: 
           - platform == 'vmware'
-          - stg_prov == "openebs.io/provisioner-iscsi" or stg_prov == "cstor.csi.openebs.io"
+          - stg_prov == "openebs.io/provisioner-iscsi"
 
-        - include_tasks: /utils/fcm/update_litmus_result_resource.yml
+        - include_tasks: /utils/fcm/update_e2e_result_resource.yml
           vars:
             status: 'EOT'
             chaostype: "node-failure"

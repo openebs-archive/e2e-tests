@@ -18,8 +18,8 @@
 ## Notes
 
 - This functional test checks if the Cloned volume can be created successfully using volume snapshot.
-- This litmusbook can be used to validate both the types of application deployments such as K8s deployment and statefulsets.
-- The litmus book expects the size of cloned volume should be equal to the parent volume. If not, the test should fail saying that the clone and parent volume should have same capacity.
+- This e2ebook can be used to validate both the types of application deployments such as K8s deployment and statefulsets.
+- The e2e book expects the size of cloned volume should be equal to the parent volume. If not, the test should fail saying that the clone and parent volume should have same capacity.
 
 ## Associated Utils 
 

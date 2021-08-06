@@ -18,7 +18,7 @@
 ## Notes
 
 - This functional test checks if the jiva storage replica can be scaled.
-- The litmusbook accepts parameters in the form of environmental variables.
+- The e2ebook accepts parameters in the form of environmental variables.
 
 ## Associated Utils 
 

@@ -1,0 +1,42 @@
+---
+apiVersion: batch/v1
+kind: Job
+metadata:
+  generateName: e2e-avalanche-
+  namespace: e2e
+spec:
+  template:
+    metadata:
+      name: e2e
+      labels:
+        app: prometheus-loadgen-e2e
+
+    spec:
+      serviceAccountName: e2e
+      restartPolicy: Never
+      containers:
+      - name: ansibletest
+        image: openebs/ansible-runner:ci
+        imagePullPolicy: IfNotPresent
+
+        env:
+          - name: ANSIBLE_STDOUT_CALLBACK
+            #value: log_plays, actionable, default
+            value: default
+
+            # Application label
+          - name: APP_LABEL
+            value: 'name=avalanche'
+
+            # Application namespace
+          - name: APP_NAMESPACE
+            value: 'app-prometheus'
+            
+            # Use 'deprovision' for app-clean up
+          - name: ACTION
+            value: provision 
+          
+      
+        command: ["/bin/bash"]
+        args: ["-c", "ansible-playbook ./apps/prometheus/loadgen/test.yml -i /etc/ansible/hosts -v; exit 0"]
+

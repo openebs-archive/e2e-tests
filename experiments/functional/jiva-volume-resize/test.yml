@@ -13,7 +13,7 @@
         - include_tasks: /utils/fcm/create_testname.yml
 
           ## RECORD START-OF-TEST IN LITMUS RESULT CR
-        - include_tasks: /utils/fcm/update_litmus_result_resource.yml
+        - include_tasks: /utils/fcm/update_e2e_result_resource.yml
           vars:
             status: 'SOT'
         
@@ -33,7 +33,7 @@
           shell: >
             kubectl get pod -l app=jiva-resize 
             --no-headers -o custom-columns=:status.phase
-            -n litmus | sort | uniq
+            -n e2e | sort | uniq
           args:
             executable: /bin/bash
           register: result
@@ -321,6 +321,6 @@
 
       always:
         ## RECORD END-OF-TEST IN LITMUS RESULT CR
-        - include_tasks: /utils/fcm/update_litmus_result_resource.yml
+        - include_tasks: /utils/fcm/update_e2e_result_resource.yml
           vars:
             status: 'EOT'

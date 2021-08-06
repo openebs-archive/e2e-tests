@@ -36,7 +36,7 @@
 
         ## RECORD START-OF-TEST IN LITMUS RESULT CR
 
-        - include_tasks: /utils/fcm/update_litmus_result_resource.yml
+        - include_tasks: /utils/fcm/update_e2e_result_resource.yml
           vars:
             status: 'SOT'
             chaostype: "{{ chaosutil.split('.')[0] }}"
@@ -157,66 +157,6 @@
                                       
           when: stg_engine == 'jiva'
 
-        - block:
-
-            - name: Identify the patch to be invoked
-              template:
-                src: jiva_csi_patch.j2
-                dest: patch.yml
-
-            - name: Identify the jiva controller pod name
-              shell: >
-                kubectl get pods -l openebs.io/component=jiva-controller
-                -n {{ operator_ns }} --no-headers | grep {{ pv.stdout }} 
-                | awk '{print $1}' 
-              args:
-                executable: /bin/bash
-              register: csi_controller_pod_before
-
-            - name: Patching jiva controller sts to allow security privileged
-              shell: >
-                kubectl patch deployment {{ pv.stdout }}-jiva-ctrl -n {{ operator_ns }}
-                --patch "$(cat patch.yml)"
-              register: csi_patch_status
-              failed_when: "'patched' not in csi_patch_status.stdout"
-            
-            - name: Wait for 10s post fault injection 
-              wait_for:
-                timeout: 10
-
-            - name: Verify if the jiva controller pod is terminated
-              shell: kubectl get pods -n {{ operator_ns }}
-              args:
-                executable: /bin/bash
-              register: csi_pod_status
-              until: '"{{ csi_controller_pod_before.stdout }}" not in csi_pod_status.stdout' 
-              delay: 5
-              retries: 60
-              when: "'no change' not in csi_patch_status.stdout"
-
-            - name: Identify the new jiva controller pod belonging to the PV
-              shell: > 
-                kubectl get pods -l openebs.io/component=jiva-controller
-                -n {{ operator_ns }} --no-headers | grep {{ pv.stdout }} 
-                | awk '{print $1}'
-              args:
-                executable: /bin/bash
-              register: csi_controller_pod_after
-
-            - name: Check for the jiva controller container status
-              shell: >
-                kubectl get pods {{ csi_controller_pod_after.stdout }} -n {{ operator_ns }} 
-                -o jsonpath='{.status.containerStatuses[?(@.name=="jiva-controller")].state}' | grep running
-              args:
-                executable: /bin/bash
-              register: csi_container_status
-              until: "'running' in csi_container_status.stdout"
-              delay: 3
-              retries: 20
-
-          when: stg_engine == 'jiva-csi'
-
-
         ## STORAGE FAULT INJECTION 
 
         - include: "{{ chaos_util_path }}"
@@ -247,17 +187,7 @@
             - cri == 'containerd' or cri =='cri-o'  
             - stg_engine == 'jiva'
         
-        - include: "{{ chaos_util_path }}"
-          vars:
-            status: "induce"
-            target_pod: "{{ csi_controller_pod_after.stdout }}"
-            operator_namespace: "{{ operator_ns }}"
-            containername: "jiva-controller"
-          when: 
-            - cri == 'containerd' or cri =='cri-o'  
-            - stg_engine == 'jiva-csi'
-
-        - name: Wait for 10s post fault injection 
+         - name: Wait for 10s post fault injection 
           wait_for:
             timeout: 10
 
@@ -281,16 +211,7 @@
             - cri == 'containerd' or cri =='cri-o'  
             - stg_engine == 'jiva'
         
-        - include: "{{ chaos_util_path }}"
-          vars:
-            status: "remove"
-            target_pod: "{{ csi_controller_pod_after.stdout }}"
-            operator_namespace: "{{ operator_ns }}"
-            containername: "jiva-controller"
-          when: 
-            - cri == 'containerd' or cri =='cri-o'  
-            - stg_engine == 'jiva-csi'
-            
+           
         ## POST-CHAOS APPLICATION LIVENESS CHECK
 
         - name: Verify AUT liveness post fault-injection
@@ -324,7 +245,7 @@
 
         ## RECORD END-OF-TEST IN LITMUS RESULT CR
  
-        - include_tasks: /utils/fcm/update_litmus_result_resource.yml
+        - include_tasks: /utils/fcm/update_e2e_result_resource.yml
           vars:
             status: 'EOT'
             chaostype: "{{ chaosutil.split('.')[0] }}"

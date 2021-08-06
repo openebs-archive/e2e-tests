@@ -18,7 +18,7 @@
 ## Notes
 
 - This functional test checks if the Jiva volume can be resized.
-- This litmusbook accepts the parameters in form of job environmental variables.
+- This e2ebook accepts the parameters in form of job environmental variables.
 - This job updates the storage capacity of volume, you can verify the same by ssh into corresponding node on which application is deployed and use `lsblk`.
 - After the volume expansion, size will not be reflected on `kubectl get pv` for the corresponding volume.
 - It checks if the application is accessible and the corresponding file system is scaled up.

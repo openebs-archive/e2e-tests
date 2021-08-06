@@ -1,18 +1,18 @@
-# OpenEBS v0.7 litmus job
+# OpenEBS v0.7 e2e job
 
-This litmus job installs OpenEBS v0.7 on a litmus enabled cluster. This job first downloads the openebs-operator.yaml from the following link ```https://raw.githubusercontent.com/openebs/openebs/master/k8s/openebs-operator.yaml``` and cas template from ```https://raw.githubusercontent.com/openebs/openebs/master/k8s/openebs-pre-release-features.yaml``` and then scans the environment variables for explicitly passed image names. If any explicitly passed image name is found then it replaces the images present in operator yaml by explicitly passed image name. After replacing the image names it applies the operator and waits till all the pods to get into running state before exiting. 
+This e2e job installs OpenEBS v0.7 on a e2e enabled cluster. This job first downloads the openebs-operator.yaml from the following link ```https://raw.githubusercontent.com/openebs/openebs/master/k8s/openebs-operator.yaml``` and cas template from ```https://raw.githubusercontent.com/openebs/openebs/master/k8s/openebs-pre-release-features.yaml``` and then scans the environment variables for explicitly passed image names. If any explicitly passed image name is found then it replaces the images present in operator yaml by explicitly passed image name. After replacing the image names it applies the operator and waits till all the pods to get into running state before exiting. 
 
 ### Prerequisites
 
--> The cluster should be litmus enabled.  
+-> The cluster should be e2e enabled.  
 -> Admin context should be available. 
 
 ### Installing
 
--> Starting the openebs setup job :```kubectl apply -f litmusbook/openebs_setup.yaml```.
--> Deleting the setup job :```kubectl delete -f litmusbook/setup_setup.yaml```.
--> Starting the openebs cleanup job :```kubectl apply -f litmusbook/openebs_cleanup.yaml```.
--> Deleting the openebs cleanup job :```kubectl delete -f litmusbook/openebs_cleanup.yaml```.  
+-> Starting the openebs setup job :```kubectl apply -f e2ebook/openebs_setup.yaml```.
+-> Deleting the setup job :```kubectl delete -f e2ebook/setup_setup.yaml```.
+-> Starting the openebs cleanup job :```kubectl apply -f e2ebook/openebs_cleanup.yaml```.
+-> Deleting the openebs cleanup job :```kubectl delete -f e2ebook/openebs_cleanup.yaml```.  
 
 
 ### Note:
@@ -24,14 +24,14 @@ Example:
 apiVersion: batch/v1
 kind: Job
 metadata:
-  name: litmus-openebs-setup-v0.7
-  namespace: litmus 
+  name: e2e-openebs-setup-v0.7
+  namespace: e2e 
 spec:
   template:
     metadata:
-      name: litmus
+      name: e2e
     spec:
-      serviceAccountName: litmus
+      serviceAccountName: e2e
       restartPolicy: Never
       containers:
       - name: ansibletest

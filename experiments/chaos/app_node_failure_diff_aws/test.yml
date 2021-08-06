@@ -27,7 +27,7 @@
           register: pre_chaos_node_count
 
         ## RECORD START-OF-NODE-CHAOS TEST IN LITMUS RESULT CR
-        - include_tasks: /utils/fcm/update_litmus_result_resource.yml
+        - include_tasks: /utils/fcm/update_e2e_result_resource.yml
           vars:
             status: 'SOT'
             chaostype: "node-shutdown-up-diff-name"
@@ -145,7 +145,7 @@
             flag: "Fail"
 
       always:
-        - include_tasks: /utils/fcm/update_litmus_result_resource.yml
+        - include_tasks: /utils/fcm/update_e2e_result_resource.yml
           vars:
             status: 'EOT'
             chaostype: "node-shutdown-up-diff-name"

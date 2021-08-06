@@ -23,7 +23,7 @@
         - include_tasks: /utils/fcm/create_testname.yml
 
         ## RECORD START-OF-TEST IN LITMUS RESULT CR
-        - include_tasks: "/utils/fcm/update_litmus_result_resource.yml"
+        - include_tasks: "/utils/fcm/update_e2e_result_resource.yml"
           vars:
             status: 'SOT'
 
@@ -40,7 +40,7 @@
           register: snap_result
           failed_when: "snapshot_name not in snap_result.stdout"
 
-       ## Include an utility from litmus funclib to create clone using volume snapshot.
+       ## Include an utility from e2e funclib to create clone using volume snapshot.
        ## Passing app_ns, snapshot_name,storage class and clone name as environmental variable.
 
         - name: Creating clone using snapshot.
@@ -57,7 +57,7 @@
 
       always:
            ## RECORD END-OF-TEST IN LITMUS RESULT CR
-        - include_tasks: /utils/fcm/update_litmus_result_resource.yml
+        - include_tasks: /utils/fcm/update_e2e_result_resource.yml
           vars:
             status: 'EOT'
 

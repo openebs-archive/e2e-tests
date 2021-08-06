@@ -2,14 +2,14 @@
 apiVersion: batch/v1
 kind: Job
 metadata:
-  name: litmus-storageclass-cleanup
-  namespace: litmus 
+  name: e2e-storageclass-cleanup
+  namespace: e2e 
 spec:
   template:
     metadata:
-      name: litmus
+      name: e2e
     spec:
-      serviceAccountName: litmus
+      serviceAccountName: e2e
       restartPolicy: Never
       containers:
       - name: ansibletest

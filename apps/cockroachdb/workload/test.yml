@@ -1,7 +1,7 @@
 ---
 # This playbook generates the load on the cockroachdb application already deployed on the cluster.
 # Steps:
-# 1) Create litmus-result customr resource for logging.
+# 1) Create e2e-result customr resource for logging.
 # 2) Create cockroachdb loadgen job
 # 3) Verify if the corresponding pod is running successfully.
 
@@ -28,7 +28,7 @@
           when: lookup('env','RUN_ID')
 
            ## RECORD START-OF-TEST IN LITMUS RESULT CR
-        - include_tasks: /utils/fcm/update_litmus_result_resource.yml
+        - include_tasks: /utils/fcm/update_e2e_result_resource.yml
           vars:
             status: 'SOT'
 
@@ -137,6 +137,6 @@
 
       always:
             ## RECORD END-OF-TEST IN LITMUS RESULT CR
-        - include_tasks: /utils/fcm/update_litmus_result_resource.yml
+        - include_tasks: /utils/fcm/update_e2e_result_resource.yml
           vars:
             status: 'EOT'

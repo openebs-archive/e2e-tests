@@ -5,7 +5,7 @@
 #    - app_label( Applications's label in the form key=value)
 #    - app_replica_count( Required number of application replicas)
 #    - deploy_type (Either 'deployment' or 'statefulset')
-# The above parameters should be obtained as environmental variables from the litmus-book.
+# The above parameters should be obtained as environmental variables from the e2e-book.
 
 - name: Obtaining the application pod name.
   shell: kubectl get {{ deploy_type }} -n {{ operator_namespace }} --no-headers -l {{ app_label }} -o custom-columns=:metadata.name

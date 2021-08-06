@@ -20,7 +20,7 @@ system resilience can be characterized before and during operations.
 
  The actual execution framework & repository of ready/configurable test experiments (mostly written as ansible playbooks & executed as Kubernetes jobs). The jobs are often executed in CI pipelines as part of e2e (refer https://openebs.ci) 
 
-The test experiments make use of facilitator containers in [test-tools](https://github.com/litmuschaos/test-tools) to 
+The test experiments make use of facilitator containers in [test-tools](https://github.com/e2echaos/test-tools) to 
 implement the chaos, load generation, logging and other utility functions. 
 
 The test logic is packaged into dedicated containers which makes them portable across Kubernetes deployments. 
@@ -48,7 +48,7 @@ kubectl apply -f hack/crds.yaml
 ```
 ├── data_persistence.j2   # An util for verifying data persistence. It varies based on app being used.
 ├── README.md             # Description about the scenario.
-├── run_litmus_test.yml   # The job spec.
+├── run_e2e_test.yml   # The job spec.
 ├── test_vars.yml         # Variables used in ansible-playbook.
 └── test.yml              # The test logic in the form of ansible playbook.
 ```
@@ -71,20 +71,20 @@ In addition to the above files, some experiments will have util files being used
 Let's say, you'd like to test resiliency of a stateful application pod upon container crash
 
 - Locate the Experiment: Litmusbooks are typically placed in `experiments/<type>` folders. In this case, the corresponding
-  litmusbook is present at `experiments/chaos/app_pod_failure` 
+  e2ebook is present at `experiments/chaos/app_pod_failure` 
 
 - Update the application (generally, the namespace and app labels) & chaos (if applicable) information being passed as ENVs to 
-  the litmus job (`run_litmus_test.yml`). 
+  the e2e job (`run_e2e_test.yml`). 
 
-- Run the litmusbook:
+- Run the e2ebook:
 
   ```
-  kubectl create -f experiments/chaos/app_pod_failure/run_litmus_test.yml
+  kubectl create -f experiments/chaos/app_pod_failure/run_e2e_test.yml
   ```
   
 ## Get Experiment Results 
 
-Results are maintained in a custom resource (`litmusresult`) that bears the same name as the experiment. In this case,
+Results are maintained in a custom resource (`e2eresult`) that bears the same name as the experiment. In this case,
 `application-pod-failure`. View the experiment status via:
 
 ```
@@ -97,8 +97,8 @@ This custom resource(lr) will be created for every experiment in the beginning a
 
 Litmus pod (experiment-runner) console logs comprise of ansible playbbok run outputs & can be captured by any logging daemon
 (such as fluentd), with most reference implementations using it as part of a standard stack (Elasticsearch-Fluentd-Kibana). 
-However, you could also use the stern-based [logger](https://github.com/litmuschaos/test-tools/tree/master/logger), either as 
-a sidecar in the litmus job or a separate deployment to collect pod & system (kubelet) logs.
+However, you could also use the stern-based [logger](https://github.com/e2echaos/test-tools/tree/master/logger), either as 
+a sidecar in the e2e job or a separate deployment to collect pod & system (kubelet) logs.
 
 ## Ways to Contribute
 
@@ -135,7 +135,7 @@ Litmus makes use of and extends several open source projects. Below are just som
 - [pumba](https://github.com/alexei-led/pumba)
 - [chaostoolkit](https://github.com/chaostoolkit/chaostoolkit)
 
-For a full list, please checkout the [test-tools](https://github.com/litmuschaos/test-tools) repository.
+For a full list, please checkout the [test-tools](https://github.com/e2echaos/test-tools) repository.
 
 ## License
 

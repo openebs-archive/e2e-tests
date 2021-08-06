@@ -8,7 +8,7 @@
   delay: 5
   retries: 3
 
-- name: Installing velero inside litmus container
+- name: Installing velero inside e2e container
   shell: |
     tar -xvf velero-{{ velero_version }}-linux-amd64.tar.gz
     mv velero-{{ velero_version }}-linux-amd64/velero /usr/local/bin/
@@ -49,7 +49,7 @@
 - block:
 
    - name: Fetching service account key.json from configmap
-     shell: kubectl get cm gcp-key -n litmus -o jsonpath='{.data.key\.json}' > ./key.json
+     shell: kubectl get cm gcp-key -n e2e -o jsonpath='{.data.key\.json}' > ./key.json
 
    - name: Authenticating using gcp service account
      shell: gcloud auth activate-service-account --key-file key.json

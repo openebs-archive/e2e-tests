@@ -17,7 +17,7 @@
         
         - include_tasks: /utils/fcm/create_testname.yml
 
-        - include_tasks: /utils/fcm/update_litmus_result_resource.yml
+        - include_tasks: /utils/fcm/update_e2e_result_resource.yml
           vars:
             status: 'SOT'
             chaostype: "drain-node"
@@ -128,7 +128,7 @@
           delay: 20
           retries: 12 
 
-        - include_tasks: /utils/fcm/update_litmus_result_resource.yml
+        - include_tasks: /utils/fcm/update_e2e_result_resource.yml
           vars:
             status: 'EOT'
             chaostype: "drain-node"
