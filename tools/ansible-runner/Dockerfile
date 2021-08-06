@@ -18,6 +18,8 @@ RUN echo "deb [signed-by=/usr/share/keyrings/cloud.google.gpg] https://packages.
 #Installing ansible
 RUN pip install ansible==2.7.3
 
+RUN pip install ruamel.yaml.clib==0.1.2
+
 #Installing openshift
 RUN pip install openshift==0.11.2
 
@@ -46,4 +48,3 @@ COPY ./hack/*.j2 ./
 COPY ./utils ./utils/
 COPY ./tools/plugins /usr/local/lib/python2.7/dist-packages/ansible/plugins/callback/
 COPY experiments ./experiments
-COPY executor ./executor
