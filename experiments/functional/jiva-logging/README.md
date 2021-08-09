@@ -18,7 +18,7 @@
 ## Notes
 
 - This functional test checks if the Jiva logging can be enabled/disabled.
-- This litmusbook accepts the parameters in form of job environmental variables.
+- This e2ebook accepts the parameters in form of job environmental variables.
 - This job validates the enabling/disabling jiva logging that can be achieved through jiva controller pod using `jivactl logtofile enable --maxLogFileSize 100 --retentionPeriod 180 --maxBackups 5`.
 - After disabling the logging, log file content/size should not increase.
 

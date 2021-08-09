@@ -4,7 +4,7 @@
 #    - app_ns ( namespace in which application is deployed)
 #    - app_label( Applications's label in the form key=value)
 #    - deploy_type (Either 'deployment' or 'statefulset')
-# The above parameters should be obtained as environmental variables from the litmus-book.
+# The above parameters should be obtained as environmental variables from the e2e-book.
 - name: Obtaining the deployment name.
   shell: kubectl get {{ deploy_type }} -n {{ app_ns }} --no-headers -l {{ app_label }} -o custom-columns=:metadata.name
   args:

@@ -38,12 +38,12 @@
         - include_tasks: /utils/fcm/create_testname.yml
 
            ## RECORD START-OF-TEST IN LITMUS RESULT CR
-        - include_tasks: "/utils/fcm/update_litmus_result_resource.yml"
+        - include_tasks: "/utils/fcm/update_e2e_result_resource.yml"
           vars:
             status: 'SOT'
 
-        - name: Apply the litmus result CR
-          command: kubectl apply -f litmus-result.yaml
+        - name: Apply the e2e result CR
+          command: kubectl apply -f e2e-result.yaml
           register: lr_status
           failed_when: "lr_status.rc != 0"
 
@@ -269,10 +269,10 @@
 
       always:
             ## RECORD END-OF-TEST IN LITMUS RESULT CR
-        - name: Generate the litmus result CR to reflect EOT (End of Test)
+        - name: Generate the e2e result CR to reflect EOT (End of Test)
           template:
-            src: /litmus-result.j2
-            dest: litmus-result.yaml
+            src: /e2e-result.j2
+            dest: e2e-result.yaml
           vars:
             test: "{{ test_name }}"
             app: "busybox"
@@ -280,8 +280,8 @@
             phase: completed
             verdict: "{{ flag }}"
 
-        - name: Apply the litmus result CR
-          shell: kubectl apply -f litmus-result.yaml
+        - name: Apply the e2e result CR
+          shell: kubectl apply -f e2e-result.yaml
           args:
             executable: /bin/bash
           register: lr_status

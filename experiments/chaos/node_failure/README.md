@@ -31,7 +31,7 @@
 
 This scenario validates the behaviour of application and OpenEBS persistent volumes in the amidst of chaos induced on the node where the application pod is scheduled. It is performed by shutting down the node(virtual machine) created on VMware hypervisor. After attaining podevictiontimeout(5 minutes by default), the application pod is expected to be scheduled on other available node. Due to abrupt shutdown, the old application pod still remain in unknown state. As an impact, volume mount in the newly scheduled pod fails due to multi-attach error. As a workaround for this, the node CR will be deleted which kills the old pod. Then, the application pod is expected to run successfully after 5 minutes.
 
-Based on the value of env `DATA_PERSISTENCE`, the corresponding data consistency util will be executed. At present, only busybox and percona-mysql are supported. Along with specifying env in the litmus experiment, user needs to pass name for configmap and the data consistency specific parameters required via configmap in the format as follows:
+Based on the value of env `DATA_PERSISTENCE`, the corresponding data consistency util will be executed. At present, only busybox and percona-mysql are supported. Along with specifying env in the e2e experiment, user needs to pass name for configmap and the data consistency specific parameters required via configmap in the format as follows:
 
 ```
     parameters.yml: |
@@ -40,7 +40,7 @@ Based on the value of env `DATA_PERSISTENCE`, the corresponding data consistency
       testfile: difiletest
 ```
 
-It is recommended to pass test-name for configmap and mount the corresponding configmap as volume in the litmus pod. The above snippet holds the parameters required for validation data consistency in busybox application.
+It is recommended to pass test-name for configmap and mount the corresponding configmap as volume in the e2e pod. The above snippet holds the parameters required for validation data consistency in busybox application.
 
 For percona-mysql, the following parameters are to be injected into configmap.
 
@@ -51,11 +51,11 @@ For percona-mysql, the following parameters are to be injected into configmap.
       dbname: tdb
 ```
 
-The configmap data will be utilised by litmus experiments as its variables while executing the scenario.
+The configmap data will be utilised by e2e experiments as its variables while executing the scenario.
 
-Based on the data provided, litmus checks if the data is consistent after recovering from induced chaos.
+Based on the data provided, e2e checks if the data is consistent after recovering from induced chaos.
 
-ESX password has to updated through k8s secret created. The litmus runner can retrieve the password from secret as environmental variable and utilize it for performing admin operations on the server.
+ESX password has to updated through k8s secret created. The e2e runner can retrieve the password from secret as environmental variable and utilize it for performing admin operations on the server.
 
 
 

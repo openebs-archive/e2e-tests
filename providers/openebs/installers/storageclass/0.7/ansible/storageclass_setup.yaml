@@ -10,7 +10,7 @@
   tasks:
     - block:
           - block:
-            ## RECORD START of litmus job
+            ## RECORD START of e2e job
             - name: Record test instance/run ID
               set_fact:
                 run_id: "{{ lookup('env','RUN_ID') }}"
@@ -19,10 +19,10 @@
                 test_name: "{{ installation_test_name }}-{{ run_id }}"
             when: lookup('env','RUN_ID')
 
-          - name: Generate the litmus result CR to reflect Start of Installation
+          - name: Generate the e2e result CR to reflect Start of Installation
             template:
-              src: /litmus-result.j2
-              dest: litmus-result.yaml
+              src: /e2e-result.j2
+              dest: e2e-result.yaml
             vars:
               test: "{{ installation_test_name }}"
               chaostype: ""
@@ -31,10 +31,10 @@
               verdict: none
 
           - name: Analyze the cr yaml
-            shell: cat litmus-result.yaml
+            shell: cat e2e-result.yaml
 
-          - name: Apply the litmus result CR
-            shell: kubectl apply -f litmus-result.yaml
+          - name: Apply the e2e result CR
+            shell: kubectl apply -f e2e-result.yaml
             args:
               executable: /bin/bash
             register: lr_status
@@ -149,10 +149,10 @@
 
       always:
         ## Updating status to CR
-        - name: Generate the litmus result CR to reflect End Of Installation
+        - name: Generate the e2e result CR to reflect End Of Installation
           template:
-            src: /litmus-result.j2
-            dest: litmus-result.yaml
+            src: /e2e-result.j2
+            dest: e2e-result.yaml
           vars:
             test: "{{ installation_test_name }}"
             chaostype: ""
@@ -161,11 +161,11 @@
             verdict: "{{ flag }}"
 
         - name: Analyze the cr yaml
-          shell: cat litmus-result.yaml
+          shell: cat e2e-result.yaml
           
 
-        - name: Apply the litmus result CR
-          shell: kubectl apply -f litmus-result.yaml
+        - name: Apply the e2e result CR
+          shell: kubectl apply -f e2e-result.yaml
           args:
             executable: /bin/bash
           register: lr_status

@@ -1,0 +1,59 @@
+---
+apiVersion: batch/v1
+kind: Job
+metadata:
+  generateName: e2e-sts-replica-distribution-
+  namespace: e2e
+spec:
+  template:
+    metadata:
+      name: e2e
+      labels:
+        app: busybox-statefulset-e2e
+
+    spec:
+      serviceAccountName: e2e
+      restartPolicy: Never
+      containers:
+      - name: ansibletest
+        image: openebs/ansible-runner:ci
+        imagePullPolicy: IfNotPresent
+
+        env:
+          - name: ANSIBLE_STDOUT_CALLBACK
+            #value: log_plays
+            value: default
+
+          - name: PROVIDER_STORAGE_CLASS
+            value: openebs-cstor-sparse
+
+            # Application pvc
+          - name: APP_PVC
+            value: openebs-busybox
+
+            # Application label
+          - name: APP_LABEL
+            value: 'app=busybox-sts'
+
+            # Application namespace
+          - name: APP_NAMESPACE
+            value: app-busybox-ns
+
+          - name: OPENEBS_NAMESPACE
+            value: 'openebs'
+
+          - name: DEPLOY_TYPE
+            value: statefulset
+
+          - name: APP_REPLICA
+            value: 'replicas=2'
+
+          - name: SCALE_REPLICA_COUNT
+            value: '3'
+            
+          # Use 'deprovision' for app-clean up
+          - name: ACTION
+            value: provision
+
+        command: ["/bin/bash"]
+        args: ["-c", "ansible-playbook ./experiments/functional/sts-volume-distribution/test.yml -i /etc/ansible/hosts -v; exit 0"]

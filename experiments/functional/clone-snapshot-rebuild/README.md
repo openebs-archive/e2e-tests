@@ -17,7 +17,7 @@
 ## Notes
 
 - This functional test checks if the Cloned volume can be created successfully using volume snapshot post rebuild.
-- The litmusbook receives necessary parameters inf the form of environmental variables.
+- The e2ebook receives necessary parameters inf the form of environmental variables.
 
 ## Associated Utils 
 

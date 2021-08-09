@@ -45,5 +45,5 @@
 
 This experiment kills the application container and verifies if the container is scheduled back and the data is intact. Based on CRI used, uses the relevant util to kill the application container.
 
-After injecting the chaos into the component specified via environmental variable, litmus experiment observes the behaviour of corresponding Application.
+After injecting the chaos into the component specified via environmental variable, e2e experiment observes the behaviour of corresponding Application.
 

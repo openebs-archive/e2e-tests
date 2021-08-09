@@ -1,7 +1,5 @@
 {% if app_target_affinity is defined and app_target_affinity == 'cstor' %}
   application_deployment: affinity-percona.yml
-{% elif app_target_affinity is defined and app_target_affinity == 'cstor-csi' %}
-  application_deployment: csi-percona.yml
 {% else %}
   application_deployment: percona.yml
 {% endif %}

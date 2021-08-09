@@ -63,13 +63,13 @@
        ## RUN FIO WORKLOAD TEST
 
        - name: Deploy fio test job
-         shell: kubectl apply -f {{ pod_yaml_alias }} -n litmus
+         shell: kubectl apply -f {{ pod_yaml_alias }} -n e2e
          args:
            executable: /bin/bash
 
        - name: Confirm fio pod status is running
          shell: >
-           kubectl get pods -l name=fio -n litmus
+           kubectl get pods -l name=fio -n e2e
            --no-headers
          args:
            executable: /bin/bash
@@ -88,7 +88,7 @@
 
        - name: Re-Check fio pod status
          shell: >
-           kubectl get pod {{ fio_pod_name }} -n litmus
+           kubectl get pod {{ fio_pod_name }} -n e2e
            --no-headers -o custom-columns=:status.phase
          args:
            executable: /bin/bash
@@ -97,7 +97,7 @@
 
        - name: Confirm fio job completion status (poll & wait for upperbound of 60 min)
          shell: >
-           kubectl get pod {{ fio_pod_name }} -n litmus
+           kubectl get pod {{ fio_pod_name }} -n e2e
            --no-headers -o custom-columns=:status.phase
          args:
            executable: /bin/bash
@@ -108,7 +108,7 @@
 
        - name: Verify the fio logs to check if run is complete w/o errors
          shell: >
-           kubectl logs {{ fio_pod_name }} -n litmus
+           kubectl logs {{ fio_pod_name }} -n e2e
            | grep -i error | cut -d ":" -f 2
            | sort | uniq
          args:

@@ -1,10 +1,10 @@
 ## Litmus Job for Provisioning OpenEBS
 
-This job installs OpenEBS on a litmus enabled cluster. It first scans the environment variables for explicitly passed release version of OpenEBS and the NDM image tags, downloads the openebs-operator.yaml, preconditions it (if necessary), applies the (updated) operator manifest and waits for all the pods to get into running state before exiting. 
+This job installs OpenEBS on a e2e enabled cluster. It first scans the environment variables for explicitly passed release version of OpenEBS and the NDM image tags, downloads the openebs-operator.yaml, preconditions it (if necessary), applies the (updated) operator manifest and waits for all the pods to get into running state before exiting. 
 
 ### Prerequisites
 
-- The cluster should be litmus enabled. To enable the litmus apply the `rbac.yaml` and `crds.yaml` from [here](https://github.com/mayadata-io/litmus/tree/master/hack), using the following commands:
+- The cluster should be e2e enabled. To enable the e2e apply the `rbac.yaml` and `crds.yaml` from [here](https://github.com/mayadata-io/e2e/tree/master/hack), using the following commands:
 
   ```
     kubectl apply -f rbac.yaml
@@ -18,16 +18,16 @@ This job installs OpenEBS on a litmus enabled cluster. It first scans the enviro
  - Create Litmus Job to deploy the OpenEBS.
   
   ```
-  kubectl create -f run_litmus_test.yml
+  kubectl create -f run_e2e_test.yml
   ```
 
  - Check the status of Job pod created in Litmus namesapce.
 
     ```
-     kubectl get pod -n litmus
+     kubectl get pod -n e2e
     ```
 
- - Once the litmus pod status is completed check the OpenEBS components are installed successfully in openebs namespace.
+ - Once the e2e pod status is completed check the OpenEBS components are installed successfully in openebs namespace.
      
     ```
      kubectl get pods -n openebs
@@ -51,7 +51,7 @@ This job installs OpenEBS on a litmus enabled cluster. It first scans the enviro
   
 ### Note:
 
-Image names for openebs-operator can be explicitly passed by environment variable in the run_litmus_test.yml .
+Image names for openebs-operator can be explicitly passed by environment variable in the run_e2e_test.yml .
 
 Example:
 
@@ -60,16 +60,16 @@ Example:
 apiVersion: batch/v1
 kind: Job
 metadata:
-  generateName: litmus-openebs-provision-
-  namespace: litmus
+  generateName: e2e-openebs-provision-
+  namespace: e2e
 spec:
   template:
     metadata:
-      name: litmus
+      name: e2e
       labels:
         app: openebs-provision
     spec:
-      serviceAccountName: litmus
+      serviceAccountName: e2e
       restartPolicy: Never
       containers:
       - name: ansibletest
@@ -105,8 +105,8 @@ spec:
 ```
 
 ### Troubleshooting
-- In case of unsuccessful/incomplete installation view the logs of the litmus job.
+- In case of unsuccessful/incomplete installation view the logs of the e2e job.
    ```
-    kubectl logs -f <litmus_job_pod_name> -n litmus
+    kubectl logs -f <e2e_job_pod_name> -n e2e
    ```
 

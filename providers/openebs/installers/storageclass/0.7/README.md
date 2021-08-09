@@ -1,6 +1,6 @@
 # OpenEBS v0.7 storageclass job
 
-This litmus job installs openebs storage pool or storage pool claim and openebs storage class for openebs jiva or cstor v0.7. By default this job creates a storage pool with name *openebs-mntdir* and storage class with name *openebs-storageclass* and uses the following yaml jinja template.
+This e2e job installs openebs storage pool or storage pool claim and openebs storage class for openebs jiva or cstor v0.7. By default this job creates a storage pool with name *openebs-mntdir* and storage class with name *openebs-storageclass* and uses the following yaml jinja template.
 
 cstore storageclass template
 ```
@@ -81,15 +81,15 @@ provisioner: openebs.io/provisioner-iscsi
 ```
 ### Prerequisites
 
--> The cluster should be litmus enabled.  
+-> The cluster should be e2e enabled.  
 -> Openebs v0.6 operator must be installed.  
 
 ### Installing
 
--> Starting storageclass_setup job :```kubectl apply -f litmusbook/storageclass_setup.yaml```.  
--> Deleting storageclass_setup job :```kubectl delete -f litmusbook/storageclass_setup.yaml```.  
--> Starting storageclass_cleanup job :```kubectl apply -f litmusbook/storageclass_cleanup.yaml```.  
--> Deleting storageclass_cleanup job :```kubectl apply -f litmusbook/storageclass_cleanup.yaml```.  
+-> Starting storageclass_setup job :```kubectl apply -f e2ebook/storageclass_setup.yaml```.  
+-> Deleting storageclass_setup job :```kubectl delete -f e2ebook/storageclass_setup.yaml```.  
+-> Starting storageclass_cleanup job :```kubectl apply -f e2ebook/storageclass_cleanup.yaml```.  
+-> Deleting storageclass_cleanup job :```kubectl apply -f e2ebook/storageclass_cleanup.yaml```.  
 
 ### Note:
 
@@ -103,14 +103,14 @@ Example:
 apiVersion: batch/v1
 kind: Job
 metadata:
-  name: litmus-storageclass-setup-v0.7
-  namespace: litmus 
+  name: e2e-storageclass-setup-v0.7
+  namespace: e2e 
 spec:
   template:
     metadata:
-      name: litmus
+      name: e2e
     spec:
-      serviceAccountName: litmus
+      serviceAccountName: e2e
       restartPolicy: Never
       containers:
       - name: ansibletest

@@ -3,9 +3,9 @@
 ## Description
    - This LitmusBook is to deploy the NFS provisioner using OpenEBS PV
 
-### run_litmus_test.yml
+### run_e2e_test.yml
    - This file has the details of the environmental variables that need to deploy nfs provisioner
-   - Environmental Variables used for this litmusbook is listed below:
+   - Environmental Variables used for this e2ebook is listed below:
         - PROVIDER_STORAGE_CLASS : StorageClass to deploy the NFS provisioner as deployment
         - APP_PVC: PersistentVolumeClaim name for the deployment
         - APP_LABEL: Label for the NFS Provisioner

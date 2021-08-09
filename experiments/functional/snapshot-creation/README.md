@@ -16,7 +16,7 @@
 ## Notes
 
 - This functional test checks if the volume snapshot can be created successfully for a given pvc.
-- The litmus book receives the parameters in form of environmental variables.
+- The e2e book receives the parameters in form of environmental variables.
 
 ## Associated Utils 
 

@@ -17,7 +17,7 @@ all: all-tools ansible-syntax-check
 help:
 	@echo ""
 	@echo "Usage:-"
-	@echo "\tmake all   -- [default] builds the litmus containers"
+	@echo "\tmake all   -- [default] builds the e2e containers"
 	@echo ""
 
 _build_check_docker:

@@ -25,13 +25,13 @@
 
        - name: Create pvc 
          shell: >
-           kubectl apply -f {{ pvc_yaml_alias }} -n litmus
+           kubectl apply -f {{ pvc_yaml_alias }} -n e2e
          args:
            executable: /bin/bash
 
        - name: Confirm pvc status is bound
          shell: >
-           kubectl get pvc --no-headers -n litmus -l app=test-capacity
+           kubectl get pvc --no-headers -n e2e -l app=test-capacity
          args:
            executable: /bin/bash
          register: result

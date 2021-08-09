@@ -18,7 +18,7 @@
 
 - This functional test checks if the application pod instance and its corresponding storage target pod are present in same node.
 
-- This litmusbook can be used to validate both the types of application deployments such as K8s deployment and statefulsets.
+- This e2ebook can be used to validate both the types of application deployments such as K8s deployment and statefulsets.
 
 - If it is not scheduled on same node, the test is considered to be failed.
 

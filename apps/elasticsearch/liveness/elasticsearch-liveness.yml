@@ -15,7 +15,7 @@ spec:
     spec:
       restartPolicy: Never
       containers:
-      - name: elasticsearch-litmus-liveness
+      - name: elasticsearch-e2e-liveness
         image: openebs/tests-custom-client:latest
         imagePullPolicy: IfNotPresent
 

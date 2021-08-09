@@ -16,7 +16,7 @@
         ## RECORD START-OF-TEST IN LITMUS RESULT CR
         - include_tasks: /utils/fcm/create_testname.yml
 
-        - include_tasks: /utils/fcm/update_litmus_result_resource.yml
+        - include_tasks: /utils/fcm/update_e2e_result_resource.yml
           vars:
             status: 'SOT'
             chaostype: "taint-node"
@@ -124,7 +124,7 @@
           register: result
           failed_when: "'untainted' not in result.stdout"
 
-        - include_tasks: /utils/fcm/update_litmus_result_resource.yml
+        - include_tasks: /utils/fcm/update_e2e_result_resource.yml
           vars:
             status: 'EOT'
             chaostype: "taint-node"

@@ -1,0 +1,90 @@
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: replace-cvr-node-failure
+  namespace: e2e
+data:
+  parameters.yml: |
+
+---
+apiVersion: v1
+kind: Secret
+metadata:
+  name: host-password
+  namespace: e2e
+type: Opaque
+data:
+  password:
+
+---
+apiVersion: batch/v1
+kind: Job
+metadata:
+  generateName: replace-cvr-node-failure-
+  namespace: e2e
+spec:
+  template:
+    metadata:
+      labels:
+        name: cvr-node-failure
+    spec:
+      serviceAccountName: e2e
+      restartPolicy: Never
+      #nodeSelector:
+      #  kubernetes.io/hostname:
+
+      tolerations:
+      - key: "infra-aid"
+        operator: "Equal"
+        value: "observer"
+        effect: "NoSchedule"
+
+      containers:
+      - name: ansibletest
+        image: openebs/ansible-runner:ci
+        imagePullPolicy: IfNotPresent
+        env:
+
+          - name: ANSIBLE_STDOUT_CALLBACK
+            value: default
+
+          - name: APP_NAMESPACE
+            value: ""
+
+          - name: APP_LABEL
+            value: ""
+
+          - name: APP_PVC
+            value: ""
+
+          # The platform where k8s cluster is created.
+          - name: PLATFORM
+            value: "vmware"
+
+          # The IP address of ESX HOST
+          - name: ESX_HOST_IP
+            value: ""
+
+          - name: ESX_PASSWORD
+            valueFrom:
+              secretKeyRef:
+                name: host-password 
+                key: password
+
+          # Application name to pick the relevant data persistence check util
+          - name: DATA_PERSISTENCE
+            value: "" 
+
+          - name: OPERATOR_NS
+            value: ""            
+
+        command: ["/bin/bash"]
+        args: ["-c", "ansible-playbook ./experiments/chaos/replace_cvr_by_node_failure/test.yml -i /etc/ansible/hosts -vv; exit 0"]
+        volumeMounts:
+        - name: parameters
+          mountPath: /mnt/
+      volumes:
+        - name: parameters
+          configMap:
+            name: replace-cvr-node-failure
