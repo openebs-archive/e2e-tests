@@ -1,0 +1,39 @@
+---
+apiVersion: batch/v1
+kind: Job
+metadata:
+  generateName: thick-provisioning-
+  namespace: e2e
+spec:
+  template:
+    metadata:
+      name: e2e
+      labels:
+        app: thick-provisioning
+    spec:
+      serviceAccountName: e2e
+      restartPolicy: Never
+      containers:
+      - name: ansibletest
+        image: openebs/ansible-runner:ci
+        imagePullPolicy: IfNotPresent
+        env:
+          - name: ANSIBLE_STDOUT_CALLBACK
+            #value: log_plays
+            value: default
+
+          - name: POOL_NAME
+            value: ""
+
+          - name: STORAGE_CLASS
+            value: "" 
+            
+            # Application pvc
+          - name: APP_PVC
+            value: ""
+
+          - name: APP_NAMESPACE
+            value: ""
+
+        command: ["/bin/bash"]
+        args: ["-c", "ansible-playbook ./experiments/functional/cstor_thick_provisioning/test.yml -i /etc/ansible/hosts -v; exit 0"]
