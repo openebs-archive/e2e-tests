@@ -14,4 +14,4 @@ upgrade_control_plane: "{{ lookup('env', 'UPGRADE_CONTROL_PLANE') }}"
 upgrade_to_ci: "{{ lookup('env', 'UPGRADE_TO_CI') }}"
 openebs_operator: openebs-operator.yaml
 openebs_operator_link: "https://raw.githubusercontent.com/openebs/openebs/master/k8s/openebs-operator.yaml"
-new_operator: "https://openebs.github.io/charts/openebs-operator-{{ lookup('env','TO_VERSION') }}.yaml"
+new_operator: "https://raw.githubusercontent.com/openebs/charts/gh-pages/versioned/{{ lookup('env','TO_VERSION') }}/openebs-operator.yaml"
